@@ -1771,6 +1771,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 - **Firestore errors** are mapped by code: `permission-denied` → "You no longer have access to this tree" (and the user is redirected); `resource-exhausted` → "The service is busy, please try again later" (quota) and the error is logged; `unavailable` → handled silently as offline.
 - **Toasts** (sonner) report outcomes, and destructive actions carry Undo (UX-02).
 - **Logging:** a small `logger` wrapper. In production, errors go to **Sentry** (optional) with `beforeSend` scrubbing that removes names, phones, emails and addresses, and the user ID is hashed. No request bodies are logged.
+- **No Google Analytics:** the Firebase project has Analytics linked, but the app never loads `firebase/analytics` (NFR-PRIV-04); ESLint blocks the import.
 - **Web Vitals** go to optional self-hosted, cookieless analytics. A free uptime monitor watches `/api/health`.
 - **Quota monitoring (OPS-03):** a weekly manual review of the Firebase usage dashboard and Cloudinary credits, plus an email alert when Cloudinary credits pass 70% and a Firebase budget alert once on Blaze. The runbook is in the README's Operations section.
 
@@ -1839,8 +1840,8 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | --- | --- | --- | --- | --- |
 | local | **Emulator Suite** (Auth, Firestore), project `demo-shikor` | `shikor/dev/` (or mocked) | `pnpm dev` | development and tests |
 | CI | Emulator Suite | mocked | GitHub Actions (production build + E2E) | every push and PR; no per-PR preview sites |
-| staging (optional, later) | `shikor-dev` | `shikor/dev/` | a second Compose project on the VPS | trying risky changes |
-| production | `shikor-prod` | `shikor/prod/` | Contabo VPS, deployed from `main` (§27.4) | users |
+| staging (optional, later) | a second Firebase project | `shikor/dev/` | a second Compose project on the VPS | trying risky changes |
+| production | `shikor-fe44d` | `shikor/prod/` | Contabo VPS, deployed from `main` (§27.4) | users |
 
 ### 27.2 Environment variables (`.env.example`)
 

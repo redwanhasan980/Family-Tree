@@ -1,7 +1,6 @@
 {
   "projects": {
     "default": "demo-shikor",
-    "dev": "shikor-dev",
-    "prod": "shikor-prod"
+    "prod": "shikor-fe44d"
   }
 }

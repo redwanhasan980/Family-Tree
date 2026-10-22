@@ -6,6 +6,11 @@ const FIREBASE_CLIENT = {
   group: ['firebase', 'firebase/*', '@firebase/*'],
   message: 'Access Firestore only through src/lib/repositories (CLAUDE.md rule 3).',
 };
+// Privacy (NFR-PRIV-04): the app never loads Google Analytics, even though the project has it linked.
+const FIREBASE_ANALYTICS = {
+  group: ['firebase/analytics', '@firebase/analytics'],
+  message: 'Google Analytics is not used (NFR-PRIV-04).',
+};
 const FIREBASE_ADMIN = {
   group: ['firebase-admin', 'firebase-admin/*'],
   message:
@@ -60,7 +65,7 @@ export default defineConfig([
   {
     files: ['src/lib/firebase/client.ts', 'src/lib/repositories/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [FIREBASE_ADMIN] }],
+      'no-restricted-imports': ['error', { patterns: [FIREBASE_ADMIN, FIREBASE_ANALYTICS] }],
     },
   },
   // The domain layer is pure TypeScript (CLAUDE.md rule 5).

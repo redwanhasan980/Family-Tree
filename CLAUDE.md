@@ -102,6 +102,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Fonts:** Bangla needs `line-height ≥ 1.6` and no letter-spacing. Measure SVG text with the canvas cache, using the same font stack.
 - **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.
 - **Quotas (free tier):** opening a tree costs about N + M reads. Never add per-person reads or count queries; use `personCount`.
+- **Firebase projects:** production is `shikor-fe44d`; development and tests use the emulators. The web config is public, but keep the API key out of the repository (GitHub's secret scanner flags it); deploys take it from GitHub variables. Never import `firebase/analytics` (ESLint blocks it).
 - **Emulators:** project `demo-shikor`, bound to `127.0.0.1` (some machines resolve `localhost` to IPv6, where the emulators don't listen). The browser uses `NEXT_PUBLIC_EMULATOR_HOST` (default `127.0.0.1`). `pnpm seed` always targets the emulators.
 - **Playwright:** E2E runs against the production build, so run `pnpm build` first. On machines with a preinstalled Chromium and no WebKit, set `PLAYWRIGHT_CHROMIUM_PATH`; the iPhone project is then skipped (CI runs it).
 - **Design tokens:** shadcn names are kept: `--accent` is the hover surface, the brand marigold is `--highlight`. The contrast test fails CI if a text/background pair drops below WCAG AA.

@@ -42,6 +42,8 @@ interface SessionContextValue {
   requireSession: () => void;
   /** Called after an explicit sign-in so the account's language and theme are applied. */
   markSignedIn: () => void;
+  /** Called before signing out, so leaving the app doesn't create a new guest on the way. */
+  releaseSession: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -105,7 +107,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [wantsSession, session]);
 
   const uid = hasUser(session) ? session.user.uid : null;
-  const isGuest = session.status === 'guest';
+  // Read by the profile listener, which lives as long as the uid: linking keeps the uid
+  // but turns the guest into a registered user.
+  const isGuestRef = useRef(false);
+  useEffect(() => {
+    isGuestRef.current = session.status === 'guest';
+  }, [session]);
   const profile = loaded && loaded.uid === uid ? loaded.profile : null;
 
   // Profile subscription: create it on first use, keep account facts in sync.
@@ -116,6 +123,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       (next, { fromCache }) => {
         setLoaded({ uid, profile: next });
         if (!next && !fromCache) {
+          const isGuest = isGuestRef.current;
           createProfile(uid, { isGuest, locale, theme: isTheme(theme) ? theme : 'system' }).catch(
             (error: unknown) => logger.error('profile.create', error),
           );
@@ -177,10 +185,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const markSignedIn = useCallback(() => {
     justSignedIn.current = true;
   }, []);
+  const releaseSession = useCallback(() => setWantsSession(false), []);
 
   const value = useMemo(
-    () => ({ session, profile, requireSession, markSignedIn }),
-    [session, profile, requireSession, markSignedIn],
+    () => ({ session, profile, requireSession, markSignedIn, releaseSession }),
+    [session, profile, requireSession, markSignedIn, releaseSession],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

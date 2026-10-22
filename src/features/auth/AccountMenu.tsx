@@ -34,7 +34,7 @@ function initials(name: string | null, email: string | null): string {
 
 export function AccountMenu() {
   const t = useTranslations();
-  const { session } = useSession();
+  const { session, releaseSession } = useSession();
   const router = useRouter();
 
   if (session.status === 'guest') {
@@ -51,7 +51,9 @@ export function AccountMenu() {
 
   const { user } = session;
   const logOut = async () => {
-    // Leave the app first so no new guest is created on the way out.
+    // Signing out leaves nobody signed in: without this, the app page would create a
+    // fresh guest before the landing page loads (DESIGN §9.6).
+    releaseSession();
     router.replace('/');
     try {
       await signOutUser();

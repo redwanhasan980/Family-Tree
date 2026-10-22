@@ -264,7 +264,7 @@ family-tree/
 │   ├── features/
 │   │   ├── auth/                             # SessionProvider, guest bootstrap, link/merge flows
 │   │   ├── trees/                            # dashboard, create/rename/delete, settings
-│   │   ├── editor/                           # EditorShell, toolbar, selection, commands/, history
+│   │   ├── editor/                           # useTreeSession; commands/ (builders, executor, coalesce); EditorShell (P4)
 │   │   ├── person/                           # PersonPanel, PersonForm, QuickAdd, BulkAddChildren, PersonPicker
 │   │   ├── views/
 │   │   │   ├── shared/                       # camera, collapse state, colors, card model, text measure
@@ -284,7 +284,10 @@ family-tree/
 │   ├── lib/
 │   │   ├── domain/                           # PURE TS — no React/Firebase imports
 │   │   │   ├── types.ts · schemas.ts (zod) · ids.ts
-│   │   │   ├── graph/                        # build, families, descendants, ancestors, familyCard, generations, validate, search
+│   │   │   ├── documents.ts · writes.ts      # stored docs <-> domain; writes as plain data (WriteOp)
+│   │   │   ├── graph/                        # build, order, families, descendants, ancestors, generations, numbering, validate (familyCard: P6)
+│   │   │   ├── search.ts                     # normalization and ranked person search
+│   │   │   ├── fixtures/                     # factories, testFamily, generate (seeded trees of any size)
 │   │   │   ├── names.ts · dates.ts · text.ts # display names, partial dates, grapheme-safe helpers
 │   │   │   ├── timeline.ts · historyEvents.ts# life ranges, overlap, historical markers (R3)
 │   │   │   ├── kinship/                      # R4: path finding, signatures, term tables
@@ -294,7 +297,9 @@ family-tree/
 │   │   │   ├── admin.ts                      # `import "server-only"`
 │   │   │   └── converters.ts                 # Firestore <-> domain types
 │   │   ├── repositories/                     # the ONLY client code that touches Firebase (auth.ts = Auth flows)
-│   │   │   ├── trees.ts · persons.ts · relationships.ts · users.ts · batch.ts
+│   │   │   ├── trees.ts                      # tree, people and relationship listeners; cache read; dashboard query
+│   │   │   ├── writes.ts                     # WriteOp → Firestore batch (≤ 450), chunked imports, newId()
+│   │   │   ├── users.ts · auth.ts
 │   │   ├── server/                           # server-only helpers
 │   │   │   ├── auth.ts                       # verifyRequest(): ID token + App Check
 │   │   │   ├── http.ts                       # json/error helpers, error codes
@@ -537,7 +542,7 @@ Opening a tree attaches 3 listeners (tree document, persons, relationships), whi
 
 **Key decisions**
 
-- **Writes check the role with `getAfter(tree)`**, the tree as it will be after the batch. That lets `createTree` write the tree and its first person in one batch. Reads use `get()`.
+- **Creates and updates check the role with `getAfter(tree)`**, the tree as it will be after the batch. That lets `createTree` write the tree and its first person in one batch. **Deletes and reads use `get()`**, the tree as it was, so a tree and its contents can be deleted in one batch (the undo of `createTree`).
 - **Stamps:** every write sets `updatedBy == uid` and `updatedAt == request.time`. Creates may carry an *earlier* `createdAt` (never a future one) and any `createdBy`, so undo can restore a deleted person exactly as it was. Updates keep `createdAt` and `createdBy`.
 - **Validation mirrors `schemas.ts`** (SRS §6.2): name length and "at least one language", nickname, description, phones (≤ 3, ≤ 30 characters each), custom fields (≤ 20), addresses, partial dates (year 1000 to next year, months, days), photo `publicId` bound to this tree and person, tree settings enums, `personCount` 0–5,000, and roles that match `memberIds`.
 - **Relationship IDs** must equal `p_{parentId}_{childId}` or `s_{minId}_{maxId}` with sorted IDs, so the people in a relationship can't change and duplicates are impossible.
@@ -756,32 +761,53 @@ flowchart TB
 2. Snapshots (from the cache first, then the server) are converted with Firestore converters into domain types and written into `treeStore` as `Map<ID, Person>` and `Map<ID, Relationship>`. Only the changed documents are applied (`docChanges()`).
 3. The selector `selectGraph` memoizes `buildGraph(persons, relationships)` and rebuilds only when the store version changes.
 4. Each view derives its view model (layout) from the graph plus the UI state (focus, collapsed set, settings).
-5. **Save status:** `hasPendingWrites` from snapshot metadata plus the online state gives `saving | saved | offline(pendingCount)` (TREE-07, PWA-03).
+5. **Save status:** `hasPendingWrites` from snapshot metadata plus the online state gives `saving | saved | offline` (TREE-07, PWA-03).
+6. **Gone or no access:** the rules deny reading a missing tree, so a deleted tree and lost access both reach the listeners as `permission-denied`. The editor shows one message for both.
 
 ### 11.3 Mutations through commands
 
 ```ts
+// lib/domain/writes.ts — writes as plain data, so command builders stay pure and testable
+export type WriteOp =
+  | { op: 'set' | 'update'; path: string; data: WriteData }   // values: data, Date, SERVER_TIME,
+  | { op: 'delete'; path: string };                             // increment(n), DELETE_FIELD
+
 // features/editor/commands/types.ts
-export interface WriteOp { op: 'set' | 'update' | 'delete'; path: string; data?: Record<string, unknown> }
 export interface Command {
   id: string;
-  labelKey: string;               // i18n key, e.g. "history.addChildren"
+  labelKey: string;               // i18n key in `history`, e.g. "addChildren"
   labelValues?: Record<string, string | number>;
   forward: WriteOp[];
   inverse: WriteOp[];
-  touched: { path: string; updatedAtAfter?: number }[]; // for undo conflict detection
+  touched: string[];              // document paths, for the R3 undo conflict check
+  coalesceKey?: string;           // edits to one person within 2 s merge into one undo step
+  createdIds?: ID[];              // so the UI can select new people
 }
+export type BuildResult =
+  | { ok: true; command: Command; warnings: Issue[] }   // the UI confirms warnings first
+  | { ok: false; issues: Issue[] };                     // errors block
 ```
+
+Builders live in `person/relationship/treeCommands.ts`; `repositories/writes.ts` turns `WriteOp`s into a Firestore batch, and `executor.ts` runs them and keeps the history (`stores/historyStore.ts`, 100 steps).
 
 Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 
 1. **Validate** against the current graph: the parent exists, names are present, `otherParentId` is a spouse or co-parent, there is no cycle, and the duplicate-name warning (PER-07) is returned to the UI for confirmation.
-2. **Build the forward operations:** N × `set persons/{newId}` (IDs come from `doc(collection(...)).id` on the client), N × `set relationships/p_{parent}_{child}`, optionally N × `set relationships/p_{other}_{child}`, plus `update trees/{id} {personCount: increment(N), updatedAt, updatedBy}`.
+2. **Build the forward operations:** N × `set persons/{newId}` (IDs come from `ctx.newId()`, a Firestore auto ID made on the device), N × `set relationships/p_{parent}_{child}`, optionally N × `set relationships/p_{other}_{child}`, plus `update trees/{id} {personCount: increment(N), updatedAt, updatedBy}`. New children get `childOrder = next key + i`, so the typed order is kept (§12.2).
 3. **Build the inverse:** delete the created documents and `increment(-N)`.
 4. **Execute:** `writeBatch` (at most 500 operations; larger operations such as imports are chunked and are *not* undoable). Do not `await` the commit to update the UI: latency compensation updates the listeners immediately. Commit errors (for example a permission change) surface through a toast and roll back via the server snapshot.
 5. **Push** onto `historyStore.undo` and clear `redo`.
 
 **Undo/redo (UX-01):** `undo()` runs `inverse` in a batch and moves the command to `redo`. Before undoing, if another user has changed a touched document since (R3: its `updatedAt` is newer than the recorded value), ask "This was changed by {name} since. Undo anyway?". Autosaved field edits to the same person within 2 s are **coalesced** into one command. History is kept for the session (≥ 50 steps) and cleared when another tree opens.
+
+**Behaviour decided while building the commands (P2-08):**
+
+- Commands that add or remove people update the tree document (`personCount` and stamps). Other edits leave it alone; the debounced "touch" (§7.3) arrives with the editor in P3/P4.
+- `addParent` on the tree's root makes the new parent the root, so the tree keeps starting from the oldest known ancestor. When the child already has exactly one biological parent, the new parent is also recorded as that parent's spouse.
+- `deletePerson` of the root without descendants passes the root to their first child; with descendants, the root is cleared.
+- `moveBranch` replaces all of a person's parent links (their descendants follow); `changeOtherParent` replaces one, keeping its kind.
+- `reorderChildren` writes an explicit `childOrder` for every child of that parent, so both parents show the same order.
+- `createTree` writes the tree and its first person in one batch; its undo deletes both in one batch.
 
 **Delete person (PER-06):** the inverse restores the person document, all their relationship documents and `personCount`. The Cloudinary photo is deleted only when the undo window ends (on toast expiry or leaving the tree), so that undo can restore the photo.
 
@@ -792,7 +818,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 | `treeStore` | `tree`, `persons`, `relationships`, `version`, `sync` (pending/offline flags) | none (Firestore cache) |
 | `uiStore` | `view`, `selectedId`, `focusId`, `panel` (open/size), `collapsed` per view, `search` | `collapsed` and `view` in localStorage per tree (VIS-10) |
 | `historyStore` | `undo[]`, `redo[]` | none |
-| `prefsStore` | locale, theme, density (compact/comfortable) | cookie + `users/{uid}` |
+| `prefsStore` | locale, theme, density (compact/comfortable) | cookie + `users/{uid}` (not yet built: language and theme live in the profile through `SessionProvider` since P1) |
 
 ---
 
@@ -826,7 +852,7 @@ interface Family {
 ```
 
 - **Family order:** spouse `sequence` → `marriageDate` → `createdAt`. Then co-parents who are not spouses. Then the unknown-partner family last.
-- **Sibling order:** `childOrder` (fractional index) → birth date → `createdAt` → name.
+- **Sibling order:** siblings are first ranked by birth date → `createdAt` → name → ID. That rank is each child's key unless they have an explicit `childOrder`; both share one number space, so children added later with `childOrder = max + 1` go after older siblings that never had one (`siblingKeys`, `sortSiblings`, `nextSiblingKey` in `graph/order.ts`).
 - Spouses with no children still form a family with an empty child list, so they are drawn beside their partner.
 
 ### 12.3 Descendant hierarchy (Tree, Circle, List)
@@ -849,6 +875,8 @@ buildDescendantTree(g, focusId, { collapsed: Set<string /*key*/>, maxDepth?: num
 - A partner who is also a bloodline descendant gets `isAlsoBloodline: true` and a link badge on their spouse card.
 - `hiddenCount` comes from a memoized `countDescendants` that uses a visited set, so it is cycle-safe and counts shared descendants once.
 - The collapse key is the **path key**, so collapsing one occurrence does not collapse a reference elsewhere.
+- Traversals stop at 300 generations (`MAX_DEPTH`) and count the rest, so a corrupt chain can't overflow the stack.
+- `buildGraph` also reports loops (`cycle` issues) but keeps the links; every traversal uses visited sets.
 
 ### 12.4 Ancestor hierarchy (pedigree, TV-06)
 
@@ -1178,7 +1206,7 @@ Delivery URLs are public but unguessable (random IDs, 96+ bits in total). The pr
 ### 16.2 Formatting
 
 - Numbers: `Intl.NumberFormat(locale === 'bn' ? 'bn-BD' : 'en-GB')`, which gives Bangla digits ০–৯.
-- Partial dates: `formatPartialDate(d, locale)` → "আনু. ১৯৩১", "মার্চ ২০০৪", "১২ মার্চ ২০০৪" / "c. 1931", "Mar 2004", "12 Mar 2004", built with `Intl.DateTimeFormat` for the month names.
+- Partial dates: `formatPartialDate(d, locale)` → "১৯৩১", "মার্চ ২০০৪", "১২ মার্চ, ২০০৪" / "1931", "Mar 2004", "12 Mar 2004", built with `Intl.DateTimeFormat`. The "approximately" marker ("আনু. …" / "c. …") is text, so the UI adds it from the messages when `approximate` is set.
 - Life span: "১৯৩১–২০০৪" or "জন্ম ১৯৮৫"; English: "1931–2004" or "b. 1985".
 
 ### 16.3 Typography
@@ -1697,13 +1725,15 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | Domain unit | Vitest | graph build, families, descendant tree with refs, validation, d'Aboville, search normalization, partial dates, display names, layouts (tree, circle and timeline geometry snapshots), family card model, generation groups, life ranges and overlap, family book pagination and numbering, kinship tables, GEDCOM round-trip | ≥ 90% lines |
 | Component | Vitest + Testing Library | PersonForm validation, BulkAddChildren, QuickAdd, MergeDialog, SaveStatus, LanguageSwitch | key paths |
 | Security rules | @firebase/rules-unit-testing + emulator | the §8 checklist (every allow/deny path) | 100% of rules paths |
+| Commands | Vitest + `MemoryDb` (in-memory Firestore semantics) | every command: validation branches, do → undo (exact restore) → redo | every command |
+| Data integration | Vitest + emulator (`*.emulator.test.ts`, run by `pnpm test:rules`) | every command through the real batch writer under the rules; executor + listeners; `treeAdmin` | every command |
 | API routes | Vitest + emulator (Auth/Firestore) + mocked Cloudinary | merge-ticket/merge (idempotency, expiry), media sign/delete (role, prefix), account delete | all endpoints |
 | E2E | Playwright: projects `mobile-chrome` (Pixel 7), `mobile-safari` (iPhone 14), `desktop-chrome`; both locales | guest start → wizard → reload persists; bulk add; edit with photo (mocked upload); switch views; export PNG/PDF (file produced, non-empty); sign-up linking; existing-account merge; undo/redo; offline edit then reconnect; Family card navigation and Back; album lazy loading; timeline overlap selection; family book page references | critical journeys |
 | Accessibility | @axe-core/playwright | landing, dashboard, editor (each view), person panel, export dialog, in `bn` and `en` | 0 serious violations |
 | Visual | Playwright screenshots | person card (bn/en, light/dark, photo/initials/deceased), circle labels | review on change |
 | Performance | Lighthouse CI, FPS trace | §25 budgets | gate on main |
 
-**Fixtures:** `scripts/seed-emulator.ts` creates sample trees (10, 150, 500 and 2,000 persons), including multiple marriages, a cousin marriage (refs), adoption and long Bangla names.
+**Fixtures:** `lib/domain/fixtures/generate.ts` builds deterministic trees of any size; every tree of 30+ people includes several wives, a cousin marriage (refs), an adoption, very long Bangla and English names, single-language names and every kind of partial date. `pnpm seed` writes trees of 10, 150, 500 and 2,000 people to the emulators, owned by `demo@shikor.test` (password `shikor-demo`). `fixtures/testFamily.ts` is the small hand-made family used by unit tests.
 
 ---
 

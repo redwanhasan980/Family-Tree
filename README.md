@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phases 0 and 1 complete: you can start as a guest, create an account (email or Google), log in and choose your settings. Next: Phase 2, the family data and its security rules.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0–2 complete: guest sessions and accounts, plus the family data model, security rules and undoable editing commands underneath the app. Next: Phase 3, the dashboard and tree management.* See [Project status](#project-status).
 
 ---
 
@@ -118,8 +118,8 @@ flowchart LR
 | Docs | SRS, Design, Implementation Plan, CLAUDE.md, skill | ✅ Done |
 | P0 | Foundation & tooling, deployment pipeline | ✅ Done (first deploy waits for the owner's VPS setup) |
 | P1 | Authentication & guest session | ✅ Done (the iOS Safari redirect check waits for the domain) |
-| P2 | Domain core, data layer & security rules | ⏳ Next |
-| P3 | App shell, dashboard, guest merge | ⬜ |
+| P2 | Domain core, data layer & security rules | ✅ Done |
+| P3 | App shell, dashboard, guest merge | ⏳ Next |
 | P4 | Tree view & core editing | ⬜ |
 | P5 | Person details & photos | ⬜ |
 | P6 | List, Circle & Family card views | ⬜ |
@@ -155,7 +155,7 @@ cp .env.example .env.local      # NEXT_PUBLIC_USE_EMULATORS=true works out of th
 
 ```bash
 pnpm emulators     # terminal 1: Auth + Firestore emulators (UI at http://127.0.0.1:4000)
-pnpm seed          # optional: seed the emulator (fixture trees arrive in P2)
+pnpm seed          # optional: demo trees of 10–2,000 people; log in as demo@shikor.test / shikor-demo
 pnpm dev           # terminal 2: http://localhost:3000 → redirects to /bn or /en
 ```
 
@@ -209,12 +209,12 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
 | `pnpm dev` | Start the development server |
 | `pnpm build` / `pnpm start` | Production build / serve |
 | `pnpm emulators` | Start the Firebase Auth and Firestore emulators (project `demo-shikor`) |
-| `pnpm seed` | Seed the emulators (always targets the emulators, never a real project) |
+| `pnpm seed` | Demo trees of 10, 150, 500 and 2,000 people for `demo@shikor.test` / `shikor-demo` (always targets the emulators, never a real project) |
 | `pnpm typecheck` | TypeScript check |
 | `pnpm lint` | ESLint (including the layering rules from CLAUDE.md) |
 | `pnpm format` / `pnpm format:check` | Prettier write / check |
 | `pnpm test` / `pnpm test:watch` / `pnpm test:coverage` | Unit and component tests (Vitest) |
-| `pnpm test:rules` | Firestore security rules tests on the emulator |
+| `pnpm test:rules` | Firestore security rules tests, plus integration tests (`*.emulator.test.ts`: every editing command under the rules, server tree admin) on the emulator |
 | `pnpm test:e2e` | End-to-end tests (Playwright, mobile and desktop; run `pnpm build` first) |
 | `pnpm i18n:check` | Verify Bangla and English messages have the same keys and ICU arguments |
 

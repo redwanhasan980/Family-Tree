@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phases 0 and 1 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 2** (domain core, data layer and security rules). Update this line when phases complete.
+**Current status:** **Phases 0–2 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 3** (app shell, dashboard, tree management and guest merge). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
@@ -29,20 +29,20 @@ Use `pnpm`, never npm or yarn. Local work needs no Firebase account: `cp .env.ex
 ```bash
 pnpm dev            # Next.js dev server (http://localhost:3000/bn or /en)
 pnpm emulators      # Firebase Auth + Firestore emulators (run alongside dev)
-pnpm seed           # seed emulator with fixture trees
+pnpm seed           # demo trees (10–2,000 people) for demo@shikor.test / shikor-demo
 pnpm typecheck      # tsc --noEmit
 pnpm lint           # eslint
 pnpm format         # prettier --write
 pnpm format:check   # prettier --check (CI)
 pnpm test           # vitest (unit + component)
 pnpm test:coverage  # vitest with the domain coverage gate (CI)
-pnpm test:rules     # firestore rules tests (needs emulators: firebase emulators:exec)
+pnpm test:rules     # rules tests + *.emulator.test.ts integration tests (runs firebase emulators:exec)
 pnpm test:e2e       # playwright (mobile + desktop); starts the emulators itself; run pnpm build first
 pnpm i18n:check     # en/bn message key parity
 pnpm build          # production build
 ```
 
-Before every commit, run `pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check`. If you changed the rules, also run `pnpm test:rules`.
+Before every commit, run `pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check`. If you changed the rules, repositories or commands, also run `pnpm test:rules`.
 
 ## Architecture map
 
@@ -90,7 +90,9 @@ firebase/                   firestore.rules, indexes, rules tests
 
 - **Guest merge:** linking keeps the user ID (nothing to move). Only an *existing* account needs the merge-ticket flow (DESIGN §9.4). Capture guest tree summaries **before** signing in, because afterwards they are unreadable.
 - **Google sign-in:** use popup first and fall back to redirect. Redirects need the `/__/auth/*` rewrite and an app-domain `authDomain` (DESIGN §9.5). In-app browsers (Messenger and similar) block Google OAuth, so show the "open in browser" guide.
-- **Firestore rules** allow at most 20 `get`/`exists` calls per batch. Graph integrity (cycles, a single biological father) is enforced in the domain layer, not in the rules.
+- **Firestore rules** allow at most 20 *distinct* document reads per batch (repeated reads of one tree count once, so a 450-write batch inside one tree passes). Graph integrity (cycles, a single biological father) is enforced in the domain layer, not in the rules. Creates and updates check the role with `getAfter(tree)`, deletes and reads with `get(tree)`. A missing tree reads as `permission-denied`, the same as no access.
+- **Commands are pure builders** returning `WriteOp`s (`lib/domain/writes.ts`: `SERVER_TIME`, `increment`, `DELETE_FIELD`). Test a new one with `MemoryDb` round-trips in `commands.test.ts` and add it to `commands.emulator.test.ts` so the rules check its writes.
+- **Sibling order:** an explicit `childOrder` and the birth-date rank share one number space (`graph/order.ts`). New children get `nextSiblingKey()`; never compare `childOrder` values on their own.
 - **Writes are not awaited for UI updates.** Latency compensation updates the listeners instantly; `await` blocks forever while offline. Use snapshot metadata for save status.
 - **Cousin marriages** make a person appear twice. The first occurrence is primary and later ones are `isRef` nodes. Collapse keys are *path keys*, not person IDs.
 - **Two kinds of views (ADR-013):** Tree, Circle and Timeline are SVG canvas views (camera, no `foreignObject`). Family card, List and Album are HTML card views. Exports follow the same split: serialize SVG directly, or use html-to-image for HTML (render twice on Safari).

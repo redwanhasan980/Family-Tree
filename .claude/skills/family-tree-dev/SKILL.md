@@ -47,47 +47,35 @@ Rules to remember:
 
 ## 3. Recipe: add a mutation (Command)
 
+Builders are **pure**: they read `ctx.graph`/`ctx.tree` and return writes as plain data (`WriteOp` from `lib/domain/writes.ts`, with `SERVER_TIME`, `increment(n)` and `DELETE_FIELD`). Put them in `src/features/editor/commands/{person,relationship,tree}Commands.ts` and use the helpers in `build.ts`. The real `addSpouse`:
+
 ```ts
-// src/features/editor/commands/addSpouse.ts
-import type { Command } from './types';
-import { spouseLinkId } from '@/lib/domain/ids';
-import { canLinkSpouses } from '@/lib/domain/graph/validate';
+export function addSpouse(ctx: CommandContext, personId: ID, input: NewPersonInput, { status = 'married' } = {}): BuildResult {
+  if (!ctx.graph.persons.has(personId)) return fail('missingPerson');      // errors block
+  const parsed = parsePeople([input]);                                     // Zod, i18n error keys
+  if (!parsed.ok) return failWith(parsed.issues);
+  const limits = capacity(ctx, 1);                                         // hard limit = error, soft = warning
+  if (errorsIn(limits).length > 0) return failWith(limits);
 
-export function addSpouseCommand(ctx: CommandContext, personId: ID, input: NewPersonInput): Command | Issue[] {
-  const issues = canLinkSpouses(ctx.graph, personId, /* new */ null);
-  if (issues.some((i) => i.severity === 'error')) return issues;
-
-  const newId = ctx.newPersonId();
-  const linkId = spouseLinkId(personId, newId);
-  const stamp = ctx.stamp(); // { updatedAt: serverTimestamp(), updatedBy: uid, ... }
-
-  return {
-    id: ctx.newCommandId(),
-    labelKey: 'history.addSpouse',
-    labelValues: { name: input.displayName },
-    forward: [
-      { op: 'set', path: ctx.personPath(newId), data: ctx.newPersonDoc(input, stamp) },
-      { op: 'set', path: ctx.relPath(linkId), data: ctx.spouseDoc(personId, newId, stamp) },
-      { op: 'update', path: ctx.treePath(), data: { personCount: ctx.increment(1), ...stamp } },
-    ],
-    inverse: [
-      { op: 'delete', path: ctx.relPath(linkId) },
-      { op: 'delete', path: ctx.personPath(newId) },
-      { op: 'update', path: ctx.treePath(), data: { personCount: ctx.increment(-1), ...stamp } },
-    ],
-    touched: [{ path: ctx.personPath(newId) }, { path: ctx.relPath(linkId) }],
-  };
+  const id = ctx.newId();
+  const link = spouseLink(personId, id, status, nextMarriageSequence(ctx.graph, personId));
+  const forward = [createPerson(ctx, id, parsed.people[0]!), createLink(ctx, link), touchTree(ctx, 1)];
+  const inverse = [remove(linkPath(ctx, link.id)), remove(personPath(ctx, id)), touchTree(ctx, -1)];
+  return ok({ id: commandId(), labelKey: 'addSpouse', forward, inverse, touched: touchedPaths(forward), createdIds: [id] }, limits);
 }
 ```
 
+The UI shows `warnings` (dates, possible duplicates) for confirmation, then calls `executor.run(command)` without awaiting it.
+
 Checklist:
 
-- [ ] Validate against the **current graph** first. Return `Issue[]` (with i18n codes) instead of throwing.
-- [ ] The inverse restores the **exact** prior state. For `update`, capture the previous field values and use `deleteField()` for fields that were absent.
-- [ ] At most 450 operations per command. Bigger jobs (imports) use chunked batches and are not undoable.
-- [ ] Add the `history.*` label key to both message files.
-- [ ] Test do → undo → redo against the emulator. Unit-test the validation branches.
-- [ ] Do **not** `await` the batch commit before updating the UI. Surface commit failures with a toast.
+- [ ] Validate against the **current graph** first (`lib/domain/graph/validate.ts`). Return issues with i18n codes; never throw.
+- [ ] The inverse restores the **exact** prior state: previous values for updates (`DELETE_FIELD` for absent fields), `restorePerson`/`restoreLink` (original `createdAt`) for deletes, the opposite `increment` for `personCount`.
+- [ ] Edits use field-path `update`s (`'names.en'`), never whole-document `set`.
+- [ ] At most 450 operations per command (`MAX_BATCH_OPS`). Bigger jobs (imports) use `commitInChunks` and are not undoable.
+- [ ] Unit test in `commands.test.ts` with `MemoryDb` and `roundTrip()` (do → undo → redo), plus the validation branches.
+- [ ] Add it to `commands.emulator.test.ts` so the security rules check its writes (`pnpm test:rules`).
+- [ ] Add the `history.*` label and any new issue codes to both message files when the UI first shows them.
 
 ## 4. Recipe: UI strings & Bangla
 
@@ -155,7 +143,7 @@ Run locally before every commit and push (the pre-commit hook runs lint-staged; 
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check
-pnpm test:rules          # when rules or data access changed
+pnpm test:rules          # when rules, repositories or commands changed (rules + *.emulator.test.ts)
 pnpm test:e2e            # when user flows changed (runs mobile + desktop projects)
 ```
 

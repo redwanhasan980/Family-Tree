@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Phase 2, the family data model underneath the editor:
+  - **People and relationships:** types and schemas with the SRS field limits, partial dates in Bangla and English, display names in either language, and search across both scripts and nicknames.
+  - **The graph engine:** families grouped by the other parent, descendant and ancestor trees that handle cousin marriages and adoption, and generations, numbering and "unplaced people". Validation stops loops (nobody can become their own ancestor) and more than one biological father or mother, and warns about unlikely dates and possible duplicates.
+  - **Commands:** every change is an undoable command: add a person, several children at once, a spouse, a parent or a sibling; edit details; delete a person alone or with their descendants; link existing people; and change, reorder, move or remove relationships. Quick edits to the same person merge into one undo step.
+  - **Security rules** for trees, people, relationships and sharing, tested path by path. Every command is checked against them on the Firebase emulator.
+  - **Stores and the tree session:** the open tree renders from the device cache first, then keeps in sync live, with a saving/saved/offline status.
+  - **Demo trees** of 10, 150, 500 and 2,000 people for local development (`pnpm seed`).
 - Phase 1, authentication and guest sessions. Entering the app creates a guest that survives reloads and later visits; the landing page never creates one. Sign-up with email/password or Google keeps everything by linking to the guest. Also: log-in, password reset (which never reveals whether an account exists), email verification with a resend banner, and log-out. The header gets a guest chip that explains guest storage and an account menu. Settings cover name, language and theme, and the account's choices follow it to other devices. Google sign-in inside Facebook and other in-app browsers shows an "open in your browser" guide instead.
 - Server foundation for Route Handlers: `verifyRequest()` (ID token with revocation check, App Check, guest policy), a shared error format with codes, and strict request validation. App Check with reCAPTCHA v3 in production once a site key is set. `/__/auth` is proxied to Firebase for redirect sign-in on the app's own domain.
 - Security rules for user profiles (`users/{uid}`) with tests, and end-to-end tests for the guest and account flows that run against the emulators in CI.

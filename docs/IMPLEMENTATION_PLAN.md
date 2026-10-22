@@ -162,19 +162,26 @@ gantt
 
 **Goal:** a correct, tested model of families, plus safe, undoable writes.
 
-- [ ] **P2-01** `lib/domain/types.ts`, `schemas.ts` (Zod, SRS §6.2 limits), `ids.ts` (`parentLinkId`, `spouseLinkId` with sorted IDs).
-- [ ] **P2-02** Graph engine: `build` (with issue reporting), `families`, `descendants` (refs, `hiddenCount`, path keys), `ancestors`, `validate` (cycle, single biological parent per gender, spouse/parent conflict, date warnings, duplicates), `generations`, `dAboville`, `reachable`, `branchOf`. *(REL-10, VIS-08/09, REL-11)*
-- [ ] **P2-03** `names.ts` (display rules, grapheme-safe initials with `Intl.Segmenter`), `dates.ts` (partial dates: validate, compare, format bn/en), `search.ts` (normalize and rank). *(I18N-02/03/04)*
-- [ ] **P2-04** Firestore converters and repositories: `trees`, `persons`, `relationships`, `users`, `batch` (chunking ≤ 450 operations).
-- [ ] **P2-05** Full `firestore.rules` (DESIGN §8) and `firestore.indexes.json` (composite indexes plus field exemptions). **Rules tests cover the whole §8 checklist.** *(NFR-SEC-01)*
-- [ ] **P2-06** Stores: `treeStore`, `uiStore`, `historyStore`. `useTreeSession(treeId)`: cache-first hydrate, three listeners, `docChanges` application, save/offline status. *(TREE-07, NFR-REL-01)*
-- [ ] **P2-07** Command framework: types, executor (batch, no await for UI), undo/redo, coalescing (2 s window per person), and the conflict-check hook (used in R3). *(UX-01, ADR-010)*
-- [ ] **P2-08** Commands: `createTree`, `addPerson`, `addChildren` (auto other parent), `addSpouse`, `addParent`, `addSibling`, `linkExisting`, `updatePerson`, `deletePerson` (only, or with descendants), `setParentKind`, `setSpouseStatus`, `changeOtherParent`, `reorderChildren`, `moveBranch`, `removeRelationship`, `setRoot`. *(REL-01..09, PER-06, TREE-05)*
-- [ ] **P2-09** `lib/server/treeAdmin.ts`: `listOwnedTrees`, `transferTrees`, `recursiveDeleteTree`.
-- [ ] **P2-10** Fixture generator: 10, 150, 500 and 2,000 persons, multiple wives, a cousin marriage, adoption, long Bangla and English names, partial dates.
-- [ ] **P2-11** Tests: domain ≥ 90% coverage; command integration tests against the emulator (forward, then undo restores the exact state).
+- [x] **P2-01** `lib/domain/types.ts`, `schemas.ts` (Zod, SRS §6.2 limits), `ids.ts` (`parentLinkId`, `spouseLinkId` with sorted IDs).
+- [x] **P2-02** Graph engine: `build` (with issue reporting), `families`, `descendants` (refs, `hiddenCount`, path keys), `ancestors`, `validate` (cycle, single biological parent per gender, spouse/parent conflict, date warnings, duplicates), `generations`, `dAboville`, `reachable`, `branchOf`. *(REL-10, VIS-08/09, REL-11)*
+- [x] **P2-03** `names.ts` (display rules, grapheme-safe initials with `Intl.Segmenter`), `dates.ts` (partial dates: validate, compare, format bn/en), `search.ts` (normalize and rank). *(I18N-02/03/04)*
+- [x] **P2-04** Firestore converters and repositories: `trees`, `persons`, `relationships`, `users`, `batch` (chunking ≤ 450 operations).
+- [x] **P2-05** Full `firestore.rules` (DESIGN §8) and `firestore.indexes.json` (composite indexes plus field exemptions). **Rules tests cover the whole §8 checklist.** *(NFR-SEC-01)*
+- [x] **P2-06** Stores: `treeStore`, `uiStore`, `historyStore`. `useTreeSession(treeId)`: cache-first hydrate, three listeners, `docChanges` application, save/offline status. *(TREE-07, NFR-REL-01)*
+- [x] **P2-07** Command framework: types, executor (batch, no await for UI), undo/redo, coalescing (2 s window per person), and the conflict-check hook (used in R3). *(UX-01, ADR-010)*
+- [x] **P2-08** Commands: `createTree`, `addPerson`, `addChildren` (auto other parent), `addSpouse`, `addParent`, `addSibling`, `linkExisting`, `updatePerson`, `deletePerson` (only, or with descendants), `setParentKind`, `setSpouseStatus`, `changeOtherParent`, `reorderChildren`, `moveBranch`, `removeRelationship`, `setRoot`. *(REL-01..09, PER-06, TREE-05)*
+- [x] **P2-09** `lib/server/treeAdmin.ts`: `listOwnedTrees`, `transferTrees`, `recursiveDeleteTree`.
+- [x] **P2-10** Fixture generator: 10, 150, 500 and 2,000 persons, multiple wives, a cousin marriage, adoption, long Bangla and English names, partial dates.
+- [x] **P2-11** Tests: domain ≥ 90% coverage; command integration tests against the emulator (forward, then undo restores the exact state).
 
 **Exit criteria:** every command round-trips (do → undo → redo) against the emulator; the rules suite passes; coverage gates pass.
+
+**Status (2026-10-22):** done. Every command round-trips against the emulator under the security rules, the rules suite passes (72 tests including the integration tests), and domain coverage is 100% of lines. Notes for later phases:
+
+- The `history.*` labels and the user-facing text for validation codes (`cycle`, `tooManyBiologicalParents`, `possibleDuplicate`, …) are added with the editor UI in P4, where the wording can fit its context.
+- The debounced tree "touch" for edits that don't add or remove people (DESIGN §7.3) comes with the editor shell (P3/P4).
+- `touched` paths are recorded on every command; the R3 conflict check reads them through the executor's `confirmUndo` hook.
+- Cloudinary photo deletion after the undo window (PER-06) arrives with photos in P5.
 
 ---
 

@@ -4,7 +4,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 
 ## Project in one paragraph
 
-**Family Tree** is a bilingual (বাংলা / English) web app for building family trees. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in three views (**Tree**, **Circle**, **List**), each exportable as PNG or PDF. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
+**Family Tree** is a bilingual (বাংলা / English) web app for building family trees. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in several views: **Tree**, **Family card**, **Circle** and **List** in v1.0; **Generation album** in v1.1; **Timeline** in v1.2. Every view exports as PNG or PDF, and v1.2 adds a printable **Family book**. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
 
 ## Source of truth
 
@@ -20,7 +20,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 
 ## Tech stack (pinned in package.json once scaffolded)
 
-Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (server SDK only) · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
+Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (server SDK only) · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
 
 ## Commands
 
@@ -67,7 +67,7 @@ firebase/                   firestore.rules, indexes, rules tests
 6. **Changing the schema means touching all of these together:** `types.ts`, `schemas.ts`, converters, `firestore.rules`, the rules tests, DESIGN §6–8 and `schemaVersion`/migration if needed.
 7. **Secrets:** only `NEXT_PUBLIC_*` values may reach the client. Admin and Cloudinary modules start with `import 'server-only'`. Never commit `.env*` files except `.env.example`.
 8. **Route Handlers** always call `verifyRequest()` (ID token + App Check), validate input with Zod, and return `{ error: { code, message } }` on failure.
-9. **Bangla-safe text:** never slice user strings by index. Use `Intl.Segmenter` (graphemes). Never render user text with jsPDF's `text()`; exports rasterize browser-rendered SVG instead (ADR-006).
+9. **Bangla-safe text:** never slice user strings by index. Use `Intl.Segmenter` (graphemes). Never render user text with jsPDF's `text()`; exports rasterize browser-rendered SVG or HTML instead (ADR-006).
 10. **Mobile and desktop are equal.** Verify UI changes at 360×740 and 1440×900, in `bn` and `en`, light and dark.
 11. **Docs move with code.** Update README, DESIGN, the plan checkboxes and CHANGELOG in the same PR.
 12. **Security rules** are deployed from the repository by CI only, never edited in the console. Every allow/deny path needs a test.
@@ -90,7 +90,10 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Firestore rules** allow at most 20 `get`/`exists` calls per batch. Graph integrity (cycles, a single biological father) is enforced in the domain layer, not in the rules.
 - **Writes are not awaited for UI updates.** Latency compensation updates the listeners instantly; `await` blocks forever while offline. Use snapshot metadata for save status.
 - **Cousin marriages** make a person appear twice. The first occurrence is primary and later ones are `isRef` nodes. Collapse keys are *path keys*, not person IDs.
-- **Exports:** Cloudinary images must be inlined as data URLs (`export` variant, `f_jpg`). Clamp the canvas size for iOS (≤ 16.7 MP) and tile PDFs.
+- **Two kinds of views (ADR-013):** Tree, Circle and Timeline are SVG canvas views (camera, no `foreignObject`). Family card, List and Album are HTML card views. Exports follow the same split: serialize SVG directly, or use html-to-image for HTML (render twice on Safari).
+- **Exports:** Cloudinary images must be inlined as data URLs (`export` variant, `f_jpg`; the Family book uses `print`). Clamp the canvas size for iOS (≤ 16.7 MP) and tile PDFs. The Family book renders page by page with one canvas alive at a time.
+- **Bangla genitives:** never build "করিমের ছেলে" by appending suffixes to names. Use label forms such as "বাবা: করিম".
+- **Staged views** (Album, Timeline, Family book) sit behind `lib/features.ts` flags until their release.
 - **Cloudinary:** store `publicId` + `version`, never URLs. Keep the variant set small because each transformation costs credits. Photo deletion is deferred until the undo window closes.
 - **Fonts:** Bangla needs `line-height ≥ 1.6` and no letter-spacing. Measure SVG text with the canvas cache, using the same font stack.
 - **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.

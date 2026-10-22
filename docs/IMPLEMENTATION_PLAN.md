@@ -1,7 +1,7 @@
 # Implementation Plan
 
 **Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.0
+**Document version:** 1.1 (adds the Family card, Generation album, Timeline and Family book; later phases renumbered)
 **Date:** 2026-10-22
 **Inputs:** [SRS](./SRS.md) (what) · [Design Document](./DESIGN.md) (how)
 
@@ -56,15 +56,18 @@
 | **P3** | App shell, dashboard, tree management, guest merge | TREE-01..03/05..08, AUTH-06/07/10/12 | 3–4 | P1, P2 | R1 |
 | **P4** | Tree view & core editing | TV, VIS, REL-02..12, PER-01/04..06, UX-01..03/06/07 | 8–10 | P3 | R1 |
 | **P5** | Person details & photos | PER-02/03/07..10, MED-01..07 | 5–6 | P4 | R1 |
-| **P6** | List & Circle views, ancestor mode | LV-01..06, CV-01..07, TV-06/07/10 | 8–10 | P4 | R1 |
-| **P7** | Export & JSON backup | EXP-01..09, BAK-01 | 5–6 | P5, P6 | R1 |
+| **P6** | List, Circle & Family card views, ancestor mode | LV-01..06, CV-01..07, FC-01..08, TV-06/07/10 | 11–14 | P4 | R1 |
+| **P7** | Export & JSON backup | EXP-01..09, FC-09, BAK-01 | 5–7 | P5, P6 | R1 |
 | **P8** | Onboarding, polish, hardening → **v1.0** | ONB, AUTH-03, UX-04/05, NFR-* | 6–8 | P7 | **R1** |
 | **P9** | PWA, offline & operations | PWA-01..05, AUTH-14, OPS-01 | 4–5 | P8 | R2 |
-| **P10** | Import & GEDCOM → **v1.1** | BAK-02..05, TREE-04, TV-08, CV-06, EXP-10 | 6–8 | P8 | **R2** |
-| **P11** | Sharing & collaboration → **v1.2** | SHR-01..09, VIS-07 | 8–10 | P10 | **R3** |
-| **P12** | Relationship finder → **v1.3** | KIN-01..07 | 6–8 | P8 (P11 recommended) | **R4** |
+| **P10** | Import & GEDCOM | BAK-02..05, TREE-04, TV-08, CV-06, EXP-10 | 6–8 | P8 | R2 |
+| **P11** | Generation album → **v1.1** | GA-01..08 | 3–4 | P8 | **R2** |
+| **P12** | Sharing & collaboration | SHR-01..09, VIS-07 | 8–10 | P8 | R3 |
+| **P13** | Timeline | TL-01..08 | 5–6 | P8 | R3 |
+| **P14** | Family book → **v1.2** | FB-01..07 | 6–8 | P7, P12 (shared redaction) | **R3** |
+| **P15** | Relationship finder → **v1.3** | KIN-01..07 | 6–8 | P8 (P12 recommended) | **R4** |
 
-**Totals:** MVP (P0–P8) ≈ **47–59 days** (about 10–12 weeks). All releases (P0–P12) ≈ **71–90 days**.
+**Totals:** MVP (P0–P8) ≈ **50–64 days** (about 10–13 weeks). All releases (P0–P15) ≈ **88–113 days**.
 
 ```mermaid
 gantt
@@ -78,23 +81,26 @@ gantt
     P3 Shell & dashboard     :p3, after p2, 4d
     P4 Tree view & editing   :p4, after p3, 9d
     P5 Details & photos      :p5, after p4, 5d
-    P6 List & Circle views   :p6, after p5, 9d
-    P7 Export & backup       :p7, after p6, 5d
+    P6 List, Circle & Family :p6, after p5, 12d
+    P7 Export & backup       :p7, after p6, 6d
     P8 Polish & hardening    :p8, after p7, 7d
     v1.0 release             :milestone, m1, after p8, 0d
     section R2 · v1.1
     P9 PWA & ops             :p9, after p8, 4d
     P10 Import & GEDCOM      :p10, after p9, 7d
-    v1.1 release             :milestone, m2, after p10, 0d
+    P11 Generation album     :p11, after p10, 4d
+    v1.1 release             :milestone, m2, after p11, 0d
     section R3 · v1.2
-    P11 Share & collaborate  :p11, after p10, 9d
-    v1.2 release             :milestone, m3, after p11, 0d
+    P12 Share & collaborate  :p12, after p11, 9d
+    P13 Timeline             :p13, after p12, 5d
+    P14 Family book          :p14, after p13, 7d
+    v1.2 release             :milestone, m3, after p14, 0d
     section R4 · v1.3
-    P12 Relationship finder  :p12, after p11, 7d
-    v1.3 release             :milestone, m4, after p12, 0d
+    P15 Relationship finder  :p15, after p14, 7d
+    v1.3 release             :milestone, m4, after p15, 0d
 ```
 
-*P1 and P2 can run in parallel if two people are working. The schedule assumes one developer.*
+*P1 and P2 can run in parallel if two people are working, and so can P11 and P13 after v1.0. The schedule assumes one developer.*
 
 ---
 
@@ -173,7 +179,7 @@ gantt
 
 - [ ] **P3-01** App header (desktop) and compact header (mobile): tree switcher, save status, language switch, account menu, guest chip. *(TREE-07, PWA-03)*
 - [ ] **P3-02** Dashboard: realtime tree list, create (dialog), rename, delete (typed confirmation if > 10 people), tree cards (cover, counts, updated, role). *(TREE-01..03)*
-- [ ] **P3-03** Editor shell `/trees/[treeId]`: view tabs (desktop) and bottom nav (mobile), URL state (`?view=&focus=`), details container (side panel ≥ 1024 px, vaul drawer below), empty-tree state with "Add the first person". *(VIS-01)*
+- [ ] **P3-03** Editor shell `/trees/[treeId]`: view tabs (desktop) and bottom nav with a "More" sheet (mobile), feature flags for staged views (`lib/features.ts`, ADR-014), URL state (`?view=&focus=`), details container (side panel ≥ 1024 px, vaul drawer below), empty-tree state with "Add the first person". *(VIS-01)*
 - [ ] **P3-04** Tree settings dialog (name display, colour by, photos, dates, default view). *(TREE-06)*
 - [ ] **P3-05** Statistics popover (people, generations, living/deceased, earliest year). *(TREE-08, Could)*
 - [ ] **P3-06** **Guest merge:** `POST /api/account/merge-ticket`, `POST /api/account/merge` (transaction, idempotent), `MergeDialog` (move/discard per tree), resume through `ft:pendingMerge`. *(AUTH-06/07, DESIGN §9.4)*
@@ -223,9 +229,9 @@ gantt
 
 ---
 
-### P6: List & Circle views, ancestor mode
+### P6: List, Circle & Family card views, ancestor mode
 
-**Goal:** the same family in two more beautiful, useful forms.
+**Goal:** the same family in three more beautiful, useful forms, including the simplest view for phones.
 
 - [ ] **P6-01** **List outline:** flattening, d'Aboville numbering, rows (avatar, names, partners, years, profession), chevrons, virtualization above 200 rows, ARIA `tree` pattern and keyboard support. *(LV-01/02/05/06)*
 - [ ] **P6-02** Inline quick add per row; sibling reorder (drag handle on desktop, up/down on mobile) → fractional `childOrder`. *(LV-03)*
@@ -236,8 +242,12 @@ gantt
 - [ ] **P6-07** Shared legend; generation labels *(TV-10, Could)*; minimap *(TV-07, Could)*.
 - [ ] **P6-08** View switching keeps selection and focus; collapse state is persisted per view.
 - [ ] **P6-09** Tests: layout snapshots; axe on the list view; E2E view switching and circle zoom.
+- [ ] **P6-10** **Family card model** (pure): `buildFamilyCard` (parents, partners with their children, siblings, trail, child counts), with unit tests for multiple spouses, unknown parents, adoptive parents and references. *(FC-01/03/05/07)*
+- [ ] **P6-11** **Family card view:** parents row, siblings strip, couple cards with the spouse switcher, children grid, and empty "+ add" slots wired to the quick-add and bulk-add flows. *(FC-01/03/04/05/07)*
+- [ ] **P6-12** **Family navigation:** focus changes through `uiStore` and `router.push` (browser Back works), breadcrumb, direction-aware transitions, sibling swipes, live-region announcements. *(FC-02/06/08)*
+- [ ] **P6-13** Tests: E2E AC FC-02 on mobile and desktop; axe on the Family card view; focus sync with the Tree view.
 
-**Exit criteria:** all three views render the 500-person fixture smoothly on a mid-range phone profile; the list view passes keyboard-only and screen-reader smoke tests.
+**Exit criteria:** all four views render the 500-person fixture smoothly on a mid-range phone profile; the List and Family card views pass keyboard-only and screen-reader smoke tests.
 
 ---
 
@@ -248,10 +258,11 @@ gantt
 - [ ] **P7-01** `ExportDialog`: format, view, paper, orientation, title and subtitle, photos, legend, date, quality, *expand all*. Remembers the last options. *(EXP-03/04)*
 - [ ] **P7-02** Export scene builders for the tree and circle views (`mode="export"`), with the header, footer and legend in SVG. *(EXP-05)*
 - [ ] **P7-03** Image inlining (export variant → data URL, cached) and font embedding.
-- [ ] **P7-04** PNG pipeline with canvas clamping; PDF pipeline with *fit to one page* and **tiling** (overlap and crop marks); paginated list export; print stylesheet. *(EXP-01/02/06/09)*
+- [ ] **P7-04** Both rasterization paths (SVG serialization for Tree/Circle; html-to-image for List/Family card, with the Safari double-render workaround). PNG pipeline with canvas clamping; PDF pipeline with *fit to one page* and **tiling** (overlap and crop marks); paginated list export; print stylesheet. *(EXP-01/02/06/09)*
 - [ ] **P7-05** Progress, cancel, yielding to the main thread; Web Share or download; file naming. *(EXP-07/08)*
 - [ ] **P7-06** **JSON backup export**, available to guests too. *(BAK-01)*
-- [ ] **P7-07** Tests: unit (tiling math, clamp, file names); E2E (a file is produced and non-empty, the PDF has the expected page count); **visual sign-off of conjunct-heavy names** (AC EXP-05) with a PNG screenshot baseline.
+- [ ] **P7-07** **Family sheet:** export the current Family card as a one-page PNG/PDF through the HTML path (html-to-image). *(FC-09)*
+- [ ] **P7-08** Tests: unit (tiling math, clamp, file names); E2E (a file is produced and non-empty, the PDF has the expected page count); **visual sign-off of conjunct-heavy names** (AC EXP-05) with a PNG screenshot baseline.
 
 **Exit criteria:** AC EXP-05 is signed off by the product owner; a 500-person PDF is produced in under 10 s on desktop.
 
@@ -291,7 +302,7 @@ gantt
 
 ---
 
-### P10: Import & GEDCOM → v1.1 (R2)
+### P10: Import & GEDCOM (R2)
 
 - [ ] **P10-01** **JSON import:** validate, preview, re-ID, chunked writes with progress, background photo copying. *(BAK-02/05)*
 - [ ] **P10-02** **GEDCOM parser:** lines, CONT/CONC, BOM and encodings (ANSEL rejected), mapping to the domain, skipped-record report. *(BAK-04)*
@@ -299,34 +310,79 @@ gantt
 - [ ] **P10-04** Import/export UI (dashboard and tree menu), size limits and errors.
 - [ ] **P10-05** *(Could, time-boxed)*: duplicate tree (TREE-04), drag-and-drop re-parenting (TV-08), radial node-link style (CV-06), SVG export (EXP-10).
 - [ ] **P10-06** Tests: JSON and GEDCOM round-trips on fixtures; malformed-file cases; a large import (5,000 people) on the emulator.
-- [ ] **P10-07** Release **v1.1.0**.
 
 ---
 
-### P11: Sharing & collaboration → v1.2 (R3)
+### P11: Generation album → v1.1 (R2)
 
-- [ ] **P11-01** Share dialog: create, revoke and regenerate view-only links with options (hide contact info, hide living people's details, allow export). *(SHR-01/02)*
-- [ ] **P11-02** Public page `/{locale}/s/{shareId}`: server-side load with the Admin SDK, **redaction**, read-only views, export per option, `noindex`. *(SHR-02/09, VIS-07, ADR-012)*
-- [ ] **P11-03** Invites: creation (verified owners), invite page, `POST /api/invites/accept` (transaction), guest → sign-up → accept continuation. *(SHR-03/04)*
-- [ ] **P11-04** Members: list, change role, remove, leave tree; `POST /api/trees/{id}/transfer`. *(SHR-05)*
-- [ ] **P11-05** Read-only mode for viewers across every view and panel. *(VIS-07)*
-- [ ] **P11-06** Live collaboration UX: remote-change highlights, "edited by", deleted-while-editing handling, undo conflict prompt. *(SHR-06)*
-- [ ] **P11-07** Activity log: entries written in the same batch, a drawer UI, 90-day pruning in the cron. *(SHR-07)*
-- [ ] **P11-08** Share actions: copy, native share, WhatsApp and Messenger links. *(SHR-08)*
-- [ ] **P11-09** Rules for share links, invites and activity, plus the full role matrix; E2E collaboration across two browser contexts.
-- [ ] **P11-10** Release **v1.2.0**.
+**Goal:** a photo-first album of the family, one row per generation.
+
+- [ ] **P11-01** `generationGroups` (pure): by generation or by branch, partners in their partner's generation, sibling order inside each row. Unit tests on the fixtures. *(GA-01/02)*
+- [ ] **P11-02** `AlbumView`: generation rows (scroll-snap strips on phones, a grid on desktop), cards with lazy `card` images, the parents line ("Father: … · Mother: …"), filters, "Add photo" prompts for editors, virtualization above 60 cards. *(GA-01..04/06/07)*
+- [ ] **P11-03** **Slideshow:** a full-screen dialog with the `full` variant, preloading, auto-advance, swipe and keyboard controls, pause, and reduced-motion support. *(GA-05, Could)*
+- [ ] **P11-04** **Contact-sheet export** (PNG/PDF) through the HTML rasterization path. *(GA-08)*
+- [ ] **P11-05** Feature flag on; the album added to the desktop tabs and the mobile "More" sheet.
+- [ ] **P11-06** Tests: E2E album on mobile and desktop (lazy loading, tapping a card opens details); axe; a performance check with the 500-person fixture.
+- [ ] **P11-07** Release **v1.1.0** (P9–P11).
+
+**Exit criteria:** a 500-person album scrolls smoothly on a mid-range phone profile; images below the fold are not requested until scrolled near.
 
 ---
 
-### P12: Relationship finder → v1.3 (R4)
+### P12: Sharing & collaboration (R3)
 
-- [ ] **P12-01** Path finding: blood relationships (lowest common ancestors) and affinal ones (≤ 2 spouse edges), up to 3 results. *(KIN-01/07)*
-- [ ] **P12-02** Signature encoding: elder/younger, half-siblings, step and adoptive markers. *(KIN-04)*
-- [ ] **P12-03** Term tables `bd`, `wb` and `en` with alternates; **native-speaker review**. *(KIN-03/05)*
-- [ ] **P12-04** Descriptive fallback composer (Bangla genitives, English possessives). *(KIN-06)*
-- [ ] **P12-05** UI: "How are we related?" in the details panel, a two-person picker, results with **path highlighting** in the tree view. *(KIN-01/02)*
-- [ ] **P12-06** Tests: a table-driven test for every signature, fallback cases, cousin-marriage multi-paths, the style switch.
-- [ ] **P12-07** Release **v1.3.0**.
+- [ ] **P12-01** Share dialog: create, revoke and regenerate view-only links with options (hide contact info, hide living people's details, allow export). *(SHR-01/02)*
+- [ ] **P12-02** Public page `/{locale}/s/{shareId}`: server-side load with the Admin SDK, **redaction** (a pure `redact()` function in `lib/domain`, reused by the Family book), read-only views, export per option, `noindex`. *(SHR-02/09, VIS-07, ADR-012)*
+- [ ] **P12-03** Invites: creation (verified owners), invite page, `POST /api/invites/accept` (transaction), guest → sign-up → accept continuation. *(SHR-03/04)*
+- [ ] **P12-04** Members: list, change role, remove, leave tree; `POST /api/trees/{id}/transfer`. *(SHR-05)*
+- [ ] **P12-05** Read-only mode for viewers across every view and panel. *(VIS-07)*
+- [ ] **P12-06** Live collaboration UX: remote-change highlights, "edited by", deleted-while-editing handling, undo conflict prompt. *(SHR-06)*
+- [ ] **P12-07** Activity log: entries written in the same batch, a drawer UI, 90-day pruning in the cron. *(SHR-07)*
+- [ ] **P12-08** Share actions: copy, native share, WhatsApp and Messenger links. *(SHR-08)*
+- [ ] **P12-09** Rules for share links, invites and activity, plus the full role matrix; E2E collaboration across two browser contexts.
+
+---
+
+### P13: Timeline (R3)
+
+**Goal:** lifespans on a year axis, showing who lived at the same time.
+
+- [ ] **P13-01** `lib/domain/timeline.ts` (pure): `lifeRange` (partial and approximate dates, living, unknown end), `aliveOverlap`, `ageAt`; `historyEvents.ts` with bilingual label keys. Unit tests for every date shape. *(TL-02/05/06)*
+- [ ] **P13-02** Timeline layout: `d3-scale` year axis, grouping and ordering, row model, the "undated" list. Geometry snapshot tests. *(TL-01/03)*
+- [ ] **P13-03** `TimelineView`: sticky year axis and name column, virtualized rows, bars (approximate fades, living arrowheads, dashed unknown ends), marriage and child-birth markers, historical markers with a toggle, the "today" line. *(TL-01/02/04/05/07)*
+- [ ] **P13-04** Interaction: x-only zoom and pan (wheel, pinch, buttons), tooltips with ages at markers, overlap highlighting on selection, tapping a name opens details, the "add dates" link to the Directory filtered to *no birth year*. *(TL-06/07)*
+- [ ] **P13-05** Export: a full-height SVG scene, PNG and vertically tiled PDF. *(TL-08)*
+- [ ] **P13-06** Feature flag on; tests: E2E (select → overlap highlight, zoom buttons), axe on the controls, a performance check with the 2,000-person fixture.
+
+**Exit criteria:** the timeline renders the 500-person fixture smoothly on a mid-range phone profile; people with year-only and approximate dates render without invented dates.
+
+---
+
+### P14: Family book → v1.2 (R3)
+
+**Goal:** a printable keepsake book of the whole family, with correct Bangla.
+
+- [ ] **P14-01** Book model (pure): sections in d'Aboville order, scope by branch, redaction through the shared `redact()` function, the name-index data. Unit tests. *(FB-01/02/03)*
+- [ ] **P14-02** Page templates (HTML, A4/Letter frames): cover, dedication, contents, overview chart, family section, index, running header and page numbers, in bn and en. *(FB-01/06/07)*
+- [ ] **P14-03** **Pagination** pass: measure off-screen, flow sections across pages without orphaned headings, then assign page numbers, cross-references and the index. Tests with fixture trees. *(FB-03)*
+- [ ] **P14-04** **Render pass:** page-by-page html-to-image → JPEG → jsPDF, quality options, progress, Cancel, releasing memory after each page, the 300-page warning and 600-page limit. *(FB-04/05)*
+- [ ] **P14-05** `print` Cloudinary variant (DESIGN §15.3) and the book options dialog in the Download menu and the mobile "More" sheet. *(FB-02)*
+- [ ] **P14-06** Tests: E2E for a 150-person book (page count, "see page N" correctness on sampled pages); a manual check of a printed copy; a memory check on a real phone for a 300-page book.
+- [ ] **P14-07** Release **v1.2.0** (P12–P14).
+
+**Exit criteria:** AC FB-01 passes; a 300-page book completes on a mid-range Android phone without crashing; the printed sample is signed off by the product owner.
+
+---
+
+### P15: Relationship finder → v1.3 (R4)
+
+- [ ] **P15-01** Path finding: blood relationships (lowest common ancestors) and affinal ones (≤ 2 spouse edges), up to 3 results. *(KIN-01/07)*
+- [ ] **P15-02** Signature encoding: elder/younger, half-siblings, step and adoptive markers. *(KIN-04)*
+- [ ] **P15-03** Term tables `bd`, `wb` and `en` with alternates; **native-speaker review**. *(KIN-03/05)*
+- [ ] **P15-04** Descriptive fallback composer (Bangla genitives, English possessives). *(KIN-06)*
+- [ ] **P15-05** UI: "How are we related?" in the details panel, a two-person picker, results with **path highlighting** in the tree view. *(KIN-01/02)*
+- [ ] **P15-06** Tests: a table-driven test for every signature, fallback cases, cousin-marriage multi-paths, the style switch.
+- [ ] **P15-07** Release **v1.3.0**.
 
 ---
 
@@ -338,9 +394,9 @@ gantt
 | **M1** Guest can build a tree | P1–P4 | Internal demo: build a 10-person tree on a phone, reload, data is still there |
 | **M2** Feature-complete MVP | P5–P7 | All R1 *Must* items implemented |
 | **R1 · v1.0** Public launch | P8 | Release gate (P8 exit criteria) |
-| **R2 · v1.1** Offline & portability | P9–P10 | Offline E2E and GEDCOM round-trip pass |
-| **R3 · v1.2** Families together | P11 | Role-matrix rules tests and two-user E2E pass |
-| **R4 · v1.3** "How are we related?" | P12 | Kinship tables approved by the native reviewer |
+| **R2 · v1.1** Offline, portability & album | P9–P11 | Offline E2E, GEDCOM round-trip and album performance checks pass |
+| **R3 · v1.2** Families together: sharing & stories | P12–P14 | Role-matrix rules tests, two-user E2E, timeline performance and the printed Family book sample pass |
+| **R4 · v1.3** "How are we related?" | P15 | Kinship tables approved by the native reviewer |
 
 ---
 
@@ -372,13 +428,15 @@ The risk register lives in [DESIGN §29](./DESIGN.md#29-risks--mitigations). The
 | Risk | Retired / checked by |
 | --- | --- |
 | R-04 large-tree performance | P4-13 benchmark, P8-07 |
-| R-05 Bangla in exports | P7-07 visual sign-off |
+| R-05 Bangla in exports | P7-08 visual sign-off |
 | R-06 iOS canvas limits | P7-04, tested on a real iPhone |
 | R-07 Google sign-in edge cases | P1-05, P1-06, P8-12 |
 | R-08 Serwist and Turbopack | P9-01 spike |
-| R-09 kinship correctness | P12-03 native review |
-| R-11 rules gaps | P2-05, P8-08, P11-09 |
+| R-09 kinship correctness | P15-03 native review |
+| R-11 rules gaps | P2-05, P8-08, P12-09 |
 | R-02/R-03 quotas | P8-10 runbook; monthly review |
+| R-14 Family book memory and size | P14-04, P14-06 (real-phone memory check) |
+| R-15 sparse dates on the Timeline | P13-03 "undated" list and P13-04 "add dates" link |
 
 ---
 

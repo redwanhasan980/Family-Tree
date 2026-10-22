@@ -1,7 +1,7 @@
 # Design Document
 
 **Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.0
+**Document version:** 1.1 (adds the Family card, Generation album, Timeline and Family book)
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Inputs:** [SRS](./SRS.md) · **Next:** [Implementation Plan](./IMPLEMENTATION_PLAN.md)
@@ -50,7 +50,7 @@
 
 1. **Ease of use above everything.** Starting a tree takes 0 forms. Adding a relative takes 2 taps.
 2. **Never lose data.** The guest account is created automatically, every edit is persisted, and the app survives going offline.
-3. **One data model, many views.** Tree, Circle and List render the same normalized graph.
+3. **One data model, many views.** Tree, Family card, Circle, List, Album and Timeline all render the same normalized graph, and the Family book is printed from it.
 4. **Bangla is a first-class citizen**: UI, data entry, search, exports and kinship terms.
 5. **Mobile and desktop are equally good.** Layouts are designed for each, not just squeezed.
 6. **Professional engineering.** Typed end to end, tested security rules, CI, documented decisions.
@@ -129,9 +129,9 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Forms & validation | react-hook-form + **Zod** | 7.x / 4.x | Shared schemas for client, server and import validation. |
 | i18n | **next-intl** | 4.x | App Router support, ICU messages, locale routing. |
 | Theme | next-themes | 0.4.x | System/light/dark. |
-| Layout math | d3-hierarchy, **d3-flextree**, d3-shape, d3-zoom, d3-interpolate | 3.x / 2.x | Tree layout with variable-width couple nodes, sunburst partition, arcs, pan/zoom. |
+| Layout math | d3-hierarchy, **d3-flextree**, d3-shape, d3-zoom, d3-interpolate, d3-scale | 3.x / 2.x / 4.x | Tree layout with variable-width couple nodes, sunburst partition, arcs, pan/zoom, timeline year scale. |
 | Virtualization | @tanstack/react-virtual | 3.x | Long lists. |
-| Export | **html-to-image**, **jsPDF** | 1.11 / 4.x | Rasterize the browser-rendered SVG/HTML (correct Bangla shaping) and paginate into a PDF. |
+| Export | **html-to-image**, **jsPDF** | 1.11 / 4.x | Rasterize browser-rendered output (correct Bangla shaping) and paginate into a PDF. SVG views are serialized directly; html-to-image is used for the HTML views and Family book pages (§14). |
 | Images | react-easy-crop, browser-image-compression | 6.x / 2.x | Crop and compress before upload. |
 | Auth & DB | **Firebase JS SDK** / **firebase-admin** | 13.x / 14.x | Mandated (C-01). |
 | Media | **Cloudinary** (Node SDK on the server only) | 2.x | Decision D2. |
@@ -168,10 +168,10 @@ Short-form ADRs. Each has the status *Accepted* unless noted.
 *Decision:* the client asks `/api/media/sign` (which checks membership) for a signature, then uploads straight to Cloudinary. Persons store `{publicId, version, width, height}`, and URLs are built at render time for each size. *Consequences:* no API secret in the client, flexible sizes, CDN delivery, face-aware crops. Photos are public-if-known URLs (unguessable IDs), which is documented on the privacy page. Authenticated delivery can be adopted later.
 
 **ADR-005: Custom SVG renderers on d3 layout math (not React Flow or family-chart).**
-*Decision:* d3-flextree for the tree layout, d3-partition for the circle view, and our own React SVG components with d3-zoom for the camera. *Why:* full control over couple and family rendering, Bangla text, theming, export fidelity and performance (imperative camera transforms, culling). Generic graph editors fit family semantics poorly, and existing family-tree libraries limit styling and export.
+*Decision:* d3-flextree for the tree layout, d3-partition for the circle view, d3-scale for the timeline, and our own React SVG components with d3-zoom for the camera. This applies to the canvas views; the card views are plain HTML (ADR-013). *Why:* full control over couple and family rendering, Bangla text, theming, export fidelity and performance (imperative camera transforms, culling). Generic graph editors fit family semantics poorly, and existing family-tree libraries limit styling and export.
 
 **ADR-006: Client-side export by rasterizing browser-rendered output.**
-*Decision:* render the full scene off-screen, rasterize it with html-to-image (canvas), and paginate into jsPDF as images. *Why:* jsPDF's text API does not shape Bangla (conjuncts break). The browser shapes text correctly, so rasterizing preserves it. *Consequences:* PDF text is not selectable. "Print" (browser print with a print stylesheet) is offered for a vector, selectable list.
+*Decision:* render the full scene off-screen, rasterize it to a canvas, and paginate into jsPDF as images. SVG views (Tree, Circle, Timeline) are **serialized directly** (`XMLSerializer` with embedded fonts and data-URL images), which avoids `foreignObject` and is reliable in Safari. HTML views (List, Family card, Album, Family book pages) use **html-to-image**, which wraps the DOM in an SVG `foreignObject`. *Why:* jsPDF's text API does not shape Bangla (conjuncts break). The browser shapes text correctly, so rasterizing preserves it. *Consequences:* PDF text is not selectable. "Print" (browser print with a print stylesheet) is offered for a vector, selectable list.
 
 **ADR-007: Zustand stores fed by Firestore snapshot listeners (no TanStack Query).**
 *Decision:* realtime listeners write normalized maps into a per-tree store; derived data (graph, layouts) is memoized in selectors. *Why:* Firestore already provides caching, realtime updates and an offline queue, so a second cache layer would duplicate it.
@@ -190,6 +190,12 @@ Short-form ADRs. Each has the status *Accepted* unless noted.
 
 **ADR-012: Public share pages rendered on the server with the Admin SDK (R3).**
 *Decision:* `/{locale}/s/{shareId}` is resolved on the server, and the data is **redacted** (contact fields and, optionally, living persons' details) before it is sent. *Why:* Firestore rules cannot hide individual fields from a reader, and share IDs must be revocable without exposing tree IDs.
+
+**ADR-013: Two kinds of views: SVG canvas views and HTML card views.**
+*Decision:* views that need pan and zoom over a large drawing (Tree, Circle, Timeline) are **SVG canvas views** with the shared camera. Views made of scrollable cards (Family card, List, Album) are plain **HTML/CSS** with no camera. *Why:* card views get native scrolling, text wrapping, accessibility and responsive CSS for free. Canvas views need precise geometry and smooth zoom. *Consequences:* two export paths (ADR-006). Every view consumes the same domain selectors (graph, focus, selection, colour-by), so behaviour stays consistent.
+
+**ADR-014: Feature flags for staged views.**
+*Decision:* views and outputs that ship in later releases (Album, Timeline, Family book) sit behind a typed `features.ts` flag set, which an environment variable can override in previews. *Why:* their code can merge to `main` early, while production users see only released features.
 
 ---
 
@@ -260,8 +266,12 @@ family-tree/
 │   │   │   ├── shared/                       # camera, collapse state, colors, card model, text measure
 │   │   │   ├── tree/                         # layout.ts, TreeView.tsx, PersonCard.tsx, Connectors.tsx
 │   │   │   ├── circle/                       # layout.ts, CircleView.tsx, ArcLabel.tsx
-│   │   │   └── list/                         # OutlineList.tsx, Directory.tsx
-│   │   ├── export/                           # ExportDialog, scene builders, png.ts, pdf.ts
+│   │   │   ├── list/                         # OutlineList.tsx, Directory.tsx
+│   │   │   ├── family/                       # FamilyCardView.tsx, ParentsRow, CoupleCard, ChildrenGrid (R1)
+│   │   │   ├── album/                        # AlbumView.tsx, GenerationRow, Slideshow (R2)
+│   │   │   └── timeline/                     # layout.ts, TimelineView.tsx, LifeBar, YearAxis (R3)
+│   │   ├── export/                           # ExportDialog, scene builders, svgRaster.ts, htmlRaster.ts, pdf.ts
+│   │   │   └── book/                         # Family book: model.ts, paginate.ts, pages/*, BookDialog (R3)
 │   │   ├── media/                            # PhotoPicker, Cropper, upload.ts, cloudinaryUrl.ts
 │   │   ├── onboarding/                       # wizard, coach marks
 │   │   ├── backup/                           # json.ts (R1 export), import (R2), gedcom UI (R2)
@@ -270,8 +280,9 @@ family-tree/
 │   ├── lib/
 │   │   ├── domain/                           # PURE TS — no React/Firebase imports
 │   │   │   ├── types.ts · schemas.ts (zod) · ids.ts
-│   │   │   ├── graph/                        # build, families, descendants, ancestors, validate, search
+│   │   │   ├── graph/                        # build, families, descendants, ancestors, familyCard, generations, validate, search
 │   │   │   ├── names.ts · dates.ts · text.ts # display names, partial dates, grapheme-safe helpers
+│   │   │   ├── timeline.ts · historyEvents.ts# life ranges, overlap, historical markers (R3)
 │   │   │   ├── kinship/                      # R4: path finding, signatures, term tables
 │   │   │   └── gedcom/                       # R2: parser, serializer, mappers
 │   │   ├── firebase/
@@ -284,6 +295,7 @@ family-tree/
 │   │   │   ├── auth.ts                       # verifyRequest(): ID token + App Check
 │   │   │   ├── http.ts                       # json/error helpers, error codes
 │   │   │   ├── cloudinary.ts · rateLimit.ts · treeAdmin.ts (recursive delete, transfer)
+│   │   ├── features.ts                       # feature flags for staged views (ADR-014)
 │   │   └── utils/
 │   ├── stores/
 │   │   ├── treeStore.ts                      # normalized persons/relationships for the open tree
@@ -309,7 +321,7 @@ export type ID = string;
 export type Locale = 'bn' | 'en';
 export type Gender = 'male' | 'female' | 'unknown';
 export type Role = 'owner' | 'editor' | 'viewer';
-export type ViewKind = 'tree' | 'circle' | 'list';
+export type ViewKind = 'tree' | 'family' | 'circle' | 'list' | 'album' | 'timeline';
 
 /** Year-only, year+month, or full date. People often know only the year. */
 export interface PartialDate {
@@ -982,6 +994,9 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 - `reachableFrom(g, rootId)`: used to compute "Unplaced people" (REL-11). A person is placed if they are a descendant **or** a partner of a descendant.
 - `searchPersons(g, query)`: §16.5.
 - `branchOf(descTree)`: the branch index (the first-generation child) for every node, used for colour (§21.3).
+- `buildFamilyCard(g, focusId, { partnerId? })`: the model for the Family card view (§13.7).
+- `generationGroups(descTree, { by: 'generation' | 'branch', includePartners })`: rows for the Album (§13.8) and sections for the Family book (§14.1). Partners are placed in their bloodline partner's generation.
+- `lifeRange(person, todayYear)` and `aliveOverlap(a, b)` in `lib/domain/timeline.ts`: the Timeline model (§13.9).
 
 ---
 
@@ -989,7 +1004,8 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 
 ### 13.1 Shared foundation
 
-- **Rendering:** React components output **SVG** (no `foreignObject`, for export reliability). Text is laid out in SVG `<text>`. Line wrapping and ellipsis are precomputed with a cached canvas `measureText` that uses the same font (it shapes Bangla correctly).
+- **Two kinds of views (ADR-013).** *Canvas views* (Tree, Circle, Timeline) are React components that output **SVG**, with pan and zoom. They never use `foreignObject`, so export can serialize the SVG directly. *Card views* (Family card, List, Album) are ordinary **HTML/CSS** with native scrolling, and are exported with html-to-image (§14).
+- **SVG text:** laid out in `<text>`. Line wrapping and ellipsis are precomputed with a cached canvas `measureText` that uses the same font (it shapes Bangla correctly).
 - **Camera:** `d3-zoom` on the `<svg>`. The transform is applied **imperatively** to the root `<g>` through a ref, so React does not re-render on every frame. React state updates only on zoom *end*, to recompute culling (viewport plus a 200 px margin).
 - **Selection & focus** come from `uiStore`. All views react to them, and switching views keeps them (VIS-01).
 - **Collapse state** is a `Set<pathKey>` per view, persisted per tree. Default: expand 3 generations, and auto-collapse deeper levels if more than 150 cards would show.
@@ -1062,6 +1078,83 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 
 `buildAncestorTree` laid out with `d3.tree()`, horizontally, the person on the left and parents to the right (father above, mother below). It reuses the person card and camera. It is entered from a person's menu ("Show ancestors").
 
+### 13.7 Family card view (FC, R1)
+
+**Model** (`lib/domain/graph/familyCard.ts`, pure):
+
+```ts
+interface FamilyCardModel {
+  focusId: ID;
+  parents: { fatherId?: ID; motherId?: ID; otherParents: { personId: ID; kind: ParentKind }[] };
+  parentsLink?: SpouseLink;                 // marriage of the parents, if recorded
+  partners: { personId: ID | null; link?: SpouseLink; childIds: ID[] }[]; // from getFamilies (§12.2)
+  selectedPartnerIndex: number | 'all';     // FC-03
+  siblingIds: ID[];                         // FC-07, in sibling order
+  trail: ID[];                              // root → … → focus, when the focus is reachable from the root
+  childCounts: Record<ID, number>;          // "3 children ›" (FC-05)
+}
+```
+
+**Layout** (HTML; one centred column, max width 960 px):
+
+1. **Parents row:** two compact cards joined by a small ring icon (the parents' marriage). Unknown parents appear as dashed "+ Add father" / "+ Add mother" slots (FC-04). Adoptive or step parents appear as a third chip.
+2. **Siblings strip:** horizontal chips that scroll, with the focus person's position highlighted (FC-07).
+3. **Couple:** large cards for the focus person and the selected partner (photo with the `card` variant, names, life years, profession). With more than one partner, a segmented switcher shows "1st wife: Rahima · 2nd wife: Jamila · All" (FC-03).
+4. **Children:** a grid with 2 columns on phones and 4–6 on desktop. Each child card shows "N children ›". The last cell is a dashed "+ Add children" slot that opens the bulk-add sheet (REL-04).
+
+**Navigation (FC-02):** changing the focus updates `uiStore.focusId` and `router.push('?view=family&focus=…')`, so browser Back works and the other views follow (FC-06). Transitions depend on direction: moving down to a child slides content up, moving up to a parent slides it down, and moving to a sibling slides it sideways. They are disabled with reduced motion. Swipes are detected with pointer events (≥ 60 px horizontal movement and a velocity threshold), with no extra library. The breadcrumb shows `trail` (collapsed to "… › father › focus" on phones).
+
+**Accessibility (FC-08):** an `<h2>` names the couple; the parents and children are `<section>`s with labels and list semantics; changes of focus are announced through the live region.
+
+**Export (FC-09):** the same layout rendered with `mode="export"` (no buttons or empty slots) on an A4 frame, then html-to-image → PNG or a one-page PDF (§14).
+
+### 13.8 Generation album (GA, R2)
+
+- **Model:** `generationGroups(descTree, { by, includePartners: true })` gives rows of person IDs with a header ("২য় প্রজন্ম · ৮ জন"). Partners carry a small ring badge.
+- **Layout (HTML):** on phones, each row is a horizontal **scroll-snap** strip (`overflow-x: auto; scroll-snap-type: x mandatory`) of 140 × 190 px cards; on desktop, a CSS grid (`repeat(auto-fill, minmax(160px, 1fr))`). Rows with more than 60 cards are virtualized with TanStack Virtual (horizontally on phones, by grid row on desktop) (GA-06).
+- **Cards (GA-03):** the photo uses the existing `card` Cloudinary variant (no new transformation), with `loading="lazy"` and `decoding="async"`. Without a photo, the card shows an initials avatar, plus an "Add photo" prompt for editors (GA-07). The parent line is written as **"বাবা: করিম · মা: রহিমা" / "Father: Karim · Mother: Rahima"**. This avoids inflecting names into the Bangla genitive (-র/-এর), which cannot be generated reliably for every name.
+- **Slideshow (GA-05):** a full-screen dialog using the `full` variant. It preloads the next image, advances every 5 s, pauses on interaction, and supports arrow keys and swipe. Reduced motion turns off the cross-fade.
+- **Export (GA-08):** a contact sheet with a 4 × 5 grid per A4 page and the generation headers repeated, rasterized page by page with html-to-image.
+
+### 13.9 Timeline (TL, R3)
+
+**Model** (`lib/domain/timeline.ts`, pure):
+
+```ts
+interface LifeRange {
+  start: number;                 // decimal year (year + (month-1)/12 when the month is known)
+  startApprox: boolean;          // birth.date.approximate
+  end: number | null;            // death year, today for living people, null when unknown
+  endKind: 'death' | 'living' | 'unknown';
+  endApprox: boolean;
+}
+lifeRange(person, todayYear): LifeRange | null   // null → no birth year (listed as "undated", TL-02)
+aliveOverlap(a: LifeRange, b: LifeRange): [number, number] | null
+ageAt(range, year): number | null                // "age 23 in 1971" (TL-06)
+```
+
+`historyEvents.ts` holds the markers as `{ year, labelKey }`. The defaults are 1947 (দেশভাগ / Partition), 1952 (ভাষা আন্দোলন / Language Movement) and 1971 (মুক্তিযুদ্ধ / Liberation War). Labels are i18n keys (TL-05).
+
+**Layout** (SVG canvas view):
+
+- **Year axis:** `d3-scale` `scaleLinear` maps years to x. The domain is `[earliest start − 5, today + 2]`. Zooming uses d3-zoom constrained to the x axis (`rescaleX`), ranging from about 10 years to about 200 years across the screen. Ticks come from `scale.ticks()` (decades, or single years when zoomed in). The axis is sticky at the top, with a "today" line (TL-07).
+- **Rows:** 28 px on desktop and 36 px on phones (touch). They are grouped by generation, branch or birth year, with group headers (TL-03). A **sticky name column** shows the avatar and name: 200 px on desktop, 96 px on phones, with grapheme-safe truncation. Rows are virtualized vertically, so only the visible rows' bars are rendered.
+- **Bars:** 12 px tall (16 px on phones) with 4 px rounded ends, filled with the colour-by colour (§21.3). Names and labels stay in the ink tokens. Approximate ends fade over 3 years with a linear gradient. Living people get an arrowhead at "today". A deceased person without a death year gets a dashed 10-year stub labelled "?" that never implies a date (TL-02).
+- **Events (TL-04):** a ring glyph at the marriage year, and 8 px dots for the births of children.
+- **Historical markers:** vertical hairlines with labels in the axis band, toggled from the toolbar.
+
+**Interaction:** hover or tap a bar for a tooltip (name, years, age at each marker). Selecting a person dims everyone whose life does **not** overlap to 30% opacity (TL-06). Tapping a name opens the details panel. "Undated" people are listed in a footer ("১২ জনের জন্মসাল জানা নেই — যোগ করুন"), which links to the Directory filtered to *no birth year*.
+
+**Export (TL-08):** the full timeline (all rows, not only the visible ones) rendered as an export SVG scene, then serialized and tiled vertically for PDF (§14).
+
+### 13.10 View navigation
+
+| Surface | Layout |
+| --- | --- |
+| Desktop (≥ 1024 px) | Tabs: **Tree · Family · Circle · List · Album · Timeline**. The Family book lives in the **Download** menu, because it is an output rather than a view. |
+| Mobile | Bottom navigation: **ট্রি · পরিবার · বৃত্ত · তালিকা · আরও**. "আরও" (More) opens a sheet with Album, Timeline, Ancestors (TV-06) and Family book. |
+| Both | The view is in the URL (`?view=`) and remembered per tree. Views that are not yet released are hidden by feature flags (ADR-014). |
+
 ---
 
 ## 14. Export pipeline
@@ -1074,14 +1167,21 @@ flowchart LR
     SC --> IMG["Inline images<br/>fetch Cloudinary export variant → data URLs"]
     IMG --> FONT["Embed fonts<br/>(Inter + Hind Siliguri subsets as @font-face data URLs)"]
     FONT --> SZ{"Fits canvas limits?"}
-    SZ -- yes --> R1["Rasterize whole scene<br/>html-to-image → canvas → PNG blob"]
-    SZ -- "no / PDF tiling" --> R2["Rasterize per page tile<br/>(same SVG, different viewBox)"]
+    SZ -- yes --> R1["Rasterize whole scene → canvas → PNG blob<br/>(SVG: serialize · HTML: html-to-image)"]
+    SZ -- "no / PDF tiling" --> R2["Rasterize per page tile<br/>(SVG: different viewBox · HTML: page frames)"]
     R1 --> OUT{Format}
     R2 --> PDF
     OUT -- PNG --> SAVE["Download / Web Share"]
     OUT -- PDF --> PDF["jsPDF: addImage per page,<br/>metadata, save"]
     PDF --> SAVE
 ```
+
+**Rasterization by view type** (ADR-006, ADR-013):
+
+| Views | Method | Notes |
+| --- | --- | --- |
+| Tree, Circle, Timeline (SVG) | `XMLSerializer` → SVG string with `@font-face` data URLs and data-URL images → `Image` → `canvas.drawImage` | No `foreignObject`, so it is reliable in Safari. Tiling changes the `viewBox`. |
+| Family card, List, Album, Family book pages (HTML) | html-to-image `toCanvas` (clones the DOM into an SVG `foreignObject`) | Fonts and images must be inlined. On Safari, render twice because the first render can miss fonts. Pages are fixed-size frames (A4 = 794 × 1123 CSS px). |
 
 **Details**
 
@@ -1093,6 +1193,30 @@ flowchart LR
 - **List view export:** a paginated print layout (A4 rows, headers repeated) is rasterized page by page. **Print** (EXP-09) uses `window.print()` with a print stylesheet instead, which gives vector, selectable text.
 - **Responsiveness (EXP-08):** steps yield with `await scheduler.yield?.() ?? setTimeout(0)` between tiles and images. There is a progress bar, and Cancel uses an `AbortController`.
 - **Delivery (EXP-07):** if `navigator.canShare?.({ files: [file] })`, use `navigator.share` (mobile, for example straight to WhatsApp); otherwise an `<a download>`. The file name is `{treeName}-{view}-{YYYY-MM-DD}.{ext}`, with Unicode kept and characters illegal in file names stripped.
+
+### 14.1 Family book (FB, R3)
+
+The code lives in `features/export/book/` and is lazy-loaded.
+
+```mermaid
+flowchart LR
+    OPT[Book options] --> M["1 · Book model (pure)<br/>sections in d'Aboville order,<br/>redaction by options"]
+    M --> P["2 · Pagination pass<br/>render sections into A4 frames<br/>off-screen and measure"]
+    P --> N["3 · Numbering<br/>page numbers → contents,<br/>'see page N', name index"]
+    N --> R["4 · Render pass, page by page<br/>html-to-image → JPEG → jsPDF.addImage<br/>→ release canvas · yield"]
+    R --> OUT[Download / share PDF]
+```
+
+1. **Book model** (`model.ts`, pure, unit-tested): from the descendant tree of the chosen scope, build ordered sections (d'Aboville order, FB-03). There is one section per family unit: the bloodline person, their partner(s), the description(s), and the children with their numbers. **Redaction** (FB-02) is applied here: contact fields are removed unless included, and living people's details are optional. This uses the same function as the share-link redaction (§20.3).
+2. **Pagination** (`paginate.ts`): each section is rendered into an off-screen A4 frame (794 × 1123 CSS px, 56 px margins) and measured. Sections flow onto pages and may split only between child rows. Headings are never left alone at the bottom of a page.
+3. **Numbering:** once page numbers are known, fill in the table of contents (generation → families), the cross-references ("দেখুন পৃষ্ঠা ১২" / "see p. 12") and the **name index**. The index is sorted with `Intl.Collator('bn')` or `Intl.Collator('en')`, with Bangla digits in `bn`.
+4. **Front matter:** the cover (title, cover photo, date), the optional dedication page (FB-06), and the overview chart page (the tree or circle export scene, fitted to one page).
+5. **Render pass:** for each page, render the HTML (with running header and page number, FB-07) → `toCanvas` at the chosen quality (standard 150 dpi ≈ 1240 × 1754 px, high 300 dpi) → JPEG at q 0.85 → `doc.addImage` → release the canvas. Yield between pages, show progress ("পৃষ্ঠা ৩৪/১২০"), and support Cancel through an `AbortController` (FB-05).
+6. **PDF:** metadata title and creator. Bookmarks per generation are a *Could*; Unicode support in jsPDF's outline titles must be verified first. The file is named `{tree}-family-book-{date}.pdf`.
+
+**Size and memory:** the standard quality is about 150–250 KB per page, so 100 pages come to about 15–25 MB. Only one page canvas is alive at a time. Above 300 pages, a warning suggests one book per branch; the hard limit is 600 pages.
+
+**Photos:** the book uses a dedicated `print` variant (`c_fill,g_face,w_600,h_600/f_jpg,q_85`, §15.3), because the 256 px `export` variant is too small on paper. The `print` variant is generated only the first time a book includes that photo, and Cloudinary caches it after that.
 
 ---
 
@@ -1137,9 +1261,10 @@ sequenceDiagram
 const base = (cloud: string) => `https://res.cloudinary.com/${cloud}/image/upload`;
 export const VARIANTS = {
   thumb:  'c_fill,g_face,w_96,h_96/f_auto,q_auto',     // cards (×2 for retina → w_192 when dpr ≥ 2)
-  card:   'c_fill,g_face,w_320,h_320/f_auto,q_auto',   // details header
-  full:   'c_limit,w_1600,h_1600/f_auto,q_auto',       // lightbox
-  export: 'c_fill,g_face,w_256,h_256/f_jpg,q_85',      // canvas-safe format
+  card:   'c_fill,g_face,w_320,h_320/f_auto,q_auto',   // details header, Family card couple, Album
+  full:   'c_limit,w_1600,h_1600/f_auto,q_auto',       // lightbox, slideshow
+  export: 'c_fill,g_face,w_256,h_256/f_jpg,q_85',      // canvas-safe format for chart exports
+  print:  'c_fill,g_face,w_600,h_600/f_jpg,q_85',      // Family book only (R3), generated on demand
 } as const;
 export const photoUrl = (cloud: string, p: PhotoRef, v: keyof typeof VARIANTS) =>
   `${base(cloud)}/${VARIANTS[v]}/v${p.version}/${p.publicId}`;
@@ -1350,7 +1475,7 @@ interface ShareLink { treeId: ID; createdBy: ID; createdAt: Date; enabled: boole
                       options: { hideContactInfo: true | false; hideLivingDetails: boolean; allowExport: boolean } }
 ```
 
-The server page loads the tree, then **redacts** it: it drops `phones`, `email` and `addresses` unless allowed, and with `hideLivingDetails` it reduces living persons to name, gender, photo and relationships. It returns `noindex`. Revoking a link sets `enabled: false`, after which the page shows "This link is no longer active".
+Redaction is a pure `redact(data, options)` function in `lib/domain`, shared with the Family book (§14.1). The server page loads the tree, then **redacts** it: it drops `phones`, `email` and `addresses` unless allowed, and with `hideLivingDetails` it reduces living persons to name, gender, photo and relationships. It returns `noindex`. Revoking a link sets `enabled: false`, after which the page shows "This link is no longer active".
 
 ### 20.4 Real-time collaboration
 
@@ -1446,7 +1571,7 @@ Tabular numbers (`font-variant-numeric: tabular-nums`) are used only where colum
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────┐
-│ 🌳 করিম পরিবার ▾  │  [ ট্রি ] [ বৃত্ত ] [ তালিকা ]  │ 🔍 খুঁজুন… ⌘K │ ✓ সংরক্ষিত │ বাংলা⇄EN │ (ⓖ) │
+│ 🌳 করিম পরিবার ▾ │ ট্রি·পরিবার·বৃত্ত·তালিকা·অ্যালবাম·সময়রেখা │ 🔍 ⌘K │ ✓ সংরক্ষিত │ ⬇ │ বাংলা⇄EN │ (ⓖ) │
 ├──────────────────────────────────────────────────────────────────┬─────────────────┤
 │                                                                  │  ╭───────╮      │
 │                  ╭──────────────╮ ─○─ ╭──────────────╮           │  │ photo │      │
@@ -1480,7 +1605,7 @@ Tabular numbers (`font-variant-numeric: tabular-nums`) are used only where colum
 │                     (+12) │
 │                        (＋) │  ← add relative to the selected person
 ├──────────────────────────────┤
-│   🌳 ট্রি     ◎ বৃত্ত    ☰ তালিকা   │
+│ 🌳ট্রি  👪পরিবার  ◎বৃত্ত  ☰তালিকা  ⋯আরও │
 └──────────────────────────────┘
 ```
 
@@ -1518,6 +1643,95 @@ Tabular numbers (`font-variant-numeric: tabular-nums`) are used only where colum
 
 Tip: pasting a multi-line list creates one row per line. Gender is guessed from common name endings only as a *suggestion* (it is always visible and editable). This is a Could item and is off by default.
 
+**Family card (mobile, FC)**
+
+```text
+┌──────────────────────────────┐
+│ ←  করিম › সালাম           ⋮  │  ← breadcrumb
+├──────────────────────────────┤
+│ বাবা-মা                       │
+│ ╭────────────╮○╭────────────╮ │
+│ │(◉) আব্দুল করিম│ │(◉) রহিমা বেগম│ │
+│ ╰────────────╯ ╰────────────╯ │
+│ ভাই-বোন: [হালিমা] [রফিক] [জমিলা] │
+│ ───────────────────────────── │
+│ ╭────────────╮○╭────────────╮ │
+│ │   (photo)  │ │   (photo)  │ │
+│ │   সালাম     │ │   ফাতেমা    │ │
+│ │ ১৯৬০– · শিক্ষক│ │  ১৯৬৫–      │ │
+│ ╰────────────╯ ╰────────────╯ │
+│ সন্তান (৩)                     │
+│ ╭───────────╮ ╭───────────╮   │
+│ │(◉) রাফি     │ │(◉) নাদিয়া   │   │
+│ │  ২ সন্তান ›  │ │  ১ সন্তান ›  │   │
+│ ╰───────────╯ ╰───────────╯   │
+│ ╭───────────╮ ╭┄┄┄┄┄┄┄┄┄┄┄╮   │
+│ │(◉) তানভীর   │ ┆ ＋ সন্তান   ┆   │
+│ ╰───────────╯ ╰┄┄┄┄┄┄┄┄┄┄┄╯   │
+├──────────────────────────────┤
+│ 🌳ট্রি  👪পরিবার  ◎বৃত্ত  ☰তালিকা  ⋯আরও │
+└──────────────────────────────┘
+```
+
+**Generation album (mobile, GA)**
+
+```text
+┌──────────────────────────────┐
+│ প্রজন্ম অ্যালবাম  [প্রজন্ম ▾]  ▶ স্লাইড│
+├──────────────────────────────┤
+│ ১ম প্রজন্ম · ২ জন                │
+│ ╭──────╮ ╭──────╮             │
+│ │ photo│ │ photo│             │
+│ │ করিম  │ │ রহিমা │             │
+│ ╰──────╯ ╰──────╯             │
+│ ২য় প্রজন্ম · ৮ জন           →   │
+│ ╭──────╮ ╭──────╮ ╭──────╮ ╭──│
+│ │ photo│ │ photo│ │ (হা)  │ │  │
+│ │ সালাম │ │ফাতেমা○│ │ হালিমা │ │  │
+│ ╰──────╯ ╰──────╯ ╰──────╯ ╰──│
+│ ৩য় প্রজন্ম · ২১ জন          →   │
+│ …                            │
+└──────────────────────────────┘
+```
+
+**Timeline (desktop, TL)**
+
+```text
+┌────────────────┬─────────────────────────────────────────────────────────────┐
+│ [প্রজন্ম ▾] ☑ ঘটনা │ 1930    1947┊ 1952┊       1971┊         1990      2010   আজ│
+├────────────────┼─────────────────────────────────────────────────────────────┤
+│ ১ম প্রজন্ম        │                                                             │
+│ (◉) আব্দুল করিম   │ ░██████████████○████████████████████████████████▌           │
+│ (◉) রহিমা বেগম   │      ████████████○███████████████████████████████████▌      │
+│ ২য় প্রজন্ম        │                                                             │
+│ (◉) সালাম        │                        ██████████○███●███●██████████████▶ │
+│ (◉) হালিমা       │                           ████████████████████████████████▶ │
+│ …              │                                                             │
+└────────────────┴─────────────────────────────────────────────────────────────┘
+ ░ approximate   ○ marriage   ● child born   ▶ living   ┊ historical marker
+```
+
+**Family book page (A4, FB)**
+
+```text
+┌──────────────────────────────────────┐
+│ করিম পরিবার · পারিবারিক বই          ১২ │  ← running header + page number
+│ ──────────────────────────────────── │
+│ ১.২  সালাম ও ফাতেমা                   │
+│ ╭────────╮  সালাম (১৯৬০–)              │
+│ │ photo  │  শিক্ষক · ঢাকা               │
+│ ╰────────╯  বাবা: আব্দুল করিম (১ · পৃ. ৩) │
+│ ╭────────╮  ফাতেমা বেগম (১৯৬৫–)         │
+│ │ photo  │  …                         │
+│ ╰────────╯                            │
+│ বিবরণ: …                               │
+│ সন্তান:                                 │
+│  ১.২.১ রাফি (১৯৮৮–) ……… দেখুন পৃষ্ঠা ১৮  │
+│  ১.২.২ নাদিয়া (১৯৯১–) ……… দেখুন পৃষ্ঠা ১৯ │
+│  ১.২.৩ তানভীর (১৯৯৫–)                   │
+└──────────────────────────────────────┘
+```
+
 **Quick-add menu (REL-02):** a sheet or popover with large icon buttons: *ছেলে/মেয়ে*, *স্বামী/স্ত্রী*, *বাবা/মা*, *ভাই/বোন*, and *বিদ্যমান কাউকে যুক্ত করুন* (link an existing person).
 
 **Dashboard:** a grid of tree cards (cover avatar collage, name, "৫৭ জন · ৪ প্রজন্ম", updated time, role badge), a "＋ New tree" card and an "Import" button (R2). It becomes a single column on mobile.
@@ -1536,7 +1750,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 ## 22. Accessibility
 
 - **Keyboard:** everything is reachable; skip link; visible focus ring (`--ring`, 2 px plus offset); roving tabindex in the list, tree and canvas views (TV-09).
-- **Screen readers:** the list view uses the full ARIA `tree` pattern. Canvas views expose `role="application"` with an `aria-label` and a live region that announces the selection ("আব্দুল করিম, প্রজন্ম ১, ৪ সন্তান"). Every icon button has an `aria-label`.
+- **Screen readers:** the list view uses the full ARIA `tree` pattern. The Family card view is built from plain headings, sections and lists, so it is the simplest screen-reader experience (FC-08). Canvas views expose `role="application"` with an `aria-label` and a live region that announces the selection ("আব্দুল করিম, প্রজন্ম ১, ৪ সন্তান"). Every icon button has an `aria-label`.
 - **Contrast:** tokens are verified (§21.2). Data colours always have labels (§21.3).
 - **Motion:** honours `prefers-reduced-motion`. Confetti and fly-to animations are turned off.
 - **Touch:** targets are at least 44 × 44 px. Gestures always have a button alternative (zoom buttons, menu instead of long-press).
@@ -1585,6 +1799,9 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | First paint of a tree from cache | `getDocsFromCache` hydrates the store before the listeners attach. |
 | Re-render control | Zustand selectors; memoized graph, layout and cards; the camera transform is imperative. |
 | Large trees | viewport culling; auto-collapse at depth > 3 when there are more than 150 cards; virtualized lists; animations off above 300 cards. |
+| Album (R2) | lazy-loaded `card` images; rows with more than 60 cards are virtualized; the slideshow preloads only the next image. |
+| Timeline (R3) | rows virtualized vertically; zoom rescales only the x scale, so bars are repositioned without re-layout. |
+| Family book (R3) | one page canvas alive at a time; JPEG pages; yields between pages; lazy-loaded code. |
 | Images | 96 px thumbnails (192 px at dpr ≥ 2), `f_auto,q_auto`, lazy decoding, CacheFirst in the service worker. |
 | Firestore reads | one listener per collection per open tree; no per-person reads; dashboard counts come from `personCount` (no counting queries). |
 | Monitoring | Lighthouse CI on the landing and editor routes (budget assertions); a Playwright trace-based FPS check on a 500-person fixture. |
@@ -1595,11 +1812,11 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 
 | Layer | Tool | Scope | Target |
 | --- | --- | --- | --- |
-| Domain unit | Vitest | graph build, families, descendant tree with refs, validation, d'Aboville, search normalization, partial dates, display names, layouts (tree and circle geometry snapshots), kinship tables, GEDCOM round-trip | ≥ 90% lines |
+| Domain unit | Vitest | graph build, families, descendant tree with refs, validation, d'Aboville, search normalization, partial dates, display names, layouts (tree, circle and timeline geometry snapshots), family card model, generation groups, life ranges and overlap, family book pagination and numbering, kinship tables, GEDCOM round-trip | ≥ 90% lines |
 | Component | Vitest + Testing Library | PersonForm validation, BulkAddChildren, QuickAdd, MergeDialog, SaveStatus, LanguageSwitch | key paths |
 | Security rules | @firebase/rules-unit-testing + emulator | the §8 checklist (every allow/deny path) | 100% of rules paths |
 | API routes | Vitest + emulator (Auth/Firestore) + mocked Cloudinary | merge-ticket/merge (idempotency, expiry), media sign/delete (role, prefix), account delete | all endpoints |
-| E2E | Playwright: projects `mobile-chrome` (Pixel 7), `mobile-safari` (iPhone 14), `desktop-chrome`; both locales | guest start → wizard → reload persists; bulk add; edit with photo (mocked upload); switch views; export PNG/PDF (file produced, non-empty); sign-up linking; existing-account merge; undo/redo; offline edit then reconnect | critical journeys |
+| E2E | Playwright: projects `mobile-chrome` (Pixel 7), `mobile-safari` (iPhone 14), `desktop-chrome`; both locales | guest start → wizard → reload persists; bulk add; edit with photo (mocked upload); switch views; export PNG/PDF (file produced, non-empty); sign-up linking; existing-account merge; undo/redo; offline edit then reconnect; Family card navigation and Back; album lazy loading; timeline overlap selection; family book page references | critical journeys |
 | Accessibility | @axe-core/playwright | landing, dashboard, editor (each view), person panel, export dialog, in `bn` and `en` | 0 serious violations |
 | Visual | Playwright screenshots | person card (bn/en, light/dark, photo/initials/deceased), circle labels | review on change |
 | Performance | Lighthouse CI, FPS trace | §25 budgets | gate on main |
@@ -1669,7 +1886,7 @@ deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:index
 
 - **Reads:** a cold open of a 150-person tree (about 200 relationships) costs about 350 reads. Spark allows about 140 cold opens a day, plus incremental listener updates. **This is the first limit we will hit.**
 - **Writes:** about 1–3 per edit (person plus relationships plus a tree touch per batch). 20k a day is about 7,000+ edits a day.
-- **Cloudinary:** a stored photo is about 250 KB (≤ 2000 px). Derived variants: 4 × (f_auto may produce 2 formats) ≈ 8 transformations ≈ 0.008 credits. So 1,000 new photos ≈ 0.25 GB of storage plus about 8 credits of transformations. Bandwidth: a 96 px thumbnail is about 6 KB, and a 150-person tree with photos is about 0.5 MB per cold view (cached afterwards). **The free plan supports roughly 1,500–2,000 new photos a month**, with storage accumulating month over month.
+- **Cloudinary:** a stored photo is about 250 KB (≤ 2000 px). Derived variants: 4 × (f_auto may produce 2 formats) ≈ 8 transformations ≈ 0.008 credits. So 1,000 new photos ≈ 0.25 GB of storage plus about 8 credits of transformations. Bandwidth: a 96 px thumbnail is about 6 KB, and a 150-person tree with photos is about 0.5 MB per cold view (cached afterwards). **The free plan supports roughly 1,500–2,000 new photos a month**, with storage accumulating month over month. The Album view loads `card` images (about 20 KB each), so a full album of 150 photos is about 3 MB per uncached view; the service-worker cache (R2) absorbs repeat views. A Family book adds one `print` transformation per photo the first time it is generated.
 
 ### 28.3 Upgrade triggers (decided by the product owner)
 
@@ -1698,3 +1915,5 @@ deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:index
 | R-11 | Security rule gaps | L / H | 100% rules path tests, CI deploys from the repository, periodic review |
 | R-12 | Vercel Hobby terms (non-commercial) | M / M | Decide on the commercial plan before a public launch (SRS Q4) |
 | R-13 | TypeScript 7 / typescript-eslint compatibility churn | L / L | Pin TS 6.0.x and upgrade deliberately |
+| R-14 | Large Family books exhaust phone memory or produce huge PDFs | M / M | Page-by-page rendering, one canvas alive at a time, JPEG pages, a 300-page warning and a 600-page limit, per-branch books (§14.1) |
+| R-15 | Few people have dates, so the Timeline looks empty | H / L | Show undated people with a count and an "add dates" link; approximate dates are accepted; the year-only input is the default (TL-02) |

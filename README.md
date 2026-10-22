@@ -2,7 +2,7 @@
 
 > Build your family tree in minutes, in **বাংলা** or **English**, with no sign-up needed.
 
-Family Tree is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **circle chart** or an **index list**, and download any view as an **image or PDF** to share with relatives.
+Family Tree is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **family card** (one family at a time, made for phones), a **circle chart** or an **index list**, and later as a **photo album** and a **timeline**. You can download any view as an **image or PDF**, or print the whole family as a **family book**.
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
@@ -38,13 +38,17 @@ Family Tree is a web app for recording a family's history, starting from the old
 | **Tree view:** pan and zoom, expand and collapse, focus on anyone, ancestor mode. | v1.0 |
 | **Circle view:** oldest ancestor in the centre, generations in rings. | v1.0 |
 | **List view:** numbered index (1, 1.1, 1.2 …) and a searchable directory. | v1.0 |
+| **Family card:** one family at a time (parents above, children below); tap to move between families. The easiest view on a phone. | v1.0 |
 | **Download as PNG or PDF** with perfect Bangla text, photos, titles and paper sizes. | v1.0 |
 | **Bangla and English** throughout, including Bangla digits and dates. | v1.0 |
 | **Undo/redo**, autosave, search, dark mode, keyboard shortcuts. | v1.0 |
 | **JSON backup export.** | v1.0 |
 | **Installable app** (PWA) that works offline. | v1.1 |
 | **Import and export** JSON backups and **GEDCOM** (standard genealogy format). | v1.1 |
+| **Generation album:** everyone's photos, one row per generation, with a slideshow. | v1.1 |
 | **Share** a view-only link (contact details hidden) and **invite family to co-edit** in real time. | v1.2 |
+| **Timeline:** everyone's lifespans across the years, with 1947, 1952 and 1971 markers. | v1.2 |
+| **Family book:** a printable PDF book with a cover, contents, one section per family, photos and a name index. | v1.2 |
 | **"How are we related?"** with Bangla kinship terms (চাচা, খালা, মামাতো ভাই …). | v1.3 |
 
 The full requirements are in the [SRS](docs/SRS.md).
@@ -59,7 +63,7 @@ The full requirements are in the [SRS](docs/SRS.md).
 | UI | Tailwind CSS 4 · shadcn/ui (Radix) · motion · lucide icons |
 | State & forms | Zustand · react-hook-form · Zod |
 | i18n | next-intl (`/bn`, `/en`) · Hind Siliguri + Inter fonts |
-| Visualizations | d3-hierarchy · d3-flextree · d3-shape · d3-zoom (custom SVG renderers) |
+| Visualizations | d3-hierarchy · d3-flextree · d3-shape · d3-zoom · d3-scale (custom SVG renderers) and HTML card views |
 | Export | html-to-image · jsPDF |
 | Auth & database | **Firebase Authentication** (anonymous, email, Google) · **Cloud Firestore** |
 | Photos | **Cloudinary** (signed uploads, face-aware thumbnails) |
@@ -116,12 +120,12 @@ flowchart LR
 | P3 | App shell, dashboard, guest merge | ⬜ |
 | P4 | Tree view & core editing | ⬜ |
 | P5 | Person details & photos | ⬜ |
-| P6 | List & Circle views | ⬜ |
+| P6 | List, Circle & Family card views | ⬜ |
 | P7 | Export & JSON backup | ⬜ |
 | P8 | Onboarding, polish → **v1.0** | ⬜ |
-| P9–P10 | PWA, offline, import/GEDCOM → **v1.1** | ⬜ |
-| P11 | Sharing & collaboration → **v1.2** | ⬜ |
-| P12 | Relationship finder → **v1.3** | ⬜ |
+| P9–P11 | PWA, offline, import/GEDCOM, Generation album → **v1.1** | ⬜ |
+| P12–P14 | Sharing & collaboration, Timeline, Family book → **v1.2** | ⬜ |
+| P15 | Relationship finder → **v1.3** | ⬜ |
 
 Task-level progress is tracked in the [Implementation Plan](docs/IMPLEMENTATION_PLAN.md).
 

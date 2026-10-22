@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 
 **Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.0
+**Document version:** 1.1
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Related documents:** [Design Document](./DESIGN.md) · [Implementation Plan](./IMPLEMENTATION_PLAN.md) · [README](../README.md)
@@ -9,6 +9,7 @@
 | Version | Date       | Author                  | Change                                                        |
 | ------- | ---------- | ----------------------- | ------------------------------------------------------------- |
 | 1.0     | 2026-10-22 | Product owner + Claude  | Initial baseline after the requirements Q&A (see §1.6)          |
+| 1.1     | 2026-10-22 | Product owner + Claude  | Added Family card, Generation album, Timeline and Family book (decision D5) |
 
 ---
 
@@ -46,8 +47,8 @@ Family Tree lets anyone open the website and immediately start recording their f
 - Instant, sign-up-free use through an automatic **guest account**. Data is saved to the cloud database and survives reloads and later visits.
 - Upgrading a guest to a permanent account (email + password, or Google). The guest's data moves into that account.
 - Creating and editing **people** (with photo, description, profession, address, phone and more) and **relationships** (parent→child and spouse).
-- Three interactive visualizations of the same data: **Tree**, **Circle** (radial, oldest ancestor in the centre) and **List/Index**. Every view has expand and collapse.
-- Downloading any visualization as an **image (PNG)** or **PDF**.
+- Several interactive views of the same data: **Tree**, **Family card** (one family at a time, built for phones), **Circle** (radial, oldest ancestor in the centre) and **List/Index**. Later releases add a **Generation album** (photos by generation) and a **Timeline** (lifespans across the years).
+- Downloading any view as an **image (PNG)** or **PDF**. A later release adds a printable **Family book**.
 - A full **Bangla and English** user interface.
 - Responsive layouts for **mobile phones and desktop**.
 - Later releases add backup import/export (JSON, GEDCOM), an installable offline app (PWA), sharing and collaboration, and a Bangla **relationship finder**.
@@ -115,6 +116,7 @@ Family Tree lets anyone open the website and immediately start recording their f
 | D2 | Photo storage (Firebase Storage needs the paid Blaze plan) | **Cloudinary free tier.** Firebase stays on the free **Spark** plan. |
 | D3 | Backend shape | **Next.js full-stack.** There is no separate Express server. Privileged operations run in Next.js Route Handlers using the Firebase Admin SDK. |
 | D4 | Extra features | **All in scope**, delivered in phases after the MVP: share & collaborate, Bangla relationship finder, backup import/export (JSON + GEDCOM), installable offline app (PWA). |
+| D5 | Additional views | **Family card** (R1), **Generation album** (R2), **Timeline** (R3) and **Family book** (R3) are added. The fan chart, hourglass chart and কুরসিনামা-style print were proposed but not selected. |
 
 ---
 
@@ -141,8 +143,8 @@ flowchart LR
 2. Multiple family trees per user.
 3. Fast creation of people and relationships, including bulk entry ("add all children at once").
 4. Rich person profiles with a photo.
-5. Tree, Circle and List visualizations, with expand/collapse, search, focus, pan and zoom.
-6. Export to PNG and PDF.
+5. Tree, Family card, Circle and List views, with expand/collapse, search, focus, pan and zoom. Later: Generation album and Timeline.
+6. Export to PNG and PDF. Later: a printable Family book.
 7. Full Bangla and English UI and data entry.
 8. Undo and redo, autosave, and offline tolerance.
 9. Later releases: PWA, JSON/GEDCOM backup, sharing and collaboration, relationship finder with Bangla kinship terms.
@@ -277,7 +279,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
-| VIS-01 | **Three views** of the same data: **Tree**, **Circle** and **List**. Switch with tabs (desktop) or a bottom navigation bar (mobile). Selection and focus are kept when switching. | M | R1 |
+| VIS-01 | **Views** of the same data: **Tree**, **Family card**, **Circle** and **List** (R1), **Album** (R2) and **Timeline** (R3). Desktop has a tab for each view. Mobile has a bottom navigation bar with Tree, Family, Circle and List, plus **More** for the rest. Selection and focus are kept when switching. | M | R1 |
 | VIS-02 | **Expand/collapse** any person's descendants. A collapsed person shows a "+N" badge with the number of hidden descendants. Also: *Expand all* and *Show N generations*. | M | R1 |
 | VIS-03 | **Focus:** "Show tree from this person" on any person, with a breadcrumb back to the root. | M | R1 |
 | VIS-04 | **Search** by name or nickname in either script. Choosing a result expands the path to that person, then centres and highlights them. | M | R1 |
@@ -326,12 +328,61 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | LV-05 | Lists with more than 200 rows are virtualized. | M | R1 |
 | LV-06 | The list view is the **accessible alternative** to the graphical views: full keyboard and screen-reader support. | M | R1 |
 
-### 3.9 Export & print (EXP)
+### 3.9 Family card view (FC)
+
+A view that shows one family at a time, built for phones and for people who find large charts hard to use.
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
-| EXP-01 | Export the Tree, Circle or List view as **PNG**. | M | R1 |
-| EXP-02 | Export the Tree, Circle or List view as **PDF**. | M | R1 |
+| FC-01 | The **Family card** shows one family: the focus person and their spouse(s) in the centre, the focus person's parents above, and their children below. No panning or zooming is needed. | M | R1 |
+| FC-02 | **Navigation:** tapping a child opens that child's family, and tapping a parent opens the parent's family. A back button and a breadcrumb of ancestors lead back. On mobile, swiping left or right moves between siblings. The browser's back button works. | M | R1 |
+| FC-03 | **Multiple spouses:** a switcher shows the children of each marriage separately. "All children" is also available. | M | R1 |
+| FC-04 | **Add in place:** empty slots invite input ("+ Add father", "+ Add mother", "+ Add spouse", "+ Add children") and open the same quick-add flows as the other views. | M | R1 |
+| FC-05 | Each person shows photo, name(s), life years and profession. Each child also shows how many children they have ("3 children ›"). Tapping a photo or name opens the details panel. | M | R1 |
+| FC-06 | The focus person is shared with the other views. Switching from Family card to Tree centres the tree on the same person, and the reverse. | M | R1 |
+| FC-07 | A **siblings strip** shows the focus person's brothers and sisters as small chips for moving sideways. | S | R1 |
+| FC-08 | Built from standard headings, buttons and lists (no canvas), so it is fully accessible. It serves as the simplest view for elderly users and screen-reader users. | M | R1 |
+| FC-09 | The current family can be exported as a one-page **family sheet** (PNG/PDF). | S | R1 |
+
+**AC (FC-02):** From the root person's family, tap the child "Salam" → Salam's family appears, with his parents (Karim and Rahima) above → press Back → the root person's family is shown again.
+
+### 3.10 Generation album (GA)
+
+A photo-first view that feels like a family album.
+
+| ID | Requirement | Pri | Rel |
+| --- | --- | --- | --- |
+| GA-01 | The **Generation album** groups people by generation, relative to the focus person, with one row per generation ("1st generation", "2nd generation" …). Rows scroll sideways on mobile and wrap into a grid on desktop. Spouses appear in their partner's generation. | M | R2 |
+| GA-02 | Group by **generation** (default) or by **branch** (each child of the focus person). | S | R2 |
+| GA-03 | Each card shows the photo (or an initials placeholder), the name, life years, and the parents ("Father: Karim · Mother: Rahima"). Tapping a card opens the details panel. | M | R2 |
+| GA-04 | Filters: only people with photos; living / deceased. | S | R2 |
+| GA-05 | **Slideshow:** full-screen photos with names. Advances automatically; supports swipe, keyboard and pause. | C | R2 |
+| GA-06 | Images load lazily as rows scroll into view, and large albums stay smooth. | M | R2 |
+| GA-07 | Editors see a gentle "Add photo" prompt on people without a photo. | S | R2 |
+| GA-08 | The album can be exported as a PNG or as a PDF contact sheet. | S | R2 |
+
+### 3.11 Timeline (TL)
+
+Lifespans on a year axis, which shows things a tree cannot: who lived at the same time, and how old people were at key moments.
+
+| ID | Requirement | Pri | Rel |
+| --- | --- | --- | --- |
+| TL-01 | A **lifespan timeline**: one bar per person on a year axis, from birth to death, or to today for living people. Names stay visible in a fixed column. | M | R3 |
+| TL-02 | **Partial dates.** Year-only dates are drawn normally, and approximate dates have faded bar ends. A deceased person without a death year gets an open, dashed end; no date is guessed. People without a birth year are listed separately, with a count and a link to add dates. | M | R3 |
+| TL-03 | Group or order by generation (default), branch or birth year. Scope: the focus person's descendants (default), their ancestors, or everyone. | S | R3 |
+| TL-04 | **Life events** on the bars: marriages (from marriage dates) and the births of children. | S | R3 |
+| TL-05 | **Historical markers** (can be turned off): 1947 Partition (দেশভাগ), 1952 Language Movement (ভাষা আন্দোলন), 1971 Liberation War (মুক্তিযুদ্ধ). | S | R3 |
+| TL-06 | **Overlap insight:** selecting a person highlights everyone alive at the same time. The tooltip shows their age at each marker ("Age 23 in 1971"). | S | R3 |
+| TL-07 | Zoom between decades and centuries, pan, and a "today" line. Works with touch and mouse. | M | R3 |
+| TL-08 | The timeline can be exported as PNG or PDF. | S | R3 |
+| TL-09 | Custom family events, for example "Moved to Dhaka, 1985". | C | Future |
+
+### 3.12 Export & print (EXP)
+
+| ID | Requirement | Pri | Rel |
+| --- | --- | --- | --- |
+| EXP-01 | Export the Tree, Family card, Circle or List view as **PNG**. The Album and Timeline views gain this when they ship (GA-08, TL-08). | M | R1 |
+| EXP-02 | Export the Tree, Family card, Circle or List view as **PDF**. The Album and Timeline views gain this when they ship. | M | R1 |
 | EXP-03 | **Export options:** paper size (A4, A3, Letter, or "Single page: fit everything"), orientation (auto/portrait/landscape), title and subtitle, include photos, include legend, include export date, quality (1×/2×/3×). | S | R1 |
 | EXP-04 | Export covers the **whole tree as currently expanded**, not only what fits on screen. There is also an *Expand all before export* option. | M | R1 |
 | EXP-05 | **Bangla text renders correctly** in all exports (conjuncts and vowel signs intact). | M | R1 |
@@ -343,7 +394,23 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 
 **AC (EXP-05):** Exporting a tree that contains "ক্ষমা", "শ্রাবন্তী" and "রুদ্র" produces a PNG and a PDF in which those names look exactly as they do on screen.
 
-### 3.10 Media / photos (MED)
+### 3.13 Family book (FB)
+
+A printable book of the whole family: a keepsake for elders, reunions and future generations.
+
+| ID | Requirement | Pri | Rel |
+| --- | --- | --- | --- |
+| FB-01 | Generate a printable **Family book** (PDF) containing: a cover (title, cover photo, date), a table of contents, an overview chart (tree or circle), one section per family, and an index of names. Each family section shows the couple with photos, details and descriptions, and lists their children with page references. | M | R3 |
+| FB-02 | **Options:** scope (whole tree or one branch), heading language (Bangla/English), paper (A4/Letter), include photos, **include contact details (off by default)**, include details of living people, image quality (standard/high). | M | R3 |
+| FB-03 | Families appear in d'Aboville order, matching the List view's numbering, with cross-references such as "see page 12". | S | R3 |
+| FB-04 | Bangla text renders correctly on every page, using the same approach as EXP-05. | M | R3 |
+| FB-05 | Large books (300+ pages) are built page by page, with progress and Cancel, without freezing the app or exhausting a phone's memory. A warning suggests splitting very large books by branch. | M | R3 |
+| FB-06 | An optional introduction or dedication page, written by the user. | C | R3 |
+| FB-07 | Print-ready layout: margins, page numbers, running headers. | M | R3 |
+
+**AC (FB-01):** For a 150-person tree, the book has a cover, contents, an overview chart, family sections and a name index. Every "see page N" reference points to the correct page, and Bangla names render correctly.
+
+### 3.14 Media / photos (MED)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -356,7 +423,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | MED-07 | Only tree owners and editors can upload. Uploads are **signed by the server**. Photos are deleted when their person, tree or account is deleted. | M | R1 |
 | MED-08 | Multiple photos per person (gallery). | C | Future |
 
-### 3.11 Internationalization (I18N)
+### 3.15 Internationalization (I18N)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -370,7 +437,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | I18N-08 | Transliteration search (typing "Rahim" finds "রহিম"). | C | Future |
 | I18N-09 | Bengali calendar (বঙ্গাব্দ) date display option. | C | Future |
 
-### 3.12 Onboarding & help (ONB)
+### 3.16 Onboarding & help (ONB)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -380,7 +447,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | ONB-04 | A sample tree to explore. | C | R1 |
 | ONB-05 | A bilingual help/FAQ page and a privacy page. | S | R1 |
 
-### 3.13 Editing experience (UX)
+### 3.17 Editing experience (UX)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -392,7 +459,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | UX-06 | Touch targets ≥ 44×44 px. Primary actions sit in the thumb zone on mobile. | M | R1 |
 | UX-07 | No action needs more than 2 taps from a selected person to start adding a relative. | M | R1 |
 
-### 3.14 Backup import/export (BAK)
+### 3.18 Backup import/export (BAK)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -402,7 +469,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | BAK-04 | **Import GEDCOM** 5.5.1 (and 7.0 on a best-effort basis) as a new tree, with a preview and a report of skipped or unsupported data. | M | R2 |
 | BAK-05 | Import limits: up to 5,000 individuals or 10 MB. Writes are chunked, and progress and resumable status are shown. | M | R2 |
 
-### 3.15 PWA & offline (PWA)
+### 3.19 PWA & offline (PWA)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -414,12 +481,12 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 
 *Note:* the Firestore offline cache that underpins PWA-02 is turned on from R1, so reloads are instant and edits made offline are not lost even before the PWA ships.
 
-### 3.16 Sharing & collaboration (SHR)
+### 3.20 Sharing & collaboration (SHR)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
 | SHR-01 | The owner can create a **read-only share link** (an unlisted, unguessable URL), and revoke or regenerate it at any time. | M | R3 |
-| SHR-02 | Share-link visitors (no login) see all three views and may export them (owner setting). **Contact fields (phone, email, addresses) are hidden** by default. An option hides details of living people. | M | R3 |
+| SHR-02 | Share-link visitors (no login) see all the views and may export them (owner setting). **Contact fields (phone, email, addresses) are hidden** by default. An option hides details of living people. | M | R3 |
 | SHR-03 | **Invite collaborators** through an invite link with role *Editor* or *Viewer*. Links expire after 7 days by default and have a use limit. | M | R3 |
 | SHR-04 | Accepting an invite requires a **permanent account**. Guests are guided to sign up first, and their guest trees are kept through AUTH-04/07. | M | R3 |
 | SHR-05 | **Member management:** list members, change roles, remove members, leave a tree, transfer ownership (Should). | M | R3 |
@@ -428,7 +495,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | SHR-08 | Share actions: copy link, native share sheet, WhatsApp/Messenger deep links. | S | R3 |
 | SHR-09 | Share pages are not indexed by search engines (`noindex`). | M | R3 |
 
-### 3.17 Relationship finder (KIN)
+### 3.21 Relationship finder (KIN)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -440,7 +507,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | KIN-06 | When no single term exists, a descriptive chain in natural language ("বাবার মামাতো ভাই" / "father's maternal cousin"). | M | R4 |
 | KIN-07 | When two people are related in more than one way (for example a cousin marriage), up to 3 relationships are shown, shortest first. | S | R4 |
 
-### 3.18 Administration & operations (OPS)
+### 3.22 Administration & operations (OPS)
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
@@ -458,7 +525,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 
 - **Breakpoints:** phone < 640 px, tablet 640–1023 px, desktop ≥ 1024 px. Portrait and landscape are both supported.
 - **Desktop editor:** top bar (tree name, view tabs, search, save status, language, account); canvas; right-hand details panel (400 px); floating zoom controls.
-- **Mobile editor:** compact top bar; full-bleed canvas; bottom navigation (Tree / Circle / List); bottom sheet for details and add actions; a floating "+" button in the thumb zone.
+- **Mobile editor:** compact top bar; full-bleed canvas; bottom navigation (Tree / Family / Circle / List / More, where More holds Album, Timeline, Ancestors and Family book); bottom sheet for details and add actions; a floating "+" button in the thumb zone.
 - The visual language, wireframes and components are specified in [DESIGN.md §21](./DESIGN.md#21-uiux-design-system).
 
 ### 4.2 Hardware interfaces
@@ -517,7 +584,7 @@ HTTPS only (HSTS). The Route Handlers expose JSON REST endpoints authenticated w
 | ID | Requirement |
 | --- | --- |
 | NFR-A11Y-01 | Conform to **WCAG 2.2 AA**: contrast, focus visibility, keyboard operability, labelled controls, reduced motion. |
-| NFR-A11Y-02 | The List view is the full screen-reader alternative to the Tree and Circle views. Graphical views expose selection changes through a live region. |
+| NFR-A11Y-02 | The List and Family card views are the full screen-reader alternatives to the Tree, Circle and Timeline views. Graphical views expose selection changes through a live region. |
 | NFR-A11Y-03 | Colour is never the only carrier of meaning. Gender and branch also have icons, labels or positions. |
 
 ### 5.5 Responsiveness & compatibility
@@ -766,15 +833,35 @@ About 2,000 users × 1.5 trees × 150 persons ≈ 450,000 person documents plus 
   2. The system parses the file and shows a preview: "214 people, 63 families, 3 items skipped (see details)".
   3. The user confirms. The tree is created with chunked writes and progress, then opens.
 
+### UC-11: Browse the family on a phone with the Family card
+
+- **Actor:** Any member (typically an elderly relative on a phone)
+- **Main flow:**
+  1. The user taps **Family** in the bottom navigation. The root couple is shown with their children below.
+  2. The user taps "সালাম ›". Salam's family appears, with his parents above and his three children below.
+  3. The user swipes left to move to Salam's sister Halima's family.
+  4. The user taps the empty "+ Add spouse" slot on Halima's card and adds her husband.
+  5. The user presses Back twice and returns to the root couple.
+- **Postcondition:** The Tree view, when opened, is centred on the last focused person.
+
+### UC-12: Create a family book (R3)
+
+- **Actor:** Any member
+- **Main flow:**
+  1. The user opens **Download → Family book**.
+  2. The user chooses the scope (whole tree), A4, headings in Bangla, and photos on. Contact details stay off.
+  3. The system builds the book page by page, showing "পৃষ্ঠা ৩৪/১২০", and then offers to download or share the PDF.
+- **Alternative 3a:** The book would exceed 300 pages → a warning suggests making one book per branch. The user can continue anyway, up to the hard limit.
+
 ---
 
 ## 8. Release mapping & traceability
 
 | Release | Version | Theme | Requirement groups |
 | --- | --- | --- | --- |
-| **R1** | v1.0 MVP | Build, view and export a family tree, guest-first, bilingual | AUTH (except 14), TREE, PER, REL, VIS (except 07), TV, CV, LV, EXP, MED, I18N, ONB, UX, BAK-01, PWA-03, OPS-02/03/04/05 |
-| **R2** | v1.1 | Offline and portability | PWA-01/02/04/05, BAK-02..05, AUTH-14, OPS-01, TREE-04, TV-08, CV-06, EXP-10 |
-| **R3** | v1.2 | Sharing and collaboration | SHR-01..09, VIS-07 |
+| **R1** | v1.0 MVP | Build, view and export a family tree, guest-first, bilingual | AUTH (except 14), TREE, PER, REL, VIS (except 07), TV, CV, LV, **FC**, EXP, MED, I18N, ONB, UX, BAK-01, PWA-03, OPS-02/03/04/05 |
+| **R2** | v1.1 | Offline, portability and the photo album | PWA-01/02/04/05, BAK-02..05, **GA-01..08**, AUTH-14, OPS-01, TREE-04, TV-08, CV-06, EXP-10 |
+| **R3** | v1.2 | Sharing, collaboration and family stories | SHR-01..09, VIS-07, **TL-01..08**, **FB-01..07** |
 | **R4** | v1.3 | Relationship finder | KIN-01..07 |
 
 Mapping to implementation phases: see [IMPLEMENTATION_PLAN.md §3](./IMPLEMENTATION_PLAN.md#3-phase-overview).
@@ -791,7 +878,7 @@ Mapping to implementation phases: see [IMPLEMENTATION_PLAN.md §3](./IMPLEMENTAT
 | Q4 | Commercial launch? This affects the Vercel plan (C-07). | Product owner | Open |
 | Q5 | Native-speaker reviewer for the Bangla copy and the kinship tables. | Product owner | Open |
 
-**Future ideas (not scheduled):** multiple photos per person; timeline view; birthday and death-anniversary reminders; transliteration search; Bengali calendar dates; family events and stories; QR code on exported PDFs linking to the live tree; printable poster templates.
+**Future ideas (not scheduled):** multiple photos per person; custom family events on the timeline (TL-09); fan chart and hourglass chart; a কুরসিনামা-style lineage print; birthday and death-anniversary reminders; transliteration search; Bengali calendar dates; family events and stories; QR code on exported PDFs linking to the live tree; printable poster templates.
 
 ---
 
@@ -802,7 +889,11 @@ This glossary is used consistently in the `bn` messages.
 | English | বাংলা |
 | --- | --- |
 | Family tree | পারিবারিক বংশতালিকা (short: বংশতালিকা) |
-| Tree / Circle / List view | ট্রি ভিউ / বৃত্ত ভিউ / তালিকা ভিউ |
+| Tree / Family / Circle / List view | ট্রি ভিউ / পরিবার ভিউ / বৃত্ত ভিউ / তালিকা ভিউ |
+| Generation album | প্রজন্ম অ্যালবাম |
+| Timeline | সময়রেখা |
+| Family book | পারিবারিক বই |
+| More | আরও |
 | Person / Member | ব্যক্তি / সদস্য |
 | Ancestor / Descendant | পূর্বপুরুষ / বংশধর |
 | Generation | প্রজন্ম |

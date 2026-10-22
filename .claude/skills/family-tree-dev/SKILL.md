@@ -1,6 +1,6 @@
 ---
 name: family-tree-dev
-description: Project playbook for building the Family Tree app (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, tree/circle/list visualizations, export, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
+description: Project playbook for building the Family Tree app (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
 ---
 
 # Family Tree development playbook
@@ -127,15 +127,18 @@ export async function POST(req: Request) {
 
 Checklist: idempotent (safe to retry); bounded work per request (batch through lists); a rate limit for endpoints that cost money (`lib/server/rateLimit.ts`); no PII in logs; add the endpoint to the DESIGN §10.2 table; API tests against the emulator.
 
-## 6. Recipe: visualization work (Tree / Circle / List)
+## 6. Recipe: view work (Tree, Family card, Circle, List, Album, Timeline)
 
-- Keep the **layout pure** (`features/views/<view>/layout.ts`): input `DescNode` plus options, output positions and paths. Snapshot-test it on the fixtures (10, 150, 500 people, cousin marriage, multiple spouses).
-- Render **SVG only** (no `foreignObject`) so that export works. Measure text with the shared canvas measure cache.
+- **Pick the kind of view (ADR-013).** *Canvas views* (Tree, Circle, Timeline) render **SVG** with the shared camera and never use `foreignObject`, so export can serialize them directly. *Card views* (Family card, List, Album) are plain **HTML/CSS** with native scrolling, exported through html-to-image.
+- Keep the **model and layout pure** (`lib/domain/...` or `features/views/<view>/layout.ts`): input from the graph or `DescNode`, output a view model or positions. Snapshot-test it on the fixtures (10, 150, 500 people, cousin marriage, multiple spouses, partial dates).
+- In SVG, measure text with the shared canvas measure cache. In HTML, use CSS line clamping and grapheme-safe helpers.
+- **Focus and selection** live in `uiStore` and are shared by every view. Changing the focus pushes `?view=&focus=` so browser Back works.
+- **Staged views** must check their flag in `lib/features.ts` (ADR-014).
 - **Camera:** use the shared d3-zoom hook. Apply the transform through a ref; update React state only on zoom end (culling).
 - **Colour:** take it from `views/shared/colors.ts` (branch, gender, generation, none; DESIGN §21.3). Never cycle hues. Branches 9 and up are neutral "Other". Text uses ink tokens, never the data colour.
 - **Interactions:** each one needs a desktop **and** a mobile path (DESIGN §13.3 table). Long-press or right-click menus must have a button alternative.
 - **Read-only mode:** respect `editable={false}` (viewers and share links).
-- **Export mode:** the view must render with `mode="export"` (full bounds, no UI chrome, header and legend slots). If you add a visual element, make sure the export still looks right.
+- **Export mode:** the view must render with `mode="export"` (full bounds or fixed page frames, no buttons or empty "+ add" slots, header and legend slots). If you add a visual element, make sure the export still looks right.
 - **Performance:** check against the 500-person fixture at 4× CPU throttle. Animations switch off above 300 cards and with reduced motion.
 
 ## 7. Recipe: photos (Cloudinary)

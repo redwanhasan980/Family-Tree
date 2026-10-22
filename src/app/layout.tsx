@@ -1,16 +1,6 @@
-import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import './globals.css';
 
-export const metadata: Metadata = {
-  title: 'শিকড়',
-  description: 'Family tree in Bangla & English',
-};
-
+// Pass-through root layout: <html> and <body> are rendered per locale in app/[locale]/layout.tsx.
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="bn">
-      <body>{children}</body>
-    </html>
-  );
+  return children;
 }

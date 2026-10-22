@@ -1,4 +1,26 @@
 {
-  "indexes": [],
-  "fieldOverrides": []
+  "indexes": [
+    {
+      "collectionGroup": "trees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isGuest", "order": "ASCENDING" },
+        { "fieldPath": "lastActiveAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "persons", "fieldPath": "description", "indexes": [] },
+    { "collectionGroup": "persons", "fieldPath": "customFields", "indexes": [] },
+    { "collectionGroup": "persons", "fieldPath": "addresses", "indexes": [] },
+    { "collectionGroup": "activity", "fieldPath": "summary", "indexes": [] }
+  ]
 }

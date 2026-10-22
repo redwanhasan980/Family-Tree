@@ -23,12 +23,18 @@ export function memberDb(
   uid: string,
   email: string,
   provider: 'password' | 'google.com' = 'password',
+  emailVerified = false,
 ) {
   return env
     .authenticatedContext(uid, {
       email,
-      email_verified: false,
+      email_verified: emailVerified,
       firebase: { sign_in_provider: provider },
     })
     .firestore();
+}
+
+/** A registered user by short name: `${uid}@example.com`, email verified. */
+export function userDb(env: RulesTestEnvironment, uid: string) {
+  return memberDb(env, uid, `${uid}@example.com`, 'password', true);
 }

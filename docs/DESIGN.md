@@ -523,166 +523,29 @@ Opening a tree attaches 3 listeners (tree document, persons, relationships), whi
 
 ## 8. Security rules
 
-`firebase/firestore.rules` is the source of truth. Every rule path is covered by tests in `firebase/tests` (NFR-SEC-01). This is the baseline draft:
+`firebase/firestore.rules` is the source of truth, deployed by CI only. Every allow/deny path is covered by tests in `firebase/tests` (NFR-SEC-01). The rules are summarised here; read the file for the exact conditions.
 
-```js
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+| Path | Read | Write |
+| --- | --- | --- |
+| `users/{uid}` | the user | the user; `isGuest` must match the token; server stamps (§9) |
+| `trees/{treeId}` | members (`get`); `list` only with `memberIds array-contains uid` | **create:** the caller is the only member and the owner. **update:** the owner (anything but `ownerId`/`createdAt`; may remove members or change roles, never add members), an editor (`name`, `description`, `rootPersonId`, `settings`, `personCount` only), or a member leaving. **delete:** the owner |
+| `…/persons/{id}`, `…/relationships/{id}` | members | owner and editors; validated shape and limits; stamped |
+| `…/activity/{id}` (R3) | members | owner and editors append their own entry; never updated or deleted |
+| `shareLinks/{id}` (R3) | the creator | the tree owner creates; the creator toggles `enabled`/`options` or deletes |
+| `invites/{id}` (R3) | the creator | a verified, registered tree owner creates (`editor`/`viewer`, unused, unexpired); accepted on the server |
+| `mergeTickets`, `rateLimits`, anything else | nobody | nobody (server only) |
 
-    // ---------- helpers ----------
-    function signedIn() { return request.auth != null; }
-    function me() { return request.auth.uid; }
-    function isGuest() { return request.auth.token.firebase.sign_in_provider == 'anonymous'; }
-    function treeDoc(treeId) { return get(/databases/$(database)/documents/trees/$(treeId)).data; }
-    function roleOf(treeId) { return treeDoc(treeId).roles.get(me(), ''); }
-    function canRead(treeId) { return signedIn() && roleOf(treeId) in ['owner', 'editor', 'viewer']; }
-    function canEdit(treeId) { return signedIn() && roleOf(treeId) in ['owner', 'editor']; }
-    // Every write must be stamped by the caller with a server timestamp.
-    function stamped(d) { return d.updatedBy == me() && d.updatedAt == request.time; }
-    function optStr(d, k, max) { return !(k in d) || (d[k] is string && d[k].size() <= max); }
-    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+**Key decisions**
 
-    // ---------- users ----------
-    match /users/{uid} {
-      allow read: if signedIn() && me() == uid;
-      allow create, update: if signedIn() && me() == uid && validUser(request.resource.data);
-      allow delete: if false;                       // server only (merge / account deletion)
-    }
+- **Writes check the role with `getAfter(tree)`**, the tree as it will be after the batch. That lets `createTree` write the tree and its first person in one batch. Reads use `get()`.
+- **Stamps:** every write sets `updatedBy == uid` and `updatedAt == request.time`. Creates may carry an *earlier* `createdAt` (never a future one) and any `createdBy`, so undo can restore a deleted person exactly as it was. Updates keep `createdAt` and `createdBy`.
+- **Validation mirrors `schemas.ts`** (SRS §6.2): name length and "at least one language", nickname, description, phones (≤ 3, ≤ 30 characters each), custom fields (≤ 20), addresses, partial dates (year 1000 to next year, months, days), photo `publicId` bound to this tree and person, tree settings enums, `personCount` 0–5,000, and roles that match `memberIds`.
+- **Relationship IDs** must equal `p_{parentId}_{childId}` or `s_{minId}_{maxId}` with sorted IDs, so the people in a relationship can't change and duplicates are impossible.
+- **Batch limit, measured:** rules may read at most 20 *distinct* documents per batch (the emulator denies a batch touching 25 trees), but repeated reads of the same tree document count once, so a 450-write batch inside one tree passes (`persons.rules.test.ts`).
 
-    // ---------- trees ----------
-    match /trees/{treeId} {
-      allow get:  if signedIn() && resource.data.roles.get(me(), '') != '';
-      allow list: if signedIn() && me() in resource.data.memberIds;
-      allow create: if signedIn()
-        && request.resource.data.ownerId == me()
-        && request.resource.data.memberIds == [me()]
-        && request.resource.data.roles.keys().hasOnly([me()])
-        && request.resource.data.roles[me()] == 'owner'
-        && validTree(request.resource.data) && stamped(request.resource.data);
-      allow update: if signedIn() && validTree(request.resource.data) && stamped(request.resource.data)
-        && (ownerUpdate() || editorUpdate() || selfLeave());
-      allow delete: if signedIn() && resource.data.ownerId == me();
+**What the rules intentionally do *not* enforce:** cross-document graph integrity (cycles, one biological father, endpoints existing). These invariants are enforced by the **domain validation layer** (§12.5) before every command. The graph builder **tolerates** violations (it skips and reports dangling or invalid edges) instead of crashing (NFR-REL-04).
 
-      // The owner may edit everything except ownership; may remove members or change roles,
-      // but never add members (that happens on the server through invites, R3).
-      function ownerUpdate() {
-        return resource.data.ownerId == me()
-          && !changedKeys().hasAny(['ownerId', 'createdAt'])
-          && request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()).size() == 0
-          && request.resource.data.roles.keys().toSet() == request.resource.data.memberIds.toSet()
-          && request.resource.data.roles[me()] == 'owner';
-      }
-      function editorUpdate() {
-        return resource.data.roles.get(me(), '') == 'editor'
-          && changedKeys().hasOnly(['name', 'description', 'rootPersonId', 'settings',
-                                    'personCount', 'updatedAt', 'updatedBy']);
-      }
-      function selfLeave() {
-        return me() in resource.data.memberIds && resource.data.ownerId != me()
-          && changedKeys().hasOnly(['memberIds', 'roles', 'updatedAt', 'updatedBy'])
-          && request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().difference([me()].toSet())
-          && !request.resource.data.roles.keys().hasAny([me()]);
-      }
-
-      match /persons/{personId} {
-        allow read: if canRead(treeId);
-        allow create, update: if canEdit(treeId)
-          && validPerson(request.resource.data, treeId, personId) && stamped(request.resource.data);
-        allow delete: if canEdit(treeId);
-      }
-
-      match /relationships/{relId} {
-        allow read: if canRead(treeId);
-        allow create, update: if canEdit(treeId)
-          && validRelationship(relId, request.resource.data) && stamped(request.resource.data);
-        allow delete: if canEdit(treeId);
-      }
-
-      match /activity/{entryId} {                  // R3: append-only
-        allow read: if canRead(treeId);
-        allow create: if canEdit(treeId)
-          && request.resource.data.actorId == me() && request.resource.data.at == request.time;
-        allow update, delete: if false;
-      }
-    }
-
-    // ---------- R3: share links & invites (read by the server via the Admin SDK) ----------
-    match /shareLinks/{shareId} {
-      allow read, delete: if signedIn() && resource.data.createdBy == me();
-      allow create: if signedIn() && request.resource.data.createdBy == me()
-        && treeDoc(request.resource.data.treeId).ownerId == me();
-      allow update: if signedIn() && resource.data.createdBy == me()
-        && changedKeys().hasOnly(['enabled', 'options', 'updatedAt']);
-    }
-    match /invites/{inviteId} {
-      allow read, delete: if signedIn() && resource.data.createdBy == me();
-      allow create: if signedIn() && !isGuest() && request.auth.token.email_verified == true
-        && request.resource.data.createdBy == me()
-        && treeDoc(request.resource.data.treeId).ownerId == me()
-        && request.resource.data.role in ['editor', 'viewer']
-        && request.resource.data.uses == 0;
-      allow update: if false;                      // accepted on the server
-    }
-
-    // mergeTickets, rateLimits: no client access (default deny).
-
-    // ---------- validators ----------
-    function validPerson(p, treeId, personId) {
-      return p.keys().hasAll(['names', 'gender', 'isLiving', 'createdAt', 'createdBy',
-                              'updatedAt', 'updatedBy', 'schemaVersion'])
-        && p.keys().hasOnly(['names', 'nickname', 'gender', 'isLiving', 'birth', 'death',
-                             'profession', 'education', 'addresses', 'phones', 'email',
-                             'description', 'photo', 'customFields', 'childOrder',
-                             'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'schemaVersion'])
-        && p.names is map && p.names.keys().hasOnly(['en', 'bn'])
-        && optStr(p.names, 'en', 120) && optStr(p.names, 'bn', 120)
-        && (p.names.get('en', '').size() > 0 || p.names.get('bn', '').size() > 0)
-        && p.gender in ['male', 'female', 'unknown'] && p.isLiving is bool
-        && optStr(p, 'nickname', 60) && optStr(p, 'profession', 120) && optStr(p, 'education', 120)
-        && optStr(p, 'email', 254) && optStr(p, 'description', 2000)
-        && (!('phones' in p) || (p.phones is list && p.phones.size() <= 3))
-        && (!('customFields' in p) || (p.customFields is list && p.customFields.size() <= 20))
-        && (!('photo' in p) || p.photo == null
-            || (p.photo.publicId is string
-                && p.photo.publicId.matches('^shikor/[a-z]+/' + treeId + '/' + personId + '/[A-Za-z0-9_-]+$')));
-    }
-
-    function validRelationship(relId, r) {
-      return (r.type == 'parent'
-          && r.keys().hasOnly(['type', 'parentId', 'childId', 'kind',
-                               'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'schemaVersion'])
-          && r.parentId is string && r.childId is string && r.parentId != r.childId
-          && relId == 'p_' + r.parentId + '_' + r.childId
-          && r.kind in ['biological', 'adoptive', 'step', 'foster'])
-        || (r.type == 'spouse'
-          && r.keys().hasOnly(['type', 'personIds', 'status', 'marriageDate', 'sequence',
-                               'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'schemaVersion'])
-          && r.personIds is list && r.personIds.size() == 2 && r.personIds[0] < r.personIds[1]
-          && relId == 's_' + r.personIds[0] + '_' + r.personIds[1]
-          && r.status in ['married', 'divorced', 'separated', 'widowed']);
-    }
-
-    function validTree(t) {
-      return t.name is string && t.name.size() >= 1 && t.name.size() <= 80
-        && optStr(t, 'description', 500)
-        && t.memberIds is list && t.memberIds.size() <= 50
-        && t.roles is map && t.settings is map
-        && t.personCount is int && t.personCount >= 0;
-    }
-
-    function validUser(u) {
-      return u.isGuest is bool && u.locale in ['bn', 'en']
-        && optStr(u, 'displayName', 80)
-        && (!('selfPersonIds' in u) || u.selfPersonIds is map);
-    }
-  }
-}
-```
-
-**What the rules intentionally do *not* enforce:** cross-document graph integrity (cycles, one biological father, endpoints existing). Rules may make at most 20 document-access calls per batched write, and a bulk add would exceed that. These invariants are enforced by the **domain validation layer** (§12.5). The graph builder **tolerates** violations (it skips and reports dangling or invalid edges) instead of crashing (NFR-REL-04).
-
-**Rules testing checklist:** owner/editor/viewer/non-member/guest × read/create/update/delete for every collection; role escalation attempts (an editor adding themselves as owner, an owner adding a member directly, changing `ownerId`); malformed persons (missing name, too-long description, a foreign photo `publicId`); relationship ID mismatches; unsorted spouse IDs; self-leave edge cases; R3 invites by unverified or guest users.
+**Rules test files:** `users`, `trees`, `persons` (including the 450-write batch), `relationships`, `sharing` (activity, share links, invites) and `baseline` (server-only and unknown paths). They cover owner/editor/viewer/non-member/guest × read/create/update/delete, role escalation (an editor making themselves owner, an owner adding a member directly, changing `ownerId`), malformed persons, relationship ID mismatches, unsorted spouse IDs, self-leave edge cases, and invites by unverified or guest users.
 
 ---
 

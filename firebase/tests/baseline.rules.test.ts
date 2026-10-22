@@ -2,7 +2,7 @@ import { assertFails, type RulesTestEnvironment } from '@firebase/rules-unit-tes
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 
-import { guestDb, memberDb, startEnv } from './helpers';
+import { guestDb, startEnv, userDb } from './helpers';
 
 let env: RulesTestEnvironment;
 
@@ -14,22 +14,23 @@ afterAll(async () => {
   await env?.cleanup();
 });
 
-describe('collections without rules yet (trees arrive in P2-05)', () => {
-  it('denies unauthenticated reads and writes', async () => {
-    const db = env.unauthenticatedContext().firestore();
-    await assertFails(getDoc(doc(db, 'trees/t1')));
-    await assertFails(setDoc(doc(db, 'trees/t1'), { name: 'x' }));
+describe('server-only and unknown collections', () => {
+  it('keeps merge tickets and rate limits away from every client', async () => {
+    for (const db of [
+      userDb(env, 'alice'),
+      guestDb(env, 'guest'),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      for (const path of ['mergeTickets/m1', 'rateLimits/r1']) {
+        await assertFails(getDoc(doc(db, path)));
+        await assertFails(setDoc(doc(db, path), { guestUid: 'guest' }));
+      }
+    }
   });
 
-  it('denies registered users', async () => {
-    const db = memberDb(env, 'alice', 'alice@example.com');
-    await assertFails(getDoc(doc(db, 'trees/t1')));
-    await assertFails(setDoc(doc(db, 'trees/t1'), { name: 'x' }));
-  });
-
-  it('denies guests', async () => {
-    const db = guestDb(env, 'guest');
-    await assertFails(setDoc(doc(db, 'trees/t2'), { name: 'guest tree' }));
+  it('denies anything without its own rules', async () => {
+    const db = userDb(env, 'alice');
     await assertFails(getDoc(doc(db, 'anything/else')));
+    await assertFails(setDoc(doc(db, 'trees/t1/secrets/s1'), { x: 1 }));
   });
 });

@@ -1,7 +1,12 @@
 import { Timestamp, type DocumentSnapshot } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 
-import { userFromSnapshot } from './converters';
+import {
+  personFromSnapshot,
+  relationshipFromSnapshot,
+  treeFromSnapshot,
+  userFromSnapshot,
+} from './converters';
 
 function snap(id: string, data: Record<string, unknown> | null): DocumentSnapshot {
   return {
@@ -58,5 +63,46 @@ describe('userFromSnapshot', () => {
       onboardingCompleted: false,
     });
     expect(profile?.createdAt).toBeInstanceOf(Date);
+  });
+});
+
+describe('tree documents', () => {
+  const at = new Date('2026-10-01T00:00:00Z');
+
+  it('turns timestamps into dates and reads people, links and trees', () => {
+    const person = personFromSnapshot(
+      snap('p1', {
+        names: { bn: 'রহিমা' },
+        gender: 'female',
+        isLiving: true,
+        createdAt: Timestamp.fromDate(at),
+      }),
+    );
+    expect(person).toMatchObject({
+      id: 'p1',
+      names: { bn: 'রহিমা' },
+      gender: 'female',
+      createdAt: at,
+    });
+    expect(
+      relationshipFromSnapshot(
+        snap('p_a_b', { type: 'parent', parentId: 'a', childId: 'b', kind: 'step' }),
+      ),
+    ).toMatchObject({
+      id: 'p_a_b',
+      kind: 'step',
+    });
+    expect(
+      treeFromSnapshot(snap('t1', { name: 'T', ownerId: 'u1', updatedAt: Timestamp.fromDate(at) })),
+    ).toMatchObject({
+      id: 't1',
+      updatedAt: at,
+    });
+  });
+
+  it('returns null for missing documents', () => {
+    expect(personFromSnapshot(snap('p1', null))).toBeNull();
+    expect(relationshipFromSnapshot(snap('p_a_b', null))).toBeNull();
+    expect(treeFromSnapshot(snap('t1', null))).toBeNull();
   });
 });

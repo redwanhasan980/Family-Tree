@@ -61,6 +61,17 @@ export default defineConfig([
       'no-restricted-imports': ['error', { patterns: [FIREBASE_CLIENT, FIREBASE_ADMIN] }],
     },
   },
+  // Code allowed to use Firebase SDKs still may not load Google Analytics.
+  {
+    files: [
+      'src/lib/firebase/**/*.{ts,tsx}',
+      'src/lib/server/**/*.{ts,tsx}',
+      'src/app/api/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [FIREBASE_ANALYTICS] }],
+    },
+  },
   // Client-side Firebase code must never pull in the Admin SDK.
   {
     files: ['src/lib/firebase/client.ts', 'src/lib/repositories/**/*.{ts,tsx}'],

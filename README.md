@@ -235,7 +235,7 @@ The full layout is in [DESIGN §5](docs/DESIGN.md#5-project-structure).
 
 ## Contributing
 
-- **Branches:** `feat/<task-id>-<slug>` (for example `feat/p4-07-bulk-add-children`), `fix/…`, `docs/…`. Open a PR into `main`, which is squash-merged.
+- **Workflow:** small, frequent commits pushed directly to `main`, each passing the checks. When collaborators join, switch to short-lived branches (`feat/<task-id>-<slug>`, `fix/…`, `docs/…`) with PRs into `main`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/), for example `feat(person): add custom fields`.
 - **Before opening a PR:** `pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check`. Check the change on a phone-sized and a desktop-sized screen, in Bangla and English.
 - Every UI string goes into **both** `messages/en.json` and `messages/bn.json`.

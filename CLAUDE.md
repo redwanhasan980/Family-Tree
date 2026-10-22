@@ -106,4 +106,4 @@ firebase/                   firestore.rules, indexes, rules tests
 - Start a task by locating its **task ID** in the plan and its **SRS IDs**, then follow the skill's feature workflow.
 - Keep each change minimal and in scope. If something in the docs is wrong, fix the doc in the same PR and say so.
 - Ask the product owner before changing product behaviour, data shape, cost profile (new paid services) or security posture.
-- Never commit to `main` directly. Never push secrets. Do not create PRs unless asked.
+- **Workflow (owner's choice):** work directly on `main` with small, frequent commits, and push after each logical step. Every commit must pass the pre-commit checks. Use feature branches and PRs only when the owner asks. Never push secrets.

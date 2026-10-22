@@ -36,7 +36,7 @@
 | Aspect | Approach |
 | --- | --- |
 | Methodology | Iterative phases (about 1–2 weeks each) with a demo-able increment at the end of every phase |
-| Branching | Trunk-based: short-lived `feat/*`, `fix/*` and `docs/*` branches → PR → squash merge into `main` |
+| Branching | Trunk-based. Currently small, frequent commits directly to `main` (owner's choice), each passing the checks; short-lived `feat/*` branches with PRs once collaborators join |
 | Commits | Conventional Commits (`feat(tree-view): add couple connectors`), enforced by commitlint |
 | Reviews | Every PR: CI green, self-review checklist (§6), preview deployment checked on a phone and on a desktop |
 | Environments | local (emulators) → Vercel preview per PR (dev Firebase) → production on `main` (prod Firebase) |

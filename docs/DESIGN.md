@@ -1868,7 +1868,7 @@ jobs:
 deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:indexes (service account secret)
 ```
 
-- **Branching:** trunk-based. Short-lived `feat/*`, `fix/*` and `docs/*` branches go to `main` through a PR with squash merge. `main` is always deployable.
+- **Branching:** trunk-based. While the owner works alone, small, frequent commits go directly to `main`, each passing the local checks. Once collaborators join, short-lived `feat/*`, `fix/*` and `docs/*` branches go to `main` through PRs. `main` is always deployable.
 - **Conventional Commits** are enforced by commitlint. Versions follow semver tags (`v1.0.0`…), and `CHANGELOG.md` is maintained (release-please is optional).
 - **Branch protection:** all checks green and one review (or a self-review checklist when working solo).
 

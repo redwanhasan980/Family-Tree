@@ -794,14 +794,16 @@ sequenceDiagram
 - **Redirect-safe auth domain:** browsers that partition third-party storage (Safari, and Chrome in some modes) break redirects unless the auth handler is on the app's own origin. In production, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to the app domain and proxy the handler:
 
   ```ts
-  // next.config.ts
+  // next.config.ts (built only when NEXT_PUBLIC_FIREBASE_PROJECT_ID is set)
   async rewrites() {
-    return [{ source: '/__/auth/:path*',
-              destination: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com/__/auth/:path*` }];
+    return ['auth', 'firebase'].map((dir) => ({
+      source: `/__/${dir}/:path*`,           // the handler also reads /__/firebase/init.json
+      destination: `https://${projectId}.firebaseapp.com/__/${dir}/:path*`,
+    }));
   }
   ```
 
-  Then add `https://<app-domain>/__/auth/handler` to the Google OAuth client's authorized redirect URIs and the domain to Firebase's authorized domains. The `proxy.ts` matcher must exclude `/__/` and `/api`.
+  Then add `https://<app-domain>/__/auth/handler` to the Google OAuth client's authorized redirect URIs and the domain to Firebase's authorized domains. The `proxy.ts` matcher must exclude `/__/` and `/api`. The app's security headers skip `/__/`: the SDK frames `/__/auth/iframe`, which `X-Frame-Options: DENY` would block, so those responses keep Firebase's own headers. CSP `frame-src` includes `'self'` for the same reason.
 - **In-app browsers (AUTH-15):** detect them with a user-agent check (`FBAN|FBAV|FB_IAB|Instagram|Line/|MicroMessenger|; wv\)`). Instead of a Google button that would fail with `disallowed_useragent`, show "Open in your browser" instructions (with a copy-link button). Email/password remains available.
 
 ### 9.6 Other auth flows
@@ -820,22 +822,31 @@ sequenceDiagram
 - **Runtime:** Node.js (Admin SDK). Files under `src/app/api/**/route.ts`.
 - **Auth:** `Authorization: Bearer <Firebase ID token>`, verified with `getAuth().verifyIdToken(token, true)` (revocation checked). In production, `X-Firebase-AppCheck` is verified with `getAppCheck().verifyToken()`.
 - **Validation:** the request body is parsed with Zod. Unknown keys are rejected.
-- **Responses:** JSON. Errors look like `{ "error": { "code": "tree_not_found", "message": "…" } }`, where `message` is for developers and the client maps `code` to a localized string.
-- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden` · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal`.
+- **Responses:** JSON. Errors look like `{ "error": { "code": "not_found", "message": "…" } }`, where `message` is for developers and the client maps `code` to a localized string.
+- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden` or `guest_not_allowed` · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal`.
 - **No cookies, so CSRF does not apply.** CORS is same-origin only.
 
 ```ts
-// src/lib/server/auth.ts (sketch)
+// src/lib/server/auth.ts (simplified)
 export async function verifyRequest(req: Request, opts: { allowGuest?: boolean } = {}) {
-  const token = req.headers.get('authorization')?.replace(/^Bearer /, '');
-  if (!token) throw new HttpError(401, 'unauthenticated');
-  const decoded = await getAdminAuth().verifyIdToken(token, true);
-  const isGuest = decoded.firebase.sign_in_provider === 'anonymous';
-  if (isGuest && !opts.allowGuest) throw new HttpError(403, 'guest_not_allowed');
-  await verifyAppCheck(req); // no-op with emulators
-  return { uid: decoded.uid, isGuest, token: decoded };
+  const idToken = bearerToken(req);              // HttpError('unauthenticated') if missing
+  await verifyAppCheck(req);                     // skipped with emulators; required once
+                                                 // NEXT_PUBLIC_RECAPTCHA_SITE_KEY is set
+  const token = await getAdminAuth().verifyIdToken(idToken, true); // bad token → 401
+  const isGuest = token.firebase.sign_in_provider === 'anonymous';
+  if (isGuest && !opts.allowGuest) throw new HttpError('guest_not_allowed'); // 403
+  return { uid: token.uid, isGuest, token };
 }
+
+// src/app/api/…/route.ts
+export const POST = route('media.sign', async (req) => {
+  const { uid } = await verifyRequest(req, { allowGuest: true });
+  const body = await readJson(req, SignSchema);  // strict Zod schema → 400 invalid_request
+  return json(await signUpload(uid, body));
+});
 ```
+
+`HttpError(code, message?)` takes its status from the code. `route()` turns an `HttpError` into its error response and anything unexpected into `500 internal`, logging only the error code.
 
 ### 10.2 Endpoints
 

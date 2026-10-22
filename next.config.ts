@@ -25,7 +25,8 @@ const csp = [
     'https://www.google.com',
     ...(isDev ? ['http://127.0.0.1:*', 'ws://127.0.0.1:*', 'ws://localhost:*'] : []),
   ].join(' '),
-  'frame-src https://*.firebaseapp.com https://www.google.com',
+  // 'self': with the app domain as authDomain, the auth iframe is served from /__/auth (§9.5).
+  "frame-src 'self' https://*.firebaseapp.com https://www.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -42,13 +43,30 @@ const securityHeaders = [
   { key: 'Content-Security-Policy-Report-Only', value: csp },
 ];
 
+/**
+ * Firebase's sign-in helper, served from the app's own origin so Google redirects keep
+ * working in browsers that partition third-party storage (DESIGN §9.5). The handler also
+ * reads /__/firebase/init.json. Without a project ID (emulators) there is nothing to proxy.
+ */
+const firebaseProject = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const authHelperRewrites = firebaseProject
+  ? ['auth', 'firebase'].map((dir) => ({
+      source: `/__/${dir}/:path*`,
+      destination: `https://${firebaseProject}.firebaseapp.com/__/${dir}/:path*`,
+    }))
+  : [];
+
 const nextConfig: NextConfig = {
   // The Docker image runs Next.js as a standalone Node server (DESIGN §27.4).
   output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    // /__/ is Firebase's helper, which is framed by the SDK; it keeps Firebase's own headers.
+    return [{ source: '/((?!__/).*)', headers: securityHeaders }];
+  },
+  async rewrites() {
+    return authHelperRewrites;
   },
 };
 

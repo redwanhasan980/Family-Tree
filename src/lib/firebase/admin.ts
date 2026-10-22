@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
+import { getAppCheck, type AppCheck } from 'firebase-admin/app-check';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
@@ -8,12 +9,24 @@ import { EMULATOR_PROJECT_ID } from './config';
 
 const ServiceAccountKeys = ['project_id', 'client_email', 'private_key'] as const;
 
+/**
+ * True when the Admin SDK talks to the Emulator Suite. Local development only sets
+ * NEXT_PUBLIC_USE_EMULATORS, so the server follows the browser to the same emulators.
+ */
+export function usesEmulators(): boolean {
+  if (process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
+    process.env.FIREBASE_AUTH_EMULATOR_HOST ??= '127.0.0.1:9099';
+    process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8080';
+  }
+  return Boolean(process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_AUTH_EMULATOR_HOST);
+}
+
 function createAdminApp(): App {
   const existing = getApps()[0];
   if (existing) return existing;
 
   // With the Emulator Suite the Admin SDK needs no credentials.
-  if (process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+  if (usesEmulators()) {
     return initializeApp({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || EMULATOR_PROJECT_ID,
     });
@@ -48,4 +61,9 @@ export function getAdminAuth(): Auth {
 /** Admin Firestore, created on first use so builds never need credentials. */
 export function getAdminDb(): Firestore {
   return getFirestore(createAdminApp());
+}
+
+/** Admin App Check, used by verifyRequest() to check the X-Firebase-AppCheck header. */
+export function getAdminAppCheck(): AppCheck {
+  return getAppCheck(createAdminApp());
 }

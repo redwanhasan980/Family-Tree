@@ -1,6 +1,7 @@
 import 'client-only';
 
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import {
   browserLocalPersistence,
   browserPopupRedirectResolver,
@@ -57,6 +58,14 @@ export function getFirebaseClient(): FirebaseClient {
   }
 
   const app = initializeApp(config);
+  // App Check (NFR-SEC-05) must start before Auth and Firestore make their first requests.
+  const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  if (!useEmulators && recaptchaKey) {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(recaptchaKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
   const auth = initializeAuth(app, {
     persistence: [indexedDBLocalPersistence, browserLocalPersistence],
     popupRedirectResolver: browserPopupRedirectResolver,

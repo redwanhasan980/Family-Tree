@@ -103,28 +103,27 @@ Checklist:
 
 ```ts
 // src/app/api/<area>/<action>/route.ts
-import 'server-only';
 import { z } from 'zod';
+
+import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyRequest } from '@/lib/server/auth';
-import { json, handleError, HttpError } from '@/lib/server/http';
-import { adminDb } from '@/lib/firebase/admin';
+import { HttpError, json, readJson, route } from '@/lib/server/http';
 
-const Body = z.object({ treeId: z.string().min(1).max(64) }).strict();
+const Body = z.strictObject({ treeId: z.string().min(1).max(64) }); // unknown keys → 400
 
-export async function POST(req: Request) {
-  try {
-    const { uid } = await verifyRequest(req, { allowGuest: false }); // ID token + App Check
-    const body = Body.parse(await req.json());
-    const tree = await adminDb.doc(`trees/${body.treeId}`).get();
-    if (!tree.exists) throw new HttpError(404, 'tree_not_found');
-    if (tree.get(`roles.${uid}`) !== 'owner') throw new HttpError(403, 'forbidden');
-    // ... privileged work; make it idempotent ...
-    return json({ ok: true });
-  } catch (err) {
-    return handleError(err); // maps ZodError→400, HttpError→status, else 500 {error:{code,message}}
-  }
-}
+// route() turns HttpError into { error: { code, message } } and anything else into 500 "internal".
+export const POST = route('trees.example', async (req) => {
+  const { uid } = await verifyRequest(req); // ID token + App Check; add { allowGuest: true } if guests may call it
+  const body = await readJson(req, Body);
+  const tree = await getAdminDb().doc(`trees/${body.treeId}`).get();
+  if (!tree.exists) throw new HttpError('not_found', 'No such tree.');
+  if (tree.get(`roles.${uid}`) !== 'owner') throw new HttpError('forbidden');
+  // ... privileged work; make it idempotent ...
+  return json({ ok: true });
+});
 ```
+
+`HttpError(code, message?)` takes its status from the code (`ERROR_STATUS` in `lib/server/http.ts`). Messages are for developers: never put user data in them.
 
 Checklist: idempotent (safe to retry); bounded work per request (batch through lists); a rate limit for endpoints that cost money (`lib/server/rateLimit.ts`); no PII in logs; add the endpoint to the DESIGN §10.2 table; API tests against the emulator.
 

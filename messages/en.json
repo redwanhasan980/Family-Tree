@@ -16,7 +16,8 @@
     "description": "Start with the oldest ancestor you remember and add the family around them, in Bangla or English.",
     "cta": "Start your family tree",
     "ctaNote": "No sign-up needed",
-    "comingSoon": "We're building {appName}. The app opens soon."
+    "comingSoon": "Family trees arrive in the next update. You can already create your account.",
+    "logIn": "Log in"
   },
   "errors": {
     "notFoundTitle": "Page not found",
@@ -25,5 +26,117 @@
     "genericTitle": "Something went wrong",
     "genericBody": "Please try again. If the problem continues, reload the page.",
     "retry": "Try again"
+  },
+  "nav": {
+    "trees": "My trees",
+    "settings": "Settings",
+    "signUp": "Create account",
+    "logIn": "Log in",
+    "logOut": "Log out",
+    "home": "Home"
+  },
+  "session": {
+    "loading": "Loading…",
+    "offlineTitle": "You're offline",
+    "offlineBody": "We'll try again as soon as you're back online.",
+    "errorTitle": "We couldn't get started",
+    "errorBody": "Something went wrong. Please try again.",
+    "retry": "Try again"
+  },
+  "guest": {
+    "chip": "Guest",
+    "title": "You're using {appName} as a guest",
+    "body": "Everything you add is saved, but only in this browser. Create a free account to keep it safe and use it on other devices.",
+    "retention": "Guest data that isn't used for a year may be deleted.",
+    "cta": "Create a free account",
+    "haveAccount": "Already have an account? Log in"
+  },
+  "auth": {
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Everything you've added so far stays with you.",
+    "logInTitle": "Log in",
+    "logInSubtitle": "Welcome back!",
+    "resetTitle": "Reset your password",
+    "resetSubtitle": "Enter your email and we'll send you a link to set a new password.",
+    "nameLabel": "Your name (optional)",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signUpSubmit": "Create account",
+    "logInSubmit": "Log in",
+    "resetSubmit": "Send link",
+    "working": "Please wait…",
+    "or": "or",
+    "google": "Continue with Google",
+    "forgotPassword": "Forgot your password?",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "backToLogIn": "Back to log in",
+    "resetSent": "If an account exists for this email, we've sent a link. Check your inbox (and spam folder).",
+    "signedUp": "Your account is ready. Your work is now safe.",
+    "welcomeBack": "Welcome back!"
+  },
+  "inAppBrowser": {
+    "title": "Open in your browser to use Google",
+    "body": "Google sign-in doesn't work inside this app's built-in browser. Copy the link and open it in Chrome or Safari, or continue with your email below.",
+    "stepsIos": "Tap ••• or the share button, then choose “Open in Safari”.",
+    "stepsAndroid": "Tap ⋮, then choose “Open in browser”.",
+    "copyLink": "Copy link",
+    "copied": "Link copied"
+  },
+  "verifyEmail": {
+    "title": "Please confirm your email",
+    "body": "We sent a link to {email}.",
+    "resend": "Send again",
+    "resent": "Sent again. Check your inbox."
+  },
+  "account": {
+    "menu": "Account menu",
+    "signedInAs": "Signed in as",
+    "loggedOut": "You've logged out."
+  },
+  "settings": {
+    "title": "Settings",
+    "profileSection": "Profile",
+    "displayNameLabel": "Your name",
+    "guestNameHint": "Create an account to add your name.",
+    "languageLabel": "Language",
+    "themeLabel": "Theme",
+    "save": "Save",
+    "saved": "Saved",
+    "accountSection": "Account",
+    "emailLabel": "Email",
+    "guestAccount": "You're using a guest account on this browser."
+  },
+  "trees": {
+    "title": "My family trees",
+    "empty": "Creating family trees arrives in the next update. Meanwhile you can create your account and choose your settings."
+  },
+  "authErrors": {
+    "emailInUse": "This email already has an account. Please log in instead.",
+    "credentialInUse": "This account is already in use.",
+    "invalidCredentials": "The email or password is incorrect.",
+    "weakPassword": "Please choose a stronger password (at least 8 characters).",
+    "invalidEmail": "That email address doesn't look right.",
+    "tooManyRequests": "Too many attempts. Please wait a little and try again.",
+    "network": "No internet connection. Check it and try again.",
+    "popupBlocked": "The sign-in window was blocked. Allow pop-ups and try again.",
+    "popupClosed": "Google sign-in was cancelled.",
+    "differentCredential": "This email uses a different sign-in method. Log in with your email and password.",
+    "requiresRecentLogin": "For your security, please log in again.",
+    "userDisabled": "This account has been disabled.",
+    "notAllowed": "This sign-in method isn't available right now.",
+    "unknown": "Something went wrong. Please try again."
+  },
+  "validation": {
+    "emailRequired": "Please enter your email.",
+    "emailInvalid": "Please enter a valid email address.",
+    "passwordRequired": "Please enter your password.",
+    "passwordTooShort": "Use at least 8 characters.",
+    "passwordTooLong": "That password is too long.",
+    "displayNameRequired": "Please enter a name.",
+    "displayNameTooLong": "Keep the name under 80 characters."
   }
 }

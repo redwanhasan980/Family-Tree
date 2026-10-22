@@ -139,7 +139,7 @@ gantt
 
 **Goal:** every visitor to the app gets a persistent guest session and can upgrade it without losing anything.
 
-- [ ] **P1-01** `AuthProvider`, `useAuth()` and the session state machine (DESIGN §9.2). `<AuthGate>` for the `(app)` route group, with skeleton states. *(AUTH-01, AUTH-13)*
+- [ ] **P1-01** `SessionProvider`, `useSession()` and the session state machine (DESIGN §9.2). `<AuthGate>` for the `(app)` route group, with skeleton states. *(AUTH-01, AUTH-13)*
 - [ ] **P1-02** Guest bootstrap with exponential-backoff retry while offline. Create `users/{uid}` (`isGuest`, `locale`, …). Daily `lastActiveAt` stamp. *(AUTH-01/02)*
 - [ ] **P1-03** Auth pages: login, sign-up, reset password. Zod forms, bilingual errors, Google button. *(AUTH-04/05/09)*
 - [ ] **P1-04** **Linking** flows: `linkWithCredential` (email), `linkWithPopup` (Google) with a redirect fallback on `popup-blocked`, and an error-code → message map. *(AUTH-04/05)*

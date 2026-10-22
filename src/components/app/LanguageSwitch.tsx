@@ -9,8 +9,15 @@ import { cn } from '@/lib/utils';
 
 // Each language is labelled in its own script, so the switch is readable in either locale.
 const LABELS: Record<Locale, string> = { bn: 'বাংলা', en: 'English' };
+const COMPACT_LABELS: Record<Locale, string> = { bn: 'বাংলা', en: 'EN' };
 
-export function LanguageSwitch({ className }: { className?: string }) {
+export function LanguageSwitch({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   const t = useTranslations('common');
   const locale = useLocale();
   const pathname = usePathname();
@@ -35,14 +42,23 @@ export function LanguageSwitch({ className }: { className?: string }) {
             startTransition(() => router.replace(pathname, { locale: value }));
           }}
           className={cn(
-            'min-h-9 min-w-11 rounded-full px-3 text-sm transition-colors',
+            compact
+              ? 'min-h-9 min-w-11 rounded-full px-2.5 text-sm transition-colors'
+              : 'min-h-9 min-w-11 rounded-full px-3 text-sm transition-colors',
             'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
             value === locale
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
           )}
         >
-          {LABELS[value]}
+          {compact ? (
+            <>
+              <span aria-hidden>{COMPACT_LABELS[value]}</span>
+              <span className="sr-only">{LABELS[value]}</span>
+            </>
+          ) : (
+            LABELS[value]
+          )}
         </button>
       ))}
     </div>

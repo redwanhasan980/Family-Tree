@@ -31,6 +31,15 @@ afterAll(async () => {
   await env?.cleanup();
 });
 
+/**
+ * A client-chosen time a minute in the past. Timestamp.now() is not used, because it can
+ * land in the same millisecond as request.time on a fast emulator, and the rule then
+ * rightly accepts it.
+ */
+function clientTime() {
+  return Timestamp.fromMillis(Date.now() - 60_000);
+}
+
 function profile(overrides: Record<string, unknown> = {}) {
   return {
     isGuest: true,
@@ -100,8 +109,8 @@ describe('users/{uid} — create', () => {
 
   it('rejects client-chosen timestamps', async () => {
     const db = guestDb(env, 'g1');
-    await assertFails(setDoc(doc(db, 'users/g1'), profile({ createdAt: Timestamp.now() })));
-    await assertFails(setDoc(doc(db, 'users/g1'), profile({ lastActiveAt: Timestamp.now() })));
+    await assertFails(setDoc(doc(db, 'users/g1'), profile({ createdAt: clientTime() })));
+    await assertFails(setDoc(doc(db, 'users/g1'), profile({ lastActiveAt: clientTime() })));
   });
 
   it.each([
@@ -159,7 +168,7 @@ describe('users/{uid} — update', () => {
     await seed('g1', { isGuest: true });
     const db = guestDb(env, 'g1');
     await assertSucceeds(updateDoc(doc(db, 'users/g1'), { lastActiveAt: serverTimestamp() }));
-    await assertFails(updateDoc(doc(db, 'users/g1'), { lastActiveAt: Timestamp.now() }));
+    await assertFails(updateDoc(doc(db, 'users/g1'), { lastActiveAt: clientTime() }));
   });
 
   it('never lets createdAt change', async () => {

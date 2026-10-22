@@ -174,7 +174,7 @@ The end-to-end tests start the Auth and Firestore emulators themselves, or reuse
 
 These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATION_PLAN.md#8-before-phase-0-setup-actions-for-the-product-owner)):
 
-1. **Firebase:** the production project is **`shikor-fe44d`** (Web app registered). Create its Firestore database in **`asia-south1` (Mumbai)** in production mode (the location cannot be changed later), enable **Anonymous**, **Email/Password** and **Google** sign-in, and later generate a service-account key for the Admin SDK (never commit it). Local development keeps using the emulators.
+1. **Firebase:** the production project is **`shikor-fe44d`** (Web app registered). Its Firestore database is in **`asia-south1` (Mumbai)** in production mode (the location cannot be changed later), and **Anonymous**, **Email/Password** and **Google** sign-in are enabled. Later, generate a service-account key for the Admin SDK (never commit it). Local development keeps using the emulators.
 2. **Cloudinary:** create a free account and note the cloud name, API key and API secret. Keep *unsigned uploads* disabled.
 3. **Server:** follow **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** to prepare the Contabo VPS and turn on automatic deploys. Public `NEXT_PUBLIC_*` values become GitHub repository variables; server secrets go into `/opt/shikor/.env` on the server.
 

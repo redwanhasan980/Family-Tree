@@ -451,13 +451,15 @@ These steps need your accounts, so they can't be automated from the repository:
 
 1. **Firebase:** one production project on the Spark plan. Development uses the local emulators, so a separate dev project is optional.
    - [x] Project **`shikor-fe44d`** created, with a **Web app** registered (2026-10-22).
-   - [x] **Firestore Database** created in **production mode** (verified 2026-10-22: unauthenticated reads are denied). Location should be **`asia-south1` (Mumbai)**, the closest to Bangladesh; it cannot be changed later (owner to confirm in Firestore → Settings).
+   - [x] **Firestore Database** created in **production mode** (verified 2026-10-22: unauthenticated reads are denied). Location **`asia-south1` (Mumbai)**, the closest to Bangladesh (confirmed by the owner 2026-10-22; it cannot be changed later).
    - [x] **Authentication** with Anonymous, Email/Password and Google sign-in enabled (verified 2026-10-22).
    - [ ] Later (Phase 3, before the first server feature): create a **service account key** for the Admin SDK. Store it only in the server's `/opt/shikor/.env` (and a password manager).
    - [ ] Before launch (P8): restrict the browser API key to the app's domains in Google Cloud Console → APIs & Services → Credentials.
    - Google Analytics may stay linked to the project, but the app never loads it (NFR-PRIV-04).
 2. **Cloudinary:** create a free account and note the **cloud name, API key and API secret**. In *Settings → Security*, keep **unsigned uploads disabled**.
-3. **VPS and domain:** follow [docs/DEPLOYMENT.md](./DEPLOYMENT.md): point the domain at the Contabo VPS, run `setup-server.sh`, add the GitHub secrets and variables, and make `main` the default branch.
+3. **VPS and domain:** follow [docs/DEPLOYMENT.md](./DEPLOYMENT.md).
+   - [x] `main` is the GitHub default branch (2026-10-22), so the Deploy workflow can run.
+   - [ ] Point the domain at the Contabo VPS, run `setup-server.sh`, and add the GitHub secrets and variables (P0-17).
 4. **reCAPTCHA v3 (App Check):** create a site key for the production domain (this can wait until P8).
 5. **Decisions** (SRS §9): domain name (Q1), licence (Q2), commercial plans (Q4), Bangla reviewer (Q5).
 

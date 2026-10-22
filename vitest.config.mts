@@ -16,11 +16,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
-    exclude: ['node_modules/**', 'e2e/**', 'firebase/**'],
+    // *.emulator.test.ts need the emulators and run with pnpm test:rules.
+    exclude: ['node_modules/**', 'e2e/**', 'firebase/**', 'src/**/*.emulator.test.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}', 'scripts/**/*.ts'],
-      exclude: ['**/*.test.{ts,tsx}', 'src/app/**', 'src/components/ui/**'],
+      exclude: ['**/*.test.{ts,tsx}', 'src/app/**', 'src/components/ui/**', '**/memoryDb.ts'],
       thresholds: {
         // DESIGN §26: the pure domain layer keeps ≥ 90% coverage.
         'src/lib/domain/**': { lines: 90, statements: 90, functions: 90, branches: 85 },

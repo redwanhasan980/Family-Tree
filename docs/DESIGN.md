@@ -1,7 +1,7 @@
 # Design Document
 
-**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.2 (adds the Family card, Generation album, Timeline and Family book; product named Shikor)
+**Product:** শিকড় (pronounced *Shikor*, meaning "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.3 (adds the Family card, Generation album, Timeline and Family book; product named শিকড়)
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Inputs:** [SRS](./SRS.md) · **Next:** [Implementation Plan](./IMPLEMENTATION_PLAN.md)
@@ -296,6 +296,7 @@ family-tree/
 │   │   │   ├── http.ts                       # json/error helpers, error codes
 │   │   │   ├── cloudinary.ts · rateLimit.ts · treeAdmin.ts (recursive delete, transfer)
 │   │   ├── features.ts                       # feature flags for staged views (ADR-014)
+│   │   ├── brand.ts                          # APP_NAME = 'শিকড়' + <AppName /> (always Bangla, I18N-10)
 │   │   └── utils/
 │   ├── stores/
 │   │   ├── treeStore.ts                      # normalized persons/relationships for the open tree
@@ -1186,7 +1187,7 @@ flowchart LR
 **Details**
 
 - **The scene is rendered off-screen** (a hidden container that is not `display:none`) using the same view components with `mode="export"`. It uses the full content bounds, not the viewport (EXP-04). An optional "Expand all" re-runs the layout with an empty collapsed set.
-- **The header and footer are part of the SVG** (title, subtitle, date, legend, "Made with Shikor · শিকড়"). They are rasterized too, so Bangla shaping is correct (EXP-05, ADR-006). jsPDF's `text()` is never used for user text.
+- **The header and footer are part of the SVG** (title, subtitle, date, legend, "শিকড় দিয়ে তৈরি" / "Made with শিকড়"). They are rasterized too, so Bangla shaping is correct (EXP-05, ADR-006). jsPDF's `text()` is never used for user text.
 - **Images:** export uses the `export` transformation (`c_fill,g_face,w_256,h_256/f_jpg,q_85`). Each image is fetched with CORS (Cloudinary sends `Access-Control-Allow-Origin: *`), converted to a data URL, and kept in a cache for the session. If an image fails, the initials avatar is used (never a broken image).
 - **Canvas limits (EXP-06):** the target scale is `quality × devicePixelRatio`. It is clamped so that `width × height × scale² ≤ 16,777,216` px on iOS Safari and `≤ 100 MP` elsewhere, and each side stays ≤ 16,384 px. If clamping would drop the effective resolution below 1×, PNG export suggests PDF tiling.
 - **PDF:** `new jsPDF({ unit: 'mm', format, orientation })`. With *Fit to one page* the scene is scaled into the printable area, with a warning if names would render smaller than about 6 pt. With *tiling*, the scene is split into page-sized tiles with 5 mm overlap and crop marks, and each tile is rasterized separately with a different `viewBox` (low memory). `setProperties({ title, creator })` sets the metadata.
@@ -1290,7 +1291,8 @@ Delivery URLs are public but unguessable (random IDs, 96+ bits in total). The pr
 
 - `src/i18n/routing.ts`: `locales: ['bn', 'en']`, `defaultLocale: 'en'`, `localePrefix: 'always'`. Detection uses the cookie (`NEXT_LOCALE`), then `Accept-Language` (`bn` → `bn`), then `en`.
 - `src/proxy.ts`: the next-intl middleware. The matcher excludes `api`, `_next`, `__`, static files and `s/` share assets as needed.
-- The product name is a message too: `common.appName` is "শিকড়" in `bn` and "Shikor" in `en`.
+- **Product name (I18N-10):** always **শিকড়** in Bangla script, in both locales. It is a constant `APP_NAME` in `src/lib/brand.ts`, not a translated message, and messages insert it with a `{appName}` placeholder (for example "Welcome to {appName}"). An `<AppName />` component renders it as `<span lang="bn">শিকড়</span>`, so screen readers on English pages switch to Bangla pronunciation. Page titles follow the pattern "শিকড় — Family tree in Bangla & English" (en) or "শিকড় — পারিবারিক বংশতালিকা" (bn).
+- Latin `shikor` appears **only** in technical identifiers: the domain, the package name, Firebase project IDs, the Cloudinary prefix, storage keys and the backup format ID.
 - Messages live in `messages/{locale}.json`, grouped by namespace: `common, nav, landing, auth, onboarding, dashboard, editor, person, relations, views, export, media, share, kinship, settings, errors, validation, help`.
 - **ICU** handles plurals and selects: `"childrenAdded": "{count, plural, one {# child added} other {# children added}}"`. In Bangla: `"{count, plural, other {#টি সন্তান যোগ হয়েছে}}"`, with digits formatted as Bangla by the `bn` locale.
 - **Language switch (I18N-01):** `router.replace(pathname, { locale })`. The tree state lives in stores and the Firestore cache, so nothing is refetched. Changing the language also persists `users/{uid}.locale`.
@@ -1303,7 +1305,7 @@ Delivery URLs are public but unguessable (random IDs, 96+ bits in total). The pr
 
 ### 16.3 Typography
 
-- Fonts through `next/font/google`, **self-hosted** at build time: **Inter** (Latin) and **Hind Siliguri** (Bangla, weights 400/500/600/700). Stack: `var(--font-inter), var(--font-hind-siliguri), system-ui, sans-serif`. Latin glyphs use Inter, and Bangla glyphs fall through to Hind Siliguri.
+- Fonts through `next/font/google`, **self-hosted** at build time: **Inter** (Latin) and **Hind Siliguri** (Bangla, weights 400/500/600/700). Stack: `var(--font-inter), var(--font-hind-siliguri), system-ui, sans-serif`. Latin glyphs use Inter, and Bangla glyphs fall through to Hind Siliguri. Hind Siliguri (with its `bengali` subset) loads in **both** locales, because the product name and many person names are Bangla even on English pages.
 - Bangla text needs more vertical room: `line-height ≥ 1.6` for body text, and `leading-snug` is never used on Bangla UI text. There is no letter-spacing on Bangla. Text boxes in the SVG cards reserve ascender and descender space for vowel signs (I18N-05).
 
 ### 16.4 Person names (I18N-03)
@@ -1395,7 +1397,7 @@ When the signature has no entry, compose a possessive chain from the step terms.
   "format": "shikor-backup",
   "version": 1,
   "exportedAt": "2026-10-22T10:00:00Z",
-  "app": { "name": "Shikor", "version": "1.0.0" },
+  "app": { "name": "শিকড়", "version": "1.0.0" },
   "tree": { "name": "…", "description": "…", "rootPersonId": "…", "settings": { … } },
   "persons": [ { "id": "…", "names": { … }, …, "photo": { "publicId": "…", "version": 1, "url": "https://…" } } ],
   "relationships": [ { "id": "p_…_…", "type": "parent", … } ]
@@ -1438,7 +1440,7 @@ When the signature has no entry, compose a possessive chain from the step terms.
 | Firestore / Auth traffic | **Not intercepted** | Firestore has its own IndexedDB cache and offline queue |
 | `/api/*` | NetworkOnly | |
 
-- **Manifest** (`app/manifest.ts`): localized name and short name ("শিকড়" in Bangla, "Shikor" in English), `display: standalone`, theme colour `#0F6B4F`, background `#FBF8F3`, any and maskable icons, shortcuts ("New person", "My trees").
+- **Manifest** (`app/manifest.ts`): name and short name **শিকড়** in both locales (I18N-10), with a localized description, `display: standalone`, theme colour `#0F6B4F`, background `#FBF8F3`, any and maskable icons, shortcuts ("New person", "My trees").
 - **Install UX (PWA-01):** capture `beforeinstallprompt`. Offer installation after the second session or after adding 10 people, never on the first visit. iOS gets an "Add to Home Screen" guide sheet.
 - **Offline UX (PWA-03):** a header pill "অফলাইন • ৩টি পরিবর্তন সিঙ্ক হবে" ("Offline • 3 changes will sync"). Photo upload, export with uncached photos, and server actions (merge, invites) are disabled with explanations.
 
@@ -1491,7 +1493,7 @@ Redaction is a pure `redact(data, options)` function in `lib/domain`, shared wit
 
 ### 21.1 Personality
 
-The product is called **Shikor (শিকড়)**, meaning "roots". The brand is warm, familial, calm and celebratory: like a well-kept family album, not a database. A simple roots-and-tree mark (a small tree whose roots are drawn as a mirrored family tree) is the planned logo and favicon. The design has rounded shapes, generous spacing and soft paper-like surfaces. Colour comes from family branches and photos, not from chrome.
+The product is called **শিকড়** (pronounced *Shikor*), meaning "roots", and its name is always written in Bangla script. The planned logo is the wordmark শিকড় beside a small tree whose roots are drawn as a mirrored family tree; the favicon uses the tree mark alone. The brand is warm, familial, calm and celebratory: like a well-kept family album, not a database. The design has rounded shapes, generous spacing and soft paper-like surfaces. Colour comes from family branches and photos, not from chrome.
 
 ### 21.2 Colour tokens
 

@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 
-**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.2
+**Product:** শিকড় (pronounced *Shikor*, meaning "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.3
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Related documents:** [Design Document](./DESIGN.md) · [Implementation Plan](./IMPLEMENTATION_PLAN.md) · [README](../README.md)
@@ -10,7 +10,8 @@
 | ------- | ---------- | ----------------------- | ------------------------------------------------------------- |
 | 1.0     | 2026-10-22 | Product owner + Claude  | Initial baseline after the requirements Q&A (see §1.6)          |
 | 1.1     | 2026-10-22 | Product owner + Claude  | Added Family card, Generation album, Timeline and Family book (decision D5) |
-| 1.2     | 2026-10-22 | Product owner + Claude  | Product named **Shikor (শিকড়)** (decision D6) |
+| 1.2     | 2026-10-22 | Product owner + Claude  | Product named শিকড় (decision D6) |
+| 1.3     | 2026-10-22 | Product owner + Claude  | The name is always written in Bangla script, in both languages (D6 updated, I18N-10) |
 
 ---
 
@@ -33,7 +34,7 @@
 
 ### 1.1 Purpose
 
-This document specifies the requirements of **Shikor (শিকড়)**, a web application for building, exploring and sharing family trees, in Bangla and English. It is written for:
+This document specifies the requirements of **শিকড়** (pronounced *Shikor*, meaning "roots"), a web application for building, exploring and sharing family trees, in Bangla and English. It is written for:
 
 - the **product owner**, to confirm the scope;
 - **developers**, including AI coding agents, who build the app from it;
@@ -41,7 +42,7 @@ This document specifies the requirements of **Shikor (শিকড়)**, a web 
 
 ### 1.2 Scope
 
-Shikor lets anyone open the website and immediately start recording their family, beginning with the oldest ancestor they remember (for example their grandfather), then his sons and daughters, then their children, and so on. Ease of use is the **number-one product priority**.
+শিকড় lets anyone open the website and immediately start recording their family, beginning with the oldest ancestor they remember (for example their grandfather), then his sons and daughters, then their children, and so on. Ease of use is the **number-one product priority**.
 
 **In scope**
 
@@ -118,7 +119,7 @@ Shikor lets anyone open the website and immediately start recording their family
 | D3 | Backend shape | **Next.js full-stack.** There is no separate Express server. Privileged operations run in Next.js Route Handlers using the Firebase Admin SDK. |
 | D4 | Extra features | **All in scope**, delivered in phases after the MVP: share & collaborate, Bangla relationship finder, backup import/export (JSON + GEDCOM), installable offline app (PWA). |
 | D5 | Additional views | **Family card** (R1), **Generation album** (R2), **Timeline** (R3) and **Family book** (R3) are added. The fan chart, hourglass chart and কুরসিনামা-style print were proposed but not selected. |
-| D6 | Product name | **Shikor (শিকড়)**, meaning "roots". It is written শিকড় in the Bangla UI and Shikor in the English UI. The domain is still open (Q1). |
+| D6 | Product name | **শিকড়**, meaning "roots". The name is **always written in Bangla script, in both the Bangla and the English interface**; it is never translated or romanized in the UI. The Latin form `shikor` is used only for technical identifiers that cannot contain Bangla letters (domain, package name, project IDs, storage prefixes). The domain is still open (Q1). |
 
 ---
 
@@ -126,11 +127,11 @@ Shikor lets anyone open the website and immediately start recording their family
 
 ### 2.1 Product perspective
 
-Shikor is a new, self-contained web application. It depends on three external managed services:
+শিকড় is a new, self-contained web application. It depends on three external managed services:
 
 ```mermaid
 flowchart LR
-    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[Shikor web app<br/>Next.js on Vercel]
+    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[শিকড় web app<br/>Next.js on Vercel]
     U -->|Auth SDK| AUTH[Firebase Authentication<br/>anonymous · email · Google]
     U -->|Firestore SDK, realtime + offline cache| FS[(Cloud Firestore)]
     U -->|signed upload / image CDN| CL[Cloudinary]
@@ -438,6 +439,7 @@ A printable book of the whole family: a keepsake for elders, reunions and future
 | I18N-07 | Relationship words in the UI use the natural Bangla forms (ছেলে, মেয়ে, স্বামী, স্ত্রী, বাবা, মা …). | M | R1 |
 | I18N-08 | Transliteration search (typing "Rahim" finds "রহিম"). | C | Future |
 | I18N-09 | Bengali calendar (বঙ্গাব্দ) date display option. | C | Future |
+| I18N-10 | The product name **শিকড়** is always shown in Bangla script, in both languages: header, page titles, installed-app name, emails, exports. On English pages it is marked `lang="bn"` so screen readers pronounce it correctly, and the Bangla font loads on every page. | M | R1 |
 
 ### 3.16 Onboarding & help (ONB)
 
@@ -874,7 +876,7 @@ Mapping to implementation phases: see [IMPLEMENTATION_PLAN.md §3](./IMPLEMENTAT
 
 | # | Item | Owner | Status |
 | --- | --- | --- | --- |
-| Q1 | **Domain name.** The product name is decided: **Shikor (শিকড়)** (D6). Candidates: `shikor.app`, `shikor.com.bd`, `getshikor.com` (availability to be checked). | Product owner | Open |
+| Q1 | **Domain name.** The product name is decided: **শিকড়** (D6). Latin candidates: `shikor.app`, `shikor.com.bd`, `getshikor.com`. A Bangla-script domain such as `শিকড়.বাংলা` (Bangladesh's Bangla domain) could redirect to the main one. Availability to be checked. | Product owner | Open |
 | Q2 | **License:** proprietary or open source? | Product owner | Open |
 | Q3 | Default UI language when the browser is neither `bn` nor `en`: English proposed. | Product owner | Proposed |
 | Q4 | Commercial launch? This affects the Vercel plan (C-07). | Product owner | Open |
@@ -890,6 +892,7 @@ This glossary is used consistently in the `bn` messages.
 
 | English | বাংলা |
 | --- | --- |
+| Product name | শিকড় (never translated or romanized) |
 | Family tree | পারিবারিক বংশতালিকা (short: বংশতালিকা) |
 | Tree / Family / Circle / List view | ট্রি ভিউ / পরিবার ভিউ / বৃত্ত ভিউ / তালিকা ভিউ |
 | Generation album | প্রজন্ম অ্যালবাম |

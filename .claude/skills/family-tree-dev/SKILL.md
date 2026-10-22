@@ -1,9 +1,9 @@
 ---
 name: family-tree-dev
-description: Project playbook for building Shikor (শিকড়), the family-tree app in this repo (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
+description: Project playbook for building শিকড় (Shikor), the family-tree app in this repo (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
 ---
 
-# Shikor development playbook
+# শিকড় development playbook
 
 This skill holds the repeatable workflows for this repository. The *why* lives in `docs/DESIGN.md`, the *what* in `docs/SRS.md`, and the *order of work* in `docs/IMPLEMENTATION_PLAN.md`. The non-negotiable rules are in `CLAUDE.md`. Follow them.
 
@@ -91,6 +91,7 @@ Checklist:
 
 ## 4. Recipe: UI strings & Bangla
 
+- The product name is never a translated string: insert `{appName}` and pass `APP_NAME` (always শিকড়), or render `<AppName />`.
 - Add the key to **both** `messages/en.json` and `messages/bn.json` under the right namespace (`editor`, `person`, `relations`, `views`, `export`, …). Run `pnpm i18n:check`.
 - Use ICU for counts: `"{count, plural, one {# person} other {# people}}"`. In Bangla, `other` alone is usually enough (`"{count, plural, other {#জন}}"`). Digits become Bangla automatically through the `bn-BD` number format.
 - Use the glossary in SRS Appendix A (বংশতালিকা, প্রজন্ম, জীবনসঙ্গী, প্রয়াত, ডাকনাম …), the polite "আপনি" form, and a warm tone. Gendered relationship words must match (ছেলে/মেয়ে, স্বামী/স্ত্রী, বাবা/মা).

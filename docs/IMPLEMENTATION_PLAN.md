@@ -1,7 +1,7 @@
 # Implementation Plan
 
-**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.2 (adds the Family card, Generation album, Timeline and Family book; later phases renumbered; product named Shikor)
+**Product:** শিকড় (pronounced *Shikor*, meaning "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.3 (adds the Family card, Generation album, Timeline and Family book; later phases renumbered; product named শিকড়)
 **Date:** 2026-10-22
 **Inputs:** [SRS](./SRS.md) (what) · [Design Document](./DESIGN.md) (how)
 
@@ -71,7 +71,7 @@
 
 ```mermaid
 gantt
-    title Shikor: indicative schedule (working days)
+    title শিকড়: indicative schedule (working days)
     dateFormat  YYYY-MM-DD
     excludes    weekends
     section R1 · v1.0 MVP
@@ -119,7 +119,7 @@ gantt
 - [ ] **P0-07** Firebase: `firebase.json` and `.firebaserc` (dev/prod aliases), Emulator Suite (Auth, Firestore, UI), initial **deny-all** `firestore.rules` and the rules test harness (`firebase/tests`).
 - [ ] **P0-08** `src/lib/firebase/client.ts` (persistent multi-tab cache, emulator connection) and `admin.ts` (`server-only`, service account from env).
 - [ ] **P0-09** next-intl: `src/i18n/*`, `src/proxy.ts` (with the matcher excluding `api`, `_next`, `__/` and static files), `messages/en.json` and `bn.json` with namespaces, and the `scripts/check-i18n.ts` parity check.
-- [ ] **P0-10** Design tokens (DESIGN §21.2) in `globals.css` for light and dark; fonts (Inter + Hind Siliguri through `next/font`); `next-themes`; an automated **contrast test** for the token pairs.
+- [ ] **P0-10** Design tokens (DESIGN §21.2) in `globals.css` for light and dark; fonts (Inter + Hind Siliguri through `next/font`, the Bengali subset loaded in both locales); `src/lib/brand.ts` with `APP_NAME = 'শিকড়'` and the `<AppName />` component *(I18N-10)*; `next-themes`; an automated **contrast test** for the token pairs.
 - [ ] **P0-11** shadcn/ui init and base components: Button, Input, Textarea, Select, Dialog, Drawer (vaul), Sheet, DropdownMenu, Popover, Tabs, Tooltip, Command, Sonner, Skeleton.
 - [ ] **P0-12** `[locale]/layout.tsx` (html `lang`, providers), placeholder landing, `not-found`, `error`.
 - [ ] **P0-13** Security headers baseline in `next.config.ts` (HSTS, nosniff, Referrer-Policy, frame-ancestors; CSP in report-only mode).

@@ -4,7 +4,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 
 ## Project in one paragraph
 
-**Shikor (শিকড়, "roots")** is a bilingual (বাংলা / English) web app for building family trees. The repository is still named `Family-Tree`. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in several views: **Tree**, **Family card**, **Circle** and **List** in v1.0; **Generation album** in v1.1; **Timeline** in v1.2. Every view exports as PNG or PDF, and v1.2 adds a printable **Family book**. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
+**শিকড়** (pronounced *Shikor*, meaning "roots") is a bilingual (বাংলা / English) web app for building family trees. The repository is still named `Family-Tree`. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in several views: **Tree**, **Family card**, **Circle** and **List** in v1.0; **Generation album** in v1.1; **Timeline** in v1.2. Every view exports as PNG or PDF, and v1.2 adds a printable **Family book**. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
 
 ## Source of truth
 
@@ -92,6 +92,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Cousin marriages** make a person appear twice. The first occurrence is primary and later ones are `isRef` nodes. Collapse keys are *path keys*, not person IDs.
 - **Two kinds of views (ADR-013):** Tree, Circle and Timeline are SVG canvas views (camera, no `foreignObject`). Family card, List and Album are HTML card views. Exports follow the same split: serialize SVG directly, or use html-to-image for HTML (render twice on Safari).
 - **Exports:** Cloudinary images must be inlined as data URLs (`export` variant, `f_jpg`; the Family book uses `print`). Clamp the canvas size for iOS (≤ 16.7 MP) and tile PDFs. The Family book renders page by page with one canvas alive at a time.
+- **Product name:** always **শিকড়** in Bangla script, in both locales. Use `APP_NAME` / `<AppName />` from `src/lib/brand.ts` (it adds `lang="bn"`). Never write "Shikor" in the UI; Latin `shikor` is only for technical identifiers.
 - **Bangla genitives:** never build "করিমের ছেলে" by appending suffixes to names. Use label forms such as "বাবা: করিম".
 - **Staged views** (Album, Timeline, Family book) sit behind `lib/features.ts` flags until their release.
 - **Cloudinary:** store `publicId` + `version`, never URLs. Keep the variant set small because each transformation costs credits. Photo deletion is deferred until the undo window closes.

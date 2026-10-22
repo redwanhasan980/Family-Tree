@@ -1,8 +1,10 @@
-# 🌳 Shikor · শিকড়
+# 🌳 শিকড়
 
 > Build your family tree in minutes, in **বাংলা** or **English**, with no sign-up needed.
 
-**Shikor** (শিকড়, meaning "roots") is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **family card** (one family at a time, made for phones), a **circle chart** or an **index list**, and later as a **photo album** and a **timeline**. You can download any view as an **image or PDF**, or print the whole family as a **family book**.
+**শিকড়** (pronounced *Shikor*, meaning "roots") is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **family card** (one family at a time, made for phones), a **circle chart** or an **index list**, and later as a **photo album** and a **timeline**. You can download any view as an **image or PDF**, or print the whole family as a **family book**.
+
+The name is always written in Bangla, as **শিকড়**, in both the Bangla and the English interface.
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 

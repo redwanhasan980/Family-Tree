@@ -192,6 +192,21 @@ describe('persons — update, delete and read', () => {
     );
   });
 
+  it('lets the owner delete a tree and its people in one batch', async () => {
+    const db = userDb(env, OWNER);
+    const batch = writeBatch(db);
+    batch.delete(personRef(db));
+    batch.delete(doc(db, 'trees/t1'));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('refuses viewers’ deletes inside a batch too', async () => {
+    const db = userDb(env, VIEWER);
+    const batch = writeBatch(db);
+    batch.delete(personRef(db));
+    await assertFails(batch.commit());
+  });
+
   it('lets editors delete; viewers and outsiders can’t', async () => {
     await assertFails(deleteDoc(personRef(userDb(env, VIEWER))));
     await assertFails(deleteDoc(personRef(userDb(env, OUTSIDER))));

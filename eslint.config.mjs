@@ -61,6 +61,13 @@ export default defineConfig([
       'no-restricted-imports': ['error', { patterns: [FIREBASE_CLIENT, FIREBASE_ADMIN] }],
     },
   },
+  // Emulator integration tests seed and inspect the database directly.
+  {
+    files: ['src/**/*.emulator.test.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [FIREBASE_ANALYTICS] }],
+    },
+  },
   // Code allowed to use Firebase SDKs still may not load Google Analytics.
   {
     files: [

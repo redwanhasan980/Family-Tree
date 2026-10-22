@@ -21,6 +21,8 @@ service cloud.firestore {
     function roleAfter(treeId) { return getAfter(treePath(treeId)).data.roles.get(me(), ''); }
     function canRead(treeId) { return signedIn() && roleNow(treeId) in ['owner', 'editor', 'viewer']; }
     function canEdit(treeId) { return signedIn() && roleAfter(treeId) in ['owner', 'editor']; }
+    // Deletes check the tree as it was, so a tree and its contents can go in one batch.
+    function canDelete(treeId) { return signedIn() && roleNow(treeId) in ['owner', 'editor']; }
 
     // Every write is stamped by its author with the server time.
     function stamped(d) { return d.updatedBy == me() && d.updatedAt == request.time; }
@@ -91,7 +93,7 @@ service cloud.firestore {
           && validPerson(request.resource.data, treeId, personId) && newStamps(request.resource.data);
         allow update: if canEdit(treeId)
           && validPerson(request.resource.data, treeId, personId) && keptStamps();
-        allow delete: if canEdit(treeId);
+        allow delete: if canDelete(treeId);
       }
 
       match /relationships/{relId} {
@@ -100,7 +102,7 @@ service cloud.firestore {
           && validRelationship(relId, request.resource.data) && newStamps(request.resource.data);
         allow update: if canEdit(treeId)
           && validRelationship(relId, request.resource.data) && keptStamps();
-        allow delete: if canEdit(treeId);
+        allow delete: if canDelete(treeId);
       }
 
       // Activity log (R3, SHR-07): append-only, written in the same batch as each change.

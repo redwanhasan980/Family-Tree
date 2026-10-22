@@ -43,9 +43,12 @@ function GoogleLogo() {
  * "open in your browser" guide instead.
  */
 export function GoogleButton({
+  onStart,
   onDone,
   onError,
 }: {
+  /** Runs before the popup opens, after `onError(null)`. Failures and a closed popup call `onError`. */
+  onStart?: () => void;
   onDone: () => void;
   onError: (message: string | null) => void;
 }) {
@@ -64,11 +67,12 @@ export function GoogleButton({
   const start = async () => {
     setBusy(true);
     onError(null);
+    onStart?.();
     try {
       if ((await continueWithGoogle(locale)) === 'done') onDone();
     } catch (error) {
       // Closing the popup is a choice, not an error.
-      if (authErrorKey(error) !== 'popupClosed') onError(errorText(error));
+      onError(authErrorKey(error) === 'popupClosed' ? null : errorText(error));
     } finally {
       setBusy(false);
     }

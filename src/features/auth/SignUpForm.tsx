@@ -16,6 +16,7 @@ import { signUpWithEmail } from '@/lib/repositories/auth';
 import { AuthCard } from './AuthCard';
 import { FormError, FormField, PasswordField } from './FormField';
 import { GoogleButton } from './GoogleButton';
+import { useSession } from './SessionProvider';
 import { useAuthErrorText, useValidationText } from './useMessages';
 
 /** Sign-up links email/password or Google to the current guest, keeping everything (AUTH-04/05). */
@@ -23,6 +24,7 @@ export function SignUpForm() {
   const t = useTranslations('auth');
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const { markSignedIn } = useSession();
   const validation = useValidationText();
   const errorText = useAuthErrorText();
   const [formError, setFormError] = useState<string | null>(null);
@@ -62,7 +64,16 @@ export function SignUpForm() {
 
   return (
     <AuthCard title={t('signUpTitle')} subtitle={t('signUpSubtitle')}>
-      <GoogleButton onDone={done} onError={setFormError} />
+      {/* A Google account that already exists signs in instead of linking, so its
+          settings should apply (markSignedIn). */}
+      <GoogleButton
+        onStart={markSignedIn}
+        onDone={done}
+        onError={(message) => {
+          markSignedIn(false);
+          setFormError(message);
+        }}
+      />
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span className="h-px flex-1 bg-border" /> {t('or')}{' '}
         <span className="h-px flex-1 bg-border" />

@@ -191,6 +191,21 @@ test.describe('settings', () => {
     await other.close();
   });
 
+  test('a failed log-in does not undo a later theme change', async ({ page, viewport }) => {
+    test.skip((viewport?.width ?? 0) < 400, 'the header theme switch is hidden on narrow phones');
+    const uid = await enterApp(page);
+    await page.goto('/en/login');
+    await page.getByLabel('Email').fill(uniqueEmail('nobody'));
+    await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Log in', exact: true }).click();
+    await expect(page.locator('main [role=alert]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Theme' }).click();
+    await page.getByRole('menuitemradio', { name: 'Dark' }).click();
+    await expect.poll(() => readProfile(uid)).toMatchObject({ theme: 'dark' });
+    await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  });
+
   test('a registered user can change their name', async ({ page }) => {
     await enterApp(page);
     await signUp(page, uniqueEmail('name'));

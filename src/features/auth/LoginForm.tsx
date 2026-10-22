@@ -46,6 +46,7 @@ export function LoginForm() {
       await signInWithEmail(values.email, values.password);
       done();
     } catch (error) {
+      markSignedIn(false);
       setFormError(errorText(error));
     }
   });
@@ -53,11 +54,12 @@ export function LoginForm() {
   return (
     <AuthCard title={t('logInTitle')} subtitle={t('logInSubtitle')}>
       <GoogleButton
-        onDone={() => {
-          markSignedIn();
-          done();
+        onStart={markSignedIn}
+        onDone={done}
+        onError={(message) => {
+          markSignedIn(false);
+          setFormError(message);
         }}
-        onError={setFormError}
       />
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span className="h-px flex-1 bg-border" /> {t('or')}{' '}

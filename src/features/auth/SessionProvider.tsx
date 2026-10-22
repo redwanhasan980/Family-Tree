@@ -40,8 +40,11 @@ interface SessionContextValue {
   profile: UserProfile | null;
   /** App pages call this: it creates a guest when nobody is signed in (AUTH-01). */
   requireSession: () => void;
-  /** Called after an explicit sign-in so the account's language and theme are applied. */
-  markSignedIn: () => void;
+  /**
+   * Called before an explicit sign-in (and with `false` if it fails), so the account's
+   * language and theme are applied instead of being overwritten by this browser's.
+   */
+  markSignedIn: (pending?: boolean) => void;
   /** Called before signing out, so leaving the app doesn't create a new guest on the way. */
   releaseSession: () => void;
 }
@@ -182,8 +185,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [account, profile, locale, theme, setTheme, router, pathname]);
 
   const requireSession = useCallback(() => setWantsSession(true), []);
-  const markSignedIn = useCallback(() => {
-    justSignedIn.current = true;
+  const markSignedIn = useCallback((pending = true) => {
+    justSignedIn.current = pending;
   }, []);
   const releaseSession = useCallback(() => setWantsSession(false), []);
 

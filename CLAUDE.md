@@ -82,6 +82,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Errors:** user-facing errors are i18n keys. Log with the `logger` wrapper and never include PII.
 - **Tests:** colocate `*.test.ts(x)` with the source. Rules tests live in `firebase/tests`, E2E specs in `e2e/`. Use fixtures from the seed generator.
 - **Commits and branches:** Conventional Commits (`feat(person): add custom fields`). Branches follow `feat/p5-01-person-form`. Reference task and SRS IDs in PRs.
+- **Commit authorship (owner's choice):** commits are authored by the repository owner. Before committing in a new session, run `git config user.name "redwanhasan980"` and `git config user.email "redwanhasan980@gmail.com"`. Do **not** add a `Co-Authored-By: Claude` trailer.
 
 ## Gotchas (read before touching these areas)
 

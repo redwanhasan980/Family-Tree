@@ -26,8 +26,7 @@ import {
 import { errorCode } from '@/lib/domain/auth/errors';
 import type { SessionUser } from '@/lib/domain/auth/session';
 import type { Locale } from '@/lib/domain/types';
-
-import { getFirebaseClient } from './client';
+import { getFirebaseClient } from '@/lib/firebase/client';
 
 /**
  * Every Firebase Auth flow the app uses (DESIGN §9). UI code calls these functions and

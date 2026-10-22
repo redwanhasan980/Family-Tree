@@ -51,7 +51,7 @@ src/app/[locale]/...        pages (landing, (auth), (app)/trees, s/[shareId])
 src/app/api/...             Route Handlers (server only; Admin SDK, Cloudinary)
 src/features/<feature>/     UI + hooks per feature (auth, trees, editor, person, views/*, export, media, ...)
 src/lib/domain/             PURE TypeScript: types, zod schemas, graph engine, names/dates, kinship, gedcom
-src/lib/repositories/       the ONLY client code that touches Firestore
+src/lib/repositories/       the ONLY client code that touches Firebase (Firestore data, Auth flows in auth.ts)
 src/lib/firebase/           client.ts (SDK init, persistent cache) · admin.ts (server-only)
 src/lib/server/             verifyRequest, http errors, cloudinary, treeAdmin, rate limit
 src/stores/                 Zustand: treeStore, uiStore, historyStore, prefsStore
@@ -63,7 +63,7 @@ firebase/                   firestore.rules, indexes, rules tests
 
 1. **Ease of use comes first.** At most 2 taps from a selected person to start adding a relative. Plain language; no jargon such as "node" or "edge" in the UI.
 2. **No hard-coded UI strings.** Every string goes in **both** `messages/en.json` and `messages/bn.json`. Follow the glossary in SRS Appendix A. Bangla uses the polite "আপনি" form.
-3. **Data access layering:** components never import `firebase/*`. All Firestore access goes through `src/lib/repositories/*`. ESLint enforces this.
+3. **Data access layering:** components never import `firebase/*` or `@/lib/firebase/*`. All Firestore access and every Auth flow go through `src/lib/repositories/*` (`auth.ts` for sign-in). ESLint enforces this.
 4. **Every data mutation is a Command** (`src/features/editor/commands`) with forward and inverse operations. That gives undo/redo, validation and the activity log. Never write to Firestore directly from UI code.
 5. **`src/lib/domain` is pure.** No React, Firebase or browser globals. Keep its test coverage at or above 90%.
 6. **Changing the schema means touching all of these together:** `types.ts`, `schemas.ts`, converters, `firestore.rules`, the rules tests, DESIGN §6–8 and `schemaVersion`/migration if needed.

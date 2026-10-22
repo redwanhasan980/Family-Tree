@@ -32,8 +32,12 @@ export function subscribeProfile(
   onChange: (profile: UserProfile | null, meta: { fromCache: boolean }) => void,
   onError: (error: unknown) => void,
 ): Unsubscribe {
+  // Metadata changes are included so the switch from cached to server data is seen even
+  // when the data itself is unchanged: a missing profile is only created once the server
+  // confirms it is missing.
   return onSnapshot(
     userRef(uid),
+    { includeMetadataChanges: true },
     (snapshot) => onChange(userFromSnapshot(snapshot), { fromCache: snapshot.metadata.fromCache }),
     onError,
   );

@@ -231,14 +231,15 @@ family-tree/
 │   │   ├── [locale]/
 │   │   │   ├── layout.tsx                    # html lang, fonts, providers
 │   │   │   ├── page.tsx                      # landing (static)
-│   │   │   ├── (auth)/login/page.tsx
-│   │   │   ├── (auth)/signup/page.tsx
-│   │   │   ├── (auth)/reset-password/page.tsx
-│   │   │   ├── (app)/layout.tsx              # <AuthGate> ensures a (guest) session
-│   │   │   ├── (app)/start/page.tsx          # onboarding wizard
-│   │   │   ├── (app)/trees/page.tsx          # dashboard
-│   │   │   ├── (app)/trees/[treeId]/page.tsx # editor (?view=tree|circle|list&focus=…)
-│   │   │   ├── (app)/settings/page.tsx
+│   │   │   ├── (session)/                    # layout.tsx: one <SessionProvider> for both groups
+│   │   │   │   ├── (auth)/login/page.tsx     # registered users are sent to /trees
+│   │   │   │   ├── (auth)/signup/page.tsx
+│   │   │   │   ├── (auth)/reset-password/page.tsx
+│   │   │   │   ├── (app)/layout.tsx          # <AuthGate> ensures a (guest) session
+│   │   │   │   ├── (app)/start/page.tsx      # onboarding wizard
+│   │   │   │   ├── (app)/trees/page.tsx      # dashboard
+│   │   │   │   ├── (app)/trees/[treeId]/page.tsx # editor (?view=tree|circle|list&focus=…)
+│   │   │   │   └── (app)/settings/page.tsx
 │   │   │   ├── s/[shareId]/page.tsx          # public share (R3, SSR)
 │   │   │   ├── invite/[inviteId]/page.tsx    # invite acceptance (R3)
 │   │   │   ├── help/page.tsx
@@ -261,7 +262,7 @@ family-tree/
 │   │   ├── ui/                               # shadcn primitives (owned code)
 │   │   └── app/                              # AppHeader, LanguageSwitch, SaveStatus, Avatar…
 │   ├── features/
-│   │   ├── auth/                             # AuthProvider, guest bootstrap, link/merge flows
+│   │   ├── auth/                             # SessionProvider, guest bootstrap, link/merge flows
 │   │   ├── trees/                            # dashboard, create/rename/delete, settings
 │   │   ├── editor/                           # EditorShell, toolbar, selection, commands/, history
 │   │   ├── person/                           # PersonPanel, PersonForm, QuickAdd, BulkAddChildren, PersonPicker
@@ -292,7 +293,7 @@ family-tree/
 │   │   │   ├── client.ts                     # app, auth, firestore (persistent cache), app check
 │   │   │   ├── admin.ts                      # `import "server-only"`
 │   │   │   └── converters.ts                 # Firestore <-> domain types
-│   │   ├── repositories/                     # the ONLY place client code touches Firestore
+│   │   ├── repositories/                     # the ONLY client code that touches Firebase (auth.ts = Auth flows)
 │   │   │   ├── trees.ts · persons.ts · relationships.ts · users.ts · batch.ts
 │   │   ├── server/                           # server-only helpers
 │   │   │   ├── auth.ts                       # verifyRequest(): ID token + App Check
@@ -873,7 +874,7 @@ flowchart TB
     FB -- snapshots --> REPO -- normalized data --> ST
 ```
 
-**Rules:** components never import `firebase/*`. Only repositories do. Commands are the only way to mutate data. The domain layer never imports React or Firebase.
+**Rules:** components never import `firebase/*` or `@/lib/firebase/*`. Only repositories do (Auth flows live in `repositories/auth.ts`). Commands are the only way to mutate data. The domain layer never imports React or Firebase.
 
 ### 11.2 Opening a tree
 

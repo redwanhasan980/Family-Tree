@@ -14,22 +14,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Link, useRouter } from '@/i18n/navigation';
-import { graphemes } from '@/lib/domain/text';
+import { initials } from '@/lib/domain/names';
 import { logger } from '@/lib/logger';
 import { signOutUser } from '@/lib/repositories/auth';
 
 import { GuestChip } from './GuestChip';
 import { useSession } from './SessionProvider';
 
-function initials(name: string | null, email: string | null): string {
-  const source = (name ?? '').trim() || (email ?? '').trim();
-  const words = source.split(/\s+/).filter(Boolean).slice(0, 2);
-  return (
-    words
-      .map((w) => graphemes(w)[0] ?? '')
-      .join('')
-      .toUpperCase() || '?'
-  );
+function avatarText(name: string | null, email: string | null): string {
+  return initials((name ?? '').trim() || (email ?? '').trim()) || '?';
 }
 
 export function AccountMenu() {
@@ -73,7 +66,7 @@ export function AccountMenu() {
           aria-label={t('account.menu')}
         >
           <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-            {initials(user.displayName, user.email)}
+            {avatarText(user.displayName, user.email)}
           </span>
         </Button>
       </DropdownMenuTrigger>

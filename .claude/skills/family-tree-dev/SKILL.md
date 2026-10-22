@@ -1,9 +1,9 @@
 ---
 name: family-tree-dev
-description: Project playbook for building the Family Tree app (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, tree/circle/list visualizations, export, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
+description: Project playbook for building শিকড় (Shikor), the family-tree app in this repo (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
 ---
 
-# Family Tree development playbook
+# শিকড় development playbook
 
 This skill holds the repeatable workflows for this repository. The *why* lives in `docs/DESIGN.md`, the *what* in `docs/SRS.md`, and the *order of work* in `docs/IMPLEMENTATION_PLAN.md`. The non-negotiable rules are in `CLAUDE.md`. Follow them.
 
@@ -91,6 +91,7 @@ Checklist:
 
 ## 4. Recipe: UI strings & Bangla
 
+- The product name is never a translated string: insert `{appName}` and pass `APP_NAME` (always শিকড়), or render `<AppName />`.
 - Add the key to **both** `messages/en.json` and `messages/bn.json` under the right namespace (`editor`, `person`, `relations`, `views`, `export`, …). Run `pnpm i18n:check`.
 - Use ICU for counts: `"{count, plural, one {# person} other {# people}}"`. In Bangla, `other` alone is usually enough (`"{count, plural, other {#জন}}"`). Digits become Bangla automatically through the `bn-BD` number format.
 - Use the glossary in SRS Appendix A (বংশতালিকা, প্রজন্ম, জীবনসঙ্গী, প্রয়াত, ডাকনাম …), the polite "আপনি" form, and a warm tone. Gendered relationship words must match (ছেলে/মেয়ে, স্বামী/স্ত্রী, বাবা/মা).
@@ -127,22 +128,25 @@ export async function POST(req: Request) {
 
 Checklist: idempotent (safe to retry); bounded work per request (batch through lists); a rate limit for endpoints that cost money (`lib/server/rateLimit.ts`); no PII in logs; add the endpoint to the DESIGN §10.2 table; API tests against the emulator.
 
-## 6. Recipe: visualization work (Tree / Circle / List)
+## 6. Recipe: view work (Tree, Family card, Circle, List, Album, Timeline)
 
-- Keep the **layout pure** (`features/views/<view>/layout.ts`): input `DescNode` plus options, output positions and paths. Snapshot-test it on the fixtures (10, 150, 500 people, cousin marriage, multiple spouses).
-- Render **SVG only** (no `foreignObject`) so that export works. Measure text with the shared canvas measure cache.
+- **Pick the kind of view (ADR-013).** *Canvas views* (Tree, Circle, Timeline) render **SVG** with the shared camera and never use `foreignObject`, so export can serialize them directly. *Card views* (Family card, List, Album) are plain **HTML/CSS** with native scrolling, exported through html-to-image.
+- Keep the **model and layout pure** (`lib/domain/...` or `features/views/<view>/layout.ts`): input from the graph or `DescNode`, output a view model or positions. Snapshot-test it on the fixtures (10, 150, 500 people, cousin marriage, multiple spouses, partial dates).
+- In SVG, measure text with the shared canvas measure cache. In HTML, use CSS line clamping and grapheme-safe helpers.
+- **Focus and selection** live in `uiStore` and are shared by every view. Changing the focus pushes `?view=&focus=` so browser Back works.
+- **Staged views** must check their flag in `lib/features.ts` (ADR-014).
 - **Camera:** use the shared d3-zoom hook. Apply the transform through a ref; update React state only on zoom end (culling).
 - **Colour:** take it from `views/shared/colors.ts` (branch, gender, generation, none; DESIGN §21.3). Never cycle hues. Branches 9 and up are neutral "Other". Text uses ink tokens, never the data colour.
 - **Interactions:** each one needs a desktop **and** a mobile path (DESIGN §13.3 table). Long-press or right-click menus must have a button alternative.
 - **Read-only mode:** respect `editable={false}` (viewers and share links).
-- **Export mode:** the view must render with `mode="export"` (full bounds, no UI chrome, header and legend slots). If you add a visual element, make sure the export still looks right.
+- **Export mode:** the view must render with `mode="export"` (full bounds or fixed page frames, no buttons or empty "+ add" slots, header and legend slots). If you add a visual element, make sure the export still looks right.
 - **Performance:** check against the 500-person fixture at 4× CPU throttle. Animations switch off above 300 cards and with reduced motion.
 
 ## 7. Recipe: photos (Cloudinary)
 
 - The client never holds the API secret. Flow: pick → crop → compress → `POST /api/media/sign` → upload directly to Cloudinary (XHR with progress) → command updates `person.photo = { publicId, version, width, height }`.
 - Build URLs only with `features/media/cloudinaryUrl.ts` (variants `thumb`, `card`, `full`, `export`). **Don't add variants casually**, because each one consumes transformation credits.
-- `publicId` has the form `ft/{env}/{treeId}/{personId}/{random}`, and both the rules and `/api/media/delete` check that prefix.
+- `publicId` has the form `shikor/{env}/{treeId}/{personId}/{random}`, and both the rules and `/api/media/delete` check that prefix.
 - Delete the old photo **after** the undo window. Tree, account and merge-discard deletions use prefix deletion on the server.
 - In tests, mock Cloudinary with Playwright `page.route('https://api.cloudinary.com/**', …)`.
 

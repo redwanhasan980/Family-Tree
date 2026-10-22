@@ -43,6 +43,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The Docker image runs Next.js as a standalone Node server (DESIGN §27.4).
+  output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {

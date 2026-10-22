@@ -7,5 +7,5 @@ export default createMiddleware(routing);
 
 export const config = {
   // Skip API routes, Next internals, the Firebase auth handler (/__/auth) and files.
-  matcher: ['/((?!api|_next|_vercel|__|.*\\..*).*)'],
+  matcher: ['/((?!api|_next|__|.*\\..*).*)'],
 };

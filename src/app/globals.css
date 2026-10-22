@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Colour tokens (DESIGN §21.2). shadcn/ui semantic names are kept so the owned
+ * components work unchanged; `--accent` is the subtle hover surface, and the brand
+ * marigold is `--highlight`. Text pairs are checked by src/lib/design/contrast.test.ts.
+ */
+:root {
+  --radius: 0.75rem;
+
+  --background: #fbf8f3;
+  --foreground: #1f2933;
+  --surface: #ffffff;
+  --surface-muted: #f3eee6;
+  --card: #ffffff;
+  --card-foreground: #1f2933;
+  --popover: #ffffff;
+  --popover-foreground: #1f2933;
+  --primary: #0f6b4f;
+  --primary-foreground: #ffffff;
+  --secondary: #f3eee6;
+  --secondary-foreground: #1f2933;
+  --muted: #f3eee6;
+  --muted-foreground: #5f6b76;
+  --accent: #f3eee6;
+  --accent-foreground: #1f2933;
+  --highlight: #e8a33d;
+  --highlight-foreground: #3b2a0b;
+  --destructive: #b42318;
+  --success: #15803d;
+  --warning: #b45309;
+  --border: #e6dfd3;
+  --input: #e6dfd3;
+  --ring: #0f6b4f;
+  --connector: #c9bfae;
+}
+
+.dark {
+  --background: #12161b;
+  --foreground: #eef1f4;
+  --surface: #1a2027;
+  --surface-muted: #222a33;
+  --card: #1a2027;
+  --card-foreground: #eef1f4;
+  --popover: #1a2027;
+  --popover-foreground: #eef1f4;
+  --primary: #34b98a;
+  --primary-foreground: #0b1f17;
+  --secondary: #222a33;
+  --secondary-foreground: #eef1f4;
+  --muted: #222a33;
+  --muted-foreground: #a3aeb9;
+  --accent: #222a33;
+  --accent-foreground: #eef1f4;
+  --highlight: #f2b65a;
+  --highlight-foreground: #2a1b04;
+  --destructive: #f0806f;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --border: #2e3843;
+  --input: #2e3843;
+  --ring: #34b98a;
+  --connector: #4a5664;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-connector: var(--connector);
+
+  /* Latin glyphs use Inter; Bangla glyphs fall through to Hind Siliguri (DESIGN §16.3). */
+  --font-sans: var(--font-inter), var(--font-hind-siliguri), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Bangla vowel signs need room above and below the line. */
+    line-height: 1.6;
+  }
+
+  :lang(bn) {
+    letter-spacing: normal;
+  }
+}

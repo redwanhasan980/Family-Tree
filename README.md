@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 📐 *Planning complete. Implementation starts with Phase 0.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phase 0 (foundation) complete. Next: Phase 1, authentication and guest sessions.* See [Project status](#project-status).
 
 ---
 
@@ -116,8 +116,8 @@ flowchart LR
 | Phase | Description | Status |
 | --- | --- | --- |
 | Docs | SRS, Design, Implementation Plan, CLAUDE.md, skill | ✅ Done |
-| P0 | Foundation & tooling | ⏳ Next |
-| P1 | Authentication & guest session | ⬜ |
+| P0 | Foundation & tooling | ✅ Done (Vercel hookup waits for the owner's account) |
+| P1 | Authentication & guest session | ⏳ Next |
 | P2 | Domain core, data layer & security rules | ⬜ |
 | P3 | App shell, dashboard, guest merge | ⬜ |
 | P4 | Tree view & core editing | ⬜ |
@@ -135,14 +135,12 @@ Task-level progress is tracked in the [Implementation Plan](docs/IMPLEMENTATION_
 
 ## Getting started
 
-> These instructions describe the setup created in **Phase 0**. They will be verified and kept up to date as the code lands.
+You can run শিকড় locally **without any Firebase or Cloudinary account**: the app talks to the Firebase Emulator Suite on your machine.
 
 ### Prerequisites
 
-- **Node.js 22 LTS** or newer, and **pnpm** (`corepack enable`)
-- **Java 11+** (required by the Firebase Emulator Suite)
-- **Firebase CLI**: `pnpm dlx firebase-tools@latest login`
-- Accounts: Firebase (Spark plan is fine), Cloudinary (free), Vercel (for deployments)
+- **Node.js 22 LTS** or newer, and **pnpm** (`corepack enable`; the version is pinned in `package.json`)
+- **Java 21** (for the Firebase Emulator Suite; `firebase-tools` is installed as a dev dependency)
 
 ### 1. Clone and install
 
@@ -150,31 +148,42 @@ Task-level progress is tracked in the [Implementation Plan](docs/IMPLEMENTATION_
 git clone https://github.com/redwanhasan980/Family-Tree.git
 cd Family-Tree
 pnpm install
+cp .env.example .env.local      # NEXT_PUBLIC_USE_EMULATORS=true works out of the box
 ```
 
-### 2. Configure Firebase
-
-1. Create a Firebase project (for development, for example `shikor-dev`).
-2. **Firestore:** create the database in **`asia-south1` (Mumbai)**. The location cannot be changed later.
-3. **Authentication → Sign-in method:** enable **Anonymous**, **Email/Password** and **Google**.
-4. **Project settings → Your apps:** add a **Web app** and copy its config values.
-5. **Project settings → Service accounts:** generate a private key (for the Admin SDK). Never commit it.
-
-### 3. Configure Cloudinary
-
-Create a free account and note the **cloud name**, **API key** and **API secret**. Keep *unsigned uploads* disabled.
-
-### 4. Environment variables
+### 2. Run locally
 
 ```bash
-cp .env.example .env.local
+pnpm emulators     # terminal 1: Auth + Firestore emulators (UI at http://127.0.0.1:4000)
+pnpm seed          # optional: seed the emulator (fixture trees arrive in P2)
+pnpm dev           # terminal 2: http://localhost:3000 → redirects to /bn or /en
 ```
+
+### 3. Check your work
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check   # also run by the pre-commit hook
+pnpm test:rules                                               # security rules on the emulator
+pnpm exec playwright install chromium webkit                  # once, for end-to-end tests
+pnpm build && pnpm test:e2e                                   # end-to-end tests (mobile + desktop)
+```
+
+If your machine already has a Chromium build and no WebKit, run the end-to-end tests with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e`; the iPhone (WebKit) project is then skipped.
+
+### 4. Connect real services (before going live)
+
+These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATION_PLAN.md#8-before-phase-0-setup-actions-for-the-product-owner)):
+
+1. **Firebase:** create the projects `shikor-dev` and `shikor-prod` with Firestore in **`asia-south1` (Mumbai)** (the location cannot be changed later). Enable **Anonymous**, **Email/Password** and **Google** sign-in, register a **Web app**, and generate a service-account key for the Admin SDK (never commit it).
+2. **Cloudinary:** create a free account and note the cloud name, API key and API secret. Keep *unsigned uploads* disabled.
+3. **Vercel:** import this repository and add the environment variables below.
 
 | Variable | Where it comes from |
 | --- | --- |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase web app config |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary dashboard |
-| `NEXT_PUBLIC_USE_EMULATORS` | `true` for local development |
+| `NEXT_PUBLIC_USE_EMULATORS` | `true` locally, unset in deployments |
+| `NEXT_PUBLIC_EMULATOR_HOST` | optional: emulator host the browser uses (default `127.0.0.1`) |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally |
 | `FIREBASE_SERVICE_ACCOUNT` | base64 of the service-account JSON (`base64 -w0 key.json`) |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary dashboard (**server only**) |
@@ -182,15 +191,7 @@ cp .env.example .env.local
 | `CRON_SECRET` | any long random string (v1.1+) |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key for App Check (production) |
 
-### 5. Run locally
-
-```bash
-pnpm emulators     # terminal 1: Firebase Auth + Firestore emulators (UI at http://localhost:4000)
-pnpm seed          # optional: load sample trees into the emulator
-pnpm dev           # terminal 2: http://localhost:3000
-```
-
-### 6. Production notes
+### 5. Production notes
 
 - In production, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to **your app's domain**. Add `https://<your-domain>/__/auth/handler` to the Google OAuth client's authorized redirect URIs (the app proxies `/__/auth/*` to Firebase). See [DESIGN §9.5](docs/DESIGN.md#95-google-sign-in-specifics).
 - Firestore rules and indexes are deployed by CI from `firebase/`. Do not edit them in the console.
@@ -203,14 +204,15 @@ pnpm dev           # terminal 2: http://localhost:3000
 | --- | --- |
 | `pnpm dev` | Start the development server |
 | `pnpm build` / `pnpm start` | Production build / serve |
-| `pnpm emulators` | Start the Firebase emulators |
-| `pnpm seed` | Seed the emulators with sample trees |
+| `pnpm emulators` | Start the Firebase Auth and Firestore emulators (project `demo-shikor`) |
+| `pnpm seed` | Seed the emulators (always targets the emulators, never a real project) |
 | `pnpm typecheck` | TypeScript check |
-| `pnpm lint` / `pnpm format` | ESLint / Prettier |
-| `pnpm test` | Unit and component tests (Vitest) |
-| `pnpm test:rules` | Firestore security rules tests |
-| `pnpm test:e2e` | End-to-end tests (Playwright, mobile and desktop) |
-| `pnpm i18n:check` | Verify Bangla and English messages have the same keys |
+| `pnpm lint` | ESLint (including the layering rules from CLAUDE.md) |
+| `pnpm format` / `pnpm format:check` | Prettier write / check |
+| `pnpm test` / `pnpm test:watch` / `pnpm test:coverage` | Unit and component tests (Vitest) |
+| `pnpm test:rules` | Firestore security rules tests on the emulator |
+| `pnpm test:e2e` | End-to-end tests (Playwright, mobile and desktop; run `pnpm build` first) |
+| `pnpm i18n:check` | Verify Bangla and English messages have the same keys and ICU arguments |
 
 ---
 

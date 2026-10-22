@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "{appName} — Family tree in Bangla & English",
+    "description": "Build your family tree in Bangla or English. No sign-up needed."
+  },
+  "common": {
+    "skipToContent": "Skip to content",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "Same as device"
+  },
+  "landing": {
+    "tagline": "Your family's story, in one place",
+    "description": "Start with the oldest ancestor you remember and add the family around them, in Bangla or English.",
+    "cta": "Start your family tree",
+    "ctaNote": "No sign-up needed",
+    "comingSoon": "We're building {appName}. The app opens soon."
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you're looking for doesn't exist.",
+    "goHome": "Go to the home page",
+    "genericTitle": "Something went wrong",
+    "genericBody": "Please try again. If the problem continues, reload the page.",
+    "retry": "Try again"
+  }
+}

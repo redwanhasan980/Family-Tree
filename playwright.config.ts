@@ -14,6 +14,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
+  globalSetup: './e2e/support/global-setup.ts',
   use: {
     baseURL,
     trace: 'retain-on-failure',
@@ -30,11 +31,25 @@ export default defineConfig({
       },
     },
   ],
-  // Tests run against a production build: run `pnpm build` first (CI does).
-  webServer: {
-    command: `pnpm start --port ${PORT}`,
-    url: `${baseURL}/en`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    // Auth and Firestore emulators (the build must have NEXT_PUBLIC_USE_EMULATORS=true).
+    // Locally, emulators that are already running (`pnpm emulators`) are reused.
+    {
+      name: 'Emulators',
+      command: 'firebase emulators:start --only auth,firestore --project demo-shikor',
+      // The hub answers first; e2e/support/global-setup.ts waits for Auth and Firestore.
+      url: 'http://127.0.0.1:4400/emulators',
+      reuseExistingServer: !process.env.CI,
+      gracefulShutdown: { signal: 'SIGINT', timeout: 10_000 },
+      timeout: 120_000,
+    },
+    // Tests run against a production build: run `pnpm build` first (CI does).
+    {
+      name: 'App',
+      command: `pnpm start --port ${PORT}`,
+      url: `${baseURL}/en`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

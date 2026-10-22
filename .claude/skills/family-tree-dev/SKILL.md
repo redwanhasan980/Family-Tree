@@ -169,6 +169,14 @@ Then check the UI manually or with Playwright screenshots. Run `pnpm dev` with `
 
 Look for clipped Bangla vowel signs, overflowing names, touch targets under 44 px, focus rings, empty and loading states, and offline behaviour (DevTools → Offline). Check that a reload keeps the data. A UI change isn't done until it has been seen working on both form factors.
 
+## 8a. Deployment changes (Dockerfile, `deploy/`, workflows)
+
+- Hosting is the owner's VPS (DESIGN §27.4, docs/DEPLOYMENT.md). Never ask for or accept server passwords.
+- Shell scripts: `shellcheck deploy/*.sh`. Workflows: `actionlint .github/workflows/*.yml`.
+- Image: `BUILD_STANDALONE=1 pnpm build`, then run the runtime stage in Docker and check `/api/health`, `/`, `/bn` and a static asset. CI's `image` job builds the full Dockerfile.
+- `deploy.sh` must keep its rollback behaviour. Test it locally with two image tags (a good one and one that exits) using `SKIP_PULL=1 SKIP_CONFIG_SYNC=1 APP_DIR=<tmp>`.
+- New `NEXT_PUBLIC_*` variable? Add it to the Dockerfile `ARG`/`ENV` lists, the `Deploy` workflow `build-args`, `.env.example` and DEPLOYMENT.md §3 Step 6.
+
 ## 9. Documentation & wrap-up
 
 - [ ] `README.md`: update the feature table, the project status table and any setup steps that changed.

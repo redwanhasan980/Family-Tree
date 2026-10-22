@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phase 0 (foundation) is complete**, except P0-15 (Vercel), which waits for the owner's account. **Next: Phase 1** (authentication and guest session). Update this line when phases complete.
+**Current status:** **Phase 0 (foundation) is complete**, including the VPS deployment pipeline; the first deploy (P0-17) waits for the owner's server setup. **Next: Phase 1** (authentication and guest session). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
@@ -68,7 +68,7 @@ firebase/                   firestore.rules, indexes, rules tests
 5. **`src/lib/domain` is pure.** No React, Firebase or browser globals. Keep its test coverage at or above 90%.
 6. **Changing the schema means touching all of these together:** `types.ts`, `schemas.ts`, converters, `firestore.rules`, the rules tests, DESIGN §6–8 and `schemaVersion`/migration if needed.
 7. **Secrets:** only `NEXT_PUBLIC_*` values may reach the client. Admin and Cloudinary modules start with `import 'server-only'`. Never commit `.env*` files except `.env.example`.
-8. **Route Handlers** always call `verifyRequest()` (ID token + App Check), validate input with Zod, and return `{ error: { code, message } }` on failure.
+8. **Route Handlers** always call `verifyRequest()` (ID token + App Check), validate input with Zod, and return `{ error: { code, message } }` on failure. The only exception is the public `/api/health` check.
 9. **Bangla-safe text:** never slice user strings by index. Use `Intl.Segmenter` (graphemes). Never render user text with jsPDF's `text()`; exports rasterize browser-rendered SVG or HTML instead (ADR-006).
 10. **Mobile and desktop are equal.** Verify UI changes at 360×740 and 1440×900, in `bn` and `en`, light and dark.
 11. **Docs move with code.** Update README, DESIGN, the plan checkboxes and CHANGELOG in the same PR.
@@ -105,6 +105,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Emulators:** project `demo-shikor`, bound to `127.0.0.1` (some machines resolve `localhost` to IPv6, where the emulators don't listen). The browser uses `NEXT_PUBLIC_EMULATOR_HOST` (default `127.0.0.1`). `pnpm seed` always targets the emulators.
 - **Playwright:** E2E runs against the production build, so run `pnpm build` first. On machines with a preinstalled Chromium and no WebKit, set `PLAYWRIGHT_CHROMIUM_PATH`; the iPhone project is then skipped (CI runs it).
 - **Design tokens:** shadcn names are kept: `--accent` is the hover surface, the brand marigold is `--highlight`. The contrast test fails CI if a text/background pair drops below WCAG AA.
+- **Hosting is a self-managed VPS** (D7, DESIGN §27.4): Docker Compose with Next.js (standalone, only when `BUILD_STANDALONE=1`) behind Caddy, deployed by `.github/workflows/deploy.yml`. Never ask for or accept server passwords; deploys use the key in GitHub secrets. `NEXT_PUBLIC_*` values are build-time, so changing one needs a redeploy. There is no Vercel.
 - **pnpm build scripts:** pnpm 10 blocks dependency install scripts; allowed ones are listed in `package.json` → `pnpm.onlyBuiltDependencies`.
 
 ## Working style for Claude

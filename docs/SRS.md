@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 
 **Product:** শিকড় (pronounced *Shikor*, meaning "roots"), a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.3
+**Document version:** 1.4
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Related documents:** [Design Document](./DESIGN.md) · [Implementation Plan](./IMPLEMENTATION_PLAN.md) · [README](../README.md)
@@ -12,6 +12,7 @@
 | 1.1     | 2026-10-22 | Product owner + Claude  | Added Family card, Generation album, Timeline and Family book (decision D5) |
 | 1.2     | 2026-10-22 | Product owner + Claude  | Product named শিকড় (decision D6) |
 | 1.3     | 2026-10-22 | Product owner + Claude  | The name is always written in Bangla script, in both languages (D6 updated, I18N-10) |
+| 1.4     | 2026-10-22 | Product owner + Claude  | Hosting moves from Vercel to the owner's Contabo VPS (decision D7) |
 
 ---
 
@@ -120,6 +121,7 @@ This document specifies the requirements of **শিকড়** (pronounced *Shi
 | D4 | Extra features | **All in scope**, delivered in phases after the MVP: share & collaborate, Bangla relationship finder, backup import/export (JSON + GEDCOM), installable offline app (PWA). |
 | D5 | Additional views | **Family card** (R1), **Generation album** (R2), **Timeline** (R3) and **Family book** (R3) are added. The fan chart, hourglass chart and কুরসিনামা-style print were proposed but not selected. |
 | D6 | Product name | **শিকড়**, meaning "roots". The name is **always written in Bangla script, in both the Bangla and the English interface**; it is never translated or romanized in the UI. The Latin form `shikor` is used only for technical identifiers that cannot contain Bangla letters (domain, package name, project IDs, storage prefixes). The domain is still open (Q1). |
+| D7 | Hosting | **Self-hosted on the owner's Contabo VPS** instead of Vercel: Docker Compose with the Next.js server and Caddy (automatic HTTPS), deployed by GitHub Actions after CI passes (DESIGN §27.4, docs/DEPLOYMENT.md). Claude does not receive server passwords; deploys use a limited deploy key stored in GitHub secrets. |
 
 ---
 
@@ -131,7 +133,7 @@ This document specifies the requirements of **শিকড়** (pronounced *Shi
 
 ```mermaid
 flowchart LR
-    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[শিকড় web app<br/>Next.js on Vercel]
+    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[শিকড় web app<br/>Next.js on the VPS]
     U -->|Auth SDK| AUTH[Firebase Authentication<br/>anonymous · email · Google]
     U -->|Firestore SDK, realtime + offline cache| FS[(Cloud Firestore)]
     U -->|signed upload / image CDN| CL[Cloudinary]
@@ -181,11 +183,11 @@ flowchart LR
 | --- | --- |
 | C-01 | Authentication **must** use Firebase Authentication. Data **must** be stored in Cloud Firestore. |
 | C-02 | Photos are stored and served by **Cloudinary** (free plan: 25 monthly credits shared by storage, bandwidth and transformations). |
-| C-03 | The Firebase project stays on the **Spark (free) plan** at launch, so there are **no Cloud Functions and no Firebase Storage**. Privileged server logic runs in **Next.js Route Handlers** on Vercel. |
+| C-03 | The Firebase project stays on the **Spark (free) plan** at launch, so there are **no Cloud Functions and no Firebase Storage**. Privileged server logic runs in **Next.js Route Handlers** on the app server. |
 | C-04 | Spark quotas: 50,000 document reads, 20,000 writes and 20,000 deletes per day; 1 GiB stored. The data access design must be read-efficient. |
 | C-05 | Tech stack priority: **TypeScript, Next.js (App Router), React.** No separate Express server (decision D3). |
 | C-06 | The Bangla script needs correct complex-text shaping (conjuncts, vowel signs) in the UI **and in exported images/PDFs**. |
-| C-07 | Vercel Hobby is for personal, non-commercial use. A commercial launch needs Vercel Pro or another host. Vercel Hobby cron jobs run at most once a day. |
+| C-07 | The app is **self-hosted on the owner's Contabo VPS** (decision D7) with Docker and Caddy. The owner maintains the server (updates, firewall, backups of its settings file). A **domain is required** for HTTPS and Google sign-in. There are no per-PR preview deployments. |
 | C-08 | Firestore security rules allow at most 20 document-access calls per batched write. Rules therefore cannot check graph integrity across many documents, and graph validation lives in the client domain layer (see DESIGN §8). |
 
 ### 2.6 Assumptions and dependencies
@@ -193,7 +195,7 @@ flowchart LR
 - A typical tree has **50–500 persons**. The system must support **2,000 persons** per tree with acceptable performance.
 - A guest's access depends on the browser's persisted storage. Clearing site data, private browsing or switching devices loses the guest *session*. The data is still in the database but cannot be reached. Users are told this clearly (AUTH-03).
 - Users understand basic family relationships but **not** genealogy jargon.
-- Firebase, Cloudinary and Vercel are available within their published SLAs.
+- Firebase and Cloudinary are available within their published SLAs, and the VPS within Contabo's.
 - Bangla kinship term tables are reviewed by native speakers before R4 ships.
 
 ### 2.7 Apportioning of requirements
@@ -543,7 +545,8 @@ Touch screens, mouse/trackpad, keyboard, and the device camera (through the file
 | Firebase Authentication | JS SDK (client), Admin SDK (server) | Anonymous, email/password and Google sign-in; linking; token verification; user deletion |
 | Cloud Firestore | JS SDK with persistent cache (client), Admin SDK (server) | All structured data, realtime sync, offline queue |
 | Cloudinary | Upload API (signed, from the client), Admin API (server), delivery CDN | Photo storage, thumbnails, deletion |
-| Vercel | Hosting, serverless functions, cron | Web app, Route Handlers, scheduled cleanup |
+| Contabo VPS (Docker Compose: Next.js + Caddy) | Hosting, HTTPS, host cron | Web app, Route Handlers, scheduled cleanup |
+| GitHub Actions + GitHub Container Registry | CI, image build, SSH deploy | Automatic deployment after CI passes |
 | Browser APIs | IndexedDB, Service Worker, File API, Canvas, Web Share, Intl (Segmenter, NumberFormat, DateTimeFormat) | Offline, export, sharing, locale formatting |
 
 ### 4.4 Communication interfaces
@@ -624,7 +627,7 @@ HTTPS only (HSTS). The Route Handlers expose JSON REST endpoints authenticated w
 
 | ID | Requirement |
 | --- | --- |
-| NFR-COST-01 | Run at **$0/month** for early usage (Firebase Spark + Cloudinary Free + Vercel Hobby). DESIGN §28 documents the quota math and the upgrade path. |
+| NFR-COST-01 | Run at **only the VPS's fixed monthly price** for early usage (Firebase Spark + Cloudinary Free + the Contabo VPS). DESIGN §28 documents the quota math and the upgrade path. |
 | NFR-SCAL-01 | Opening a tree reads its documents once per session and reuses the cache. Edits write only the changed documents. |
 
 ### 5.9 Maintainability
@@ -879,7 +882,7 @@ Mapping to implementation phases: see [IMPLEMENTATION_PLAN.md §3](./IMPLEMENTAT
 | Q1 | **Domain name.** The product name is decided: **শিকড়** (D6). Latin candidates: `shikor.app`, `shikor.com.bd`, `getshikor.com`. A Bangla-script domain such as `শিকড়.বাংলা` (Bangladesh's Bangla domain) could redirect to the main one. Availability to be checked. | Product owner | Open |
 | Q2 | **License:** proprietary or open source? | Product owner | Open |
 | Q3 | Default UI language when the browser is neither `bn` nor `en`: English proposed. | Product owner | Proposed |
-| Q4 | Commercial launch? This affects the Vercel plan (C-07). | Product owner | Open |
+| Q4 | Commercial launch? This affects the Firebase and Cloudinary plans only; self-hosting has no non-commercial restriction. | Product owner | Open |
 | Q5 | Native-speaker reviewer for the Bangla copy and the kinship tables. | Product owner | Open |
 
 **Future ideas (not scheduled):** multiple photos per person; custom family events on the timeline (TL-09); fan chart and hourglass chart; a কুরসিনামা-style lineage print; birthday and death-anniversary reminders; transliteration search; Bengali calendar dates; family events and stories; QR code on exported PDFs linking to the live tree; printable poster templates.

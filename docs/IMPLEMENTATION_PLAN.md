@@ -39,7 +39,7 @@
 | Branching | Trunk-based. Currently small, frequent commits directly to `main` (owner's choice), each passing the checks; short-lived `feat/*` branches with PRs once collaborators join |
 | Commits | Conventional Commits (`feat(tree-view): add couple connectors`), enforced by commitlint |
 | Reviews | Every PR: CI green, self-review checklist (§6), preview deployment checked on a phone and on a desktop |
-| Environments | local (emulators) → Vercel preview per PR (dev Firebase) → production on `main` (prod Firebase) |
+| Environments | local (emulators) → CI (production build + E2E on every push) → production on the Contabo VPS, deployed from `main` (prod Firebase) |
 | Versioning | SemVer tags at releases (`v1.0.0` …); `CHANGELOG.md` updated in every user-facing PR |
 | Documentation | README, DESIGN, this plan and CLAUDE.md are updated **in the same PR** as the change |
 | Quality gates | typecheck · lint · i18n parity · unit · rules · build (every PR); E2E + a11y (PRs into `main`); Lighthouse budgets (on `main`) |
@@ -124,13 +124,14 @@ gantt
 - [x] **P0-12** `[locale]/layout.tsx` (html `lang`, providers), placeholder landing, `not-found`, `error`.
 - [x] **P0-13** Security headers baseline in `next.config.ts` (HSTS, nosniff, Referrer-Policy, frame-ancestors; CSP in report-only mode).
 - [x] **P0-14** GitHub Actions `ci.yml` (checks, rules, build), PR template, `CHANGELOG.md`, `.env.example`.
-- [ ] **P0-15** Vercel project linked; preview deployments on PRs; env vars configured (dev). *(Waiting for the owner's Vercel account; see §8.)*
+- [x] **P0-15** ~~Vercel project~~ → **Deployment pipeline for the owner's Contabo VPS** (decision D7): production `Dockerfile`, `/api/health`, `deploy/compose.yml` with Caddy, `deploy/setup-server.sh`, `deploy/deploy.sh` with automatic rollback, the `Deploy` workflow and a CI image build. Tested locally with Docker (deploy, health, rollback). *(DESIGN §27.4, docs/DEPLOYMENT.md)*
+- [ ] **P0-17** **First deployment** to the VPS. *(Waiting for the owner: server setup, domain DNS and GitHub secrets, docs/DEPLOYMENT.md §3.)*
 - [x] **P0-16** `scripts/seed-emulator.ts` skeleton and `pnpm` scripts (`dev`, `build`, `typecheck`, `lint`, `format`, `test`, `test:rules`, `test:e2e`, `emulators`, `seed`, `i18n:check`).
 
 **Deliverables:** a running skeleton, CI, preview URL, verified README "Getting started".
 **Exit criteria:** `pnpm dev` serves `/bn` and `/en`; CI is green; a preview deploy is reachable; a fresh clone runs by following the README alone.
 
-**Status (2026-10-22):** done except P0-15. `/bn` and `/en` are served, a fresh clone passes every check by following the README, and CI runs on every push to `main`. The preview deploy follows once the Vercel project exists.
+**Status (2026-10-22):** done except P0-17. `/bn` and `/en` are served, a fresh clone passes every check by following the README, CI runs on every push to `main`, and the deployment pipeline is ready. The first deploy follows once the owner has set up the VPS.
 
 ---
 
@@ -283,7 +284,7 @@ gantt
 - [ ] **P8-07** **Performance pass:** bundle analysis, code-splitting checks, Lighthouse budgets in CI, FPS trace on the 500-person fixture. *(NFR-PERF-*)*
 - [ ] **P8-08** **Security pass:** enforce the CSP, App Check enforcement, rules review, secret scan, dependency audit. *(NFR-SEC-*)*
 - [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency; unused-key detection in `pnpm i18n:check`. *(NFR-L10N-02)*
-- [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), Vercel Analytics (optional), quota runbook in the README. *(OPS-02/03)*
+- [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), an uptime monitor on `/api/health`, optional self-hosted cookieless analytics, quota runbook in the README. *(OPS-02/03)*
 - [ ] **P8-11** **Usability test** with 5 target users (at least 3 on phones, at least 2 Bangla-first) against NFR-USE-01; fix the top issues.
 - [ ] **P8-12** Production setup: prod Firebase project, rules and indexes deployed by CI, OAuth redirect URIs, custom domain, auth-domain proxy verified on iOS Safari; release **v1.0.0** (tag, CHANGELOG, README).
 
@@ -297,7 +298,7 @@ gantt
 - [ ] **P9-02** Manifest (localized names), icons (maskable), install prompt UX (2nd session or 10 people), iOS "Add to Home Screen" guide. *(PWA-01)*
 - [ ] **P9-03** Runtime caching per DESIGN §19, an offline fallback page, and the update prompt. *(PWA-02/04/05)*
 - [ ] **P9-04** Offline UX: server-backed actions disabled with explanations; pending-changes count. *(PWA-03)*
-- [ ] **P9-05** `GET /api/cron/cleanup` (Vercel Cron, daily): stale guests (365 days), expired merge tickets, rate-limit documents, orphaned photos. Dry-run mode and summary logging. *(AUTH-14, OPS-01)*
+- [ ] **P9-05** `GET /api/cron/cleanup` (daily host cron on the VPS calling it with `CRON_SECRET`; add the cron line to `setup-server.sh` and DEPLOYMENT.md): stale guests (365 days), expired merge tickets, rate-limit documents, orphaned photos. Dry-run mode and summary logging. *(AUTH-14, OPS-01)*
 - [ ] **P9-06** Tests: E2E going offline (`context.setOffline`), editing, reconnecting, and seeing the sync complete; cron logic against the emulator.
 
 **Exit criteria:** the installed app opens a previously viewed tree in airplane mode and syncs offline edits when back online.
@@ -450,9 +451,9 @@ These steps need your accounts, so they can't be automated from the repository:
    - Choose the Firestore location **`asia-south1` (Mumbai)**. It is closest to Bangladesh, and **the location cannot be changed later**.
    - Enable **Authentication → Sign-in methods:** Anonymous, Email/Password, Google.
    - Register a **Web app** in each project and copy its config.
-   - Create a **service account key** for the Admin SDK. Store it only in Vercel and GitHub secrets.
+   - Create a **service account key** for the Admin SDK. Store it only in the server's `/opt/shikor/.env` (and a password manager).
 2. **Cloudinary:** create a free account and note the **cloud name, API key and API secret**. In *Settings → Security*, keep **unsigned uploads disabled**.
-3. **Vercel:** create an account and import this GitHub repository.
+3. **VPS and domain:** follow [docs/DEPLOYMENT.md](./DEPLOYMENT.md): point the domain at the Contabo VPS, run `setup-server.sh`, add the GitHub secrets and variables, and make `main` the default branch.
 4. **reCAPTCHA v3 (App Check):** create a site key for the production domain (this can wait until P8).
 5. **Decisions** (SRS §9): domain name (Q1), licence (Q2), commercial plans (Q4), Bangla reviewer (Q5).
 

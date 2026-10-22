@@ -73,7 +73,7 @@ The full requirements are in the [SRS](docs/SRS.md).
 | PWA | Serwist (v1.1) |
 | Testing | Vitest · Testing Library · Firebase Emulator Suite · Playwright · axe |
 | Tooling | pnpm · ESLint · Prettier · Husky · commitlint · GitHub Actions |
-| Hosting | Vercel · Firebase (Spark plan) · Cloudinary (free plan) |
+| Hosting | Self-hosted on a Contabo VPS (Docker Compose: Next.js + Caddy for HTTPS), deployed by GitHub Actions · Firebase (Spark plan) · Cloudinary (free plan) |
 
 The reasoning behind each choice is recorded in the [Design Document](docs/DESIGN.md#3-technology-stack) and its [ADRs](docs/DESIGN.md#4-architecture-decision-records).
 
@@ -86,7 +86,7 @@ flowchart LR
     B["Browser<br/>Next.js client · offline cache"] -->|Auth SDK| A[Firebase Auth]
     B -->|realtime + offline| F[(Cloud Firestore)]
     B -->|signed upload / CDN| C[Cloudinary]
-    B -->|ID token| S["Next.js Route Handlers<br/>(Vercel)"]
+    B -->|ID token| S["Next.js Route Handlers<br/>(VPS, behind Caddy)"]
     S -->|Admin SDK| A
     S -->|Admin SDK| F
     S -->|Admin API| C
@@ -116,7 +116,7 @@ flowchart LR
 | Phase | Description | Status |
 | --- | --- | --- |
 | Docs | SRS, Design, Implementation Plan, CLAUDE.md, skill | ✅ Done |
-| P0 | Foundation & tooling | ✅ Done (Vercel hookup waits for the owner's account) |
+| P0 | Foundation & tooling, deployment pipeline | ✅ Done (first deploy waits for the owner's VPS setup) |
 | P1 | Authentication & guest session | ⏳ Next |
 | P2 | Domain core, data layer & security rules | ⬜ |
 | P3 | App shell, dashboard, guest merge | ⬜ |
@@ -176,7 +176,7 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
 
 1. **Firebase:** create the projects `shikor-dev` and `shikor-prod` with Firestore in **`asia-south1` (Mumbai)** (the location cannot be changed later). Enable **Anonymous**, **Email/Password** and **Google** sign-in, register a **Web app**, and generate a service-account key for the Admin SDK (never commit it).
 2. **Cloudinary:** create a free account and note the cloud name, API key and API secret. Keep *unsigned uploads* disabled.
-3. **Vercel:** import this repository and add the environment variables below.
+3. **Server:** follow **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** to prepare the Contabo VPS and turn on automatic deploys. Public `NEXT_PUBLIC_*` values become GitHub repository variables; server secrets go into `/opt/shikor/.env` on the server.
 
 | Variable | Where it comes from |
 | --- | --- |
@@ -249,7 +249,8 @@ The full checklist is the [Definition of Done](docs/IMPLEMENTATION_PLAN.md#6-def
 
 ## Operations
 
-- **Free-tier budget:** Firebase Spark (50k reads/day), Cloudinary Free (25 credits/month), Vercel Hobby. The quota math and upgrade triggers are in [DESIGN §28](docs/DESIGN.md#28-cost--quota-analysis).
+- **Deployment:** every push to `main` that passes CI deploys to the VPS, with automatic rollback if the new version is unhealthy. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for setup, logs and manual rollbacks.
+- **Free-tier budget:** Firebase Spark (50k reads/day), Cloudinary Free (25 credits/month), plus the VPS's fixed monthly price. The quota math and upgrade triggers are in [DESIGN §28](docs/DESIGN.md#28-cost--quota-analysis).
 - **Monitoring runbook** (to be completed in P8): weekly checks of Firebase usage and Cloudinary credits; alerts at 70%.
 - **Guest cleanup** (v1.1): a daily job removes guest accounts inactive for more than 365 days.
 

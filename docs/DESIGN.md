@@ -1,7 +1,7 @@
 # Design Document
 
 **Product:** শিকড় (pronounced *Shikor*, meaning "roots"), a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.3 (adds the Family card, Generation album, Timeline and Family book; product named শিকড়)
+**Document version:** 1.4 (adds the Family card, Generation album, Timeline and Family book; product named শিকড়; self-hosted on a VPS)
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Inputs:** [SRS](./SRS.md) · **Next:** [Implementation Plan](./IMPLEMENTATION_PLAN.md)
@@ -54,7 +54,7 @@
 4. **Bangla is a first-class citizen**: UI, data entry, search, exports and kinship terms.
 5. **Mobile and desktop are equally good.** Layouts are designed for each, not just squeezed.
 6. **Professional engineering.** Typed end to end, tested security rules, CI, documented decisions.
-7. **$0 to start.** Firebase Spark, Cloudinary Free and Vercel Hobby.
+7. **Low, fixed cost.** Firebase Spark, Cloudinary Free and one self-hosted VPS.
 
 **Non-goals (for now):** native apps, server-side rendering of private trees, cross-user record matching, payments.
 
@@ -74,10 +74,13 @@ flowchart TB
         SW -. caches shell/thumbnails .- UI
     end
 
-    subgraph Vercel["Vercel"]
+    subgraph VPS["Contabo VPS (Docker Compose)"]
+        CADDY["Caddy<br/>HTTPS · compression"]
         PAGES["Next.js server<br/>static/SSR pages (landing, share pages)"]
         API["Route Handlers /api/*<br/>Firebase Admin SDK · Cloudinary SDK"]
-        CRON["Vercel Cron (daily, R2)"]
+        CRON["host cron (daily, R2)"]
+        CADDY --> PAGES
+        CADDY --> API
     end
 
     subgraph Firebase["Firebase (Spark plan)"]
@@ -89,13 +92,13 @@ flowchart TB
 
     UI -- "Auth SDK" --> AUTH
     UI -- "Firestore SDK (realtime, offline)" --> FS
-    UI -- "fetch + ID token" --> API
+    UI -- "fetch + ID token (via Caddy)" --> API
     UI -- "signed upload (direct)" --> CLD
     UI -- "image delivery" --> CLD
     API --> AUTH
     API --> FS
     API --> CLD
-    CRON --> API
+    CRON -- "HTTPS + CRON_SECRET" --> CADDY
     PAGES --> FS
 ```
 
@@ -119,7 +122,7 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Layer | Choice | Version | Why |
 | --- | --- | --- | --- |
 | Language | **TypeScript** (strict) | 6.0.x | Type safety end to end. TS 7 (native compiler) will be adopted when `typescript-eslint` supports it (it currently requires < 6.1). |
-| Framework | **Next.js** (App Router) | 16.x | Static and SSR pages, Route Handlers (our "backend"), image and font optimization, first-class on Vercel. |
+| Framework | **Next.js** (App Router) | 16.x | Static and SSR pages, Route Handlers (our "backend"), image and font optimization; runs as a standalone Node server in Docker. |
 | UI runtime | React | 19.x | Ecosystem; React Compiler optional. |
 | Styling | **Tailwind CSS** | 4.x | Design tokens through `@theme`; fast, consistent. |
 | Components | **shadcn/ui** (Radix primitives) | latest | Accessible primitives we own and can restyle. Includes Drawer (vaul), Dialog, Popover, DropdownMenu, Tabs, Command (cmdk), Sonner toasts. |
@@ -143,9 +146,9 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Lint & format | ESLint (flat config) + typescript-eslint, Prettier (+ tailwind plugin) | 9.x / 8.x / 3.x | Consistency. ESLint stays on 9.x until `eslint-plugin-react`, `-import` and `-jsx-a11y` support ESLint 10. |
 | Git hooks | Husky + lint-staged + commitlint | 9.x / 17.x / 21.x | Conventional Commits, pre-commit checks. |
 | Package manager | **pnpm** (via Corepack, pinned in `packageManager`) | latest | Fast, strict. |
-| Runtime | Node.js | 22 LTS+ | Matches Vercel and CI. |
-| Hosting | **Vercel** (Hobby to start) | n/a | Zero-config Next.js, preview deployments, cron. |
-| Monitoring | Sentry (free developer plan, optional), Vercel Web Analytics (cookieless, optional) | n/a | Errors and Web Vitals without tracking users. |
+| Runtime | Node.js | 22 LTS+ | Same version in the Docker image and CI. |
+| Hosting | **Contabo VPS** with Docker Compose (Next.js standalone + **Caddy**) | Docker 29 / Caddy 2 | Owner's choice (D7). Automatic HTTPS, fixed cost, no vendor limits. Images are built in GitHub Actions and stored in GitHub Container Registry (ADR-015). |
+| Monitoring | Sentry (free developer plan, optional), an uptime monitor on `/api/health`, self-hosted cookieless analytics (optional) | n/a | Errors, uptime and Web Vitals without tracking users. |
 
 **Why there is no Express server (decision D3, ADR-001).** Firestore is accessed directly from the client under security rules, and the handful of privileged operations fit naturally into Next.js Route Handlers on the same deployment. A separate Express service would add hosting, CORS, auth plumbing and cost with no functional gain. If a long-running service is ever needed (for example heavy server-side PDF rendering), an Express or Hono service can be added behind `/api` without changing the client contracts.
 
@@ -179,8 +182,8 @@ Short-form ADRs. Each has the status *Accepted* unless noted.
 **ADR-008: next-intl with locale-prefixed routes.**
 *Decision:* `/{locale}/…` with `bn` and `en`. The locale is detected by `src/proxy.ts` (Next.js 16's renamed middleware). Messages are JSON files, one per locale and namespace. *Consequences:* shareable localized URLs, a correct `<html lang>`, and SEO for the landing page.
 
-**ADR-009: Vercel + Firebase Spark + Cloudinary Free, no Cloud Functions.**
-*Decision:* keep a $0 baseline. Scheduled work runs as Vercel Cron, daily. *Consequences:* no Firestore triggers. Side effects such as deleting photos when a person is deleted are performed explicitly by the client or server code that makes the change. Orphan sweeps run in the daily cron (R2).
+**ADR-009: Firebase Spark + Cloudinary Free, no Cloud Functions.**
+*Decision:* keep the managed services on free plans. Scheduled work runs as a daily host cron job on the VPS that calls a Route Handler with `CRON_SECRET`. *Consequences:* no Firestore triggers. Side effects such as deleting photos when a person is deleted are performed explicitly by the client or server code that makes the change. Orphan sweeps run in the daily cron (R2).
 
 **ADR-010: Undo/redo with the command pattern and inverse batched writes.**
 *Decision:* every command stores the forward operations and the inverse operations computed from the pre-change local state. *Consequences:* consistent undo across views, atomic multi-document operations, and one hook for validation and activity logging.
@@ -1768,7 +1771,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 - **Firestore errors** are mapped by code: `permission-denied` → "You no longer have access to this tree" (and the user is redirected); `resource-exhausted` → "The service is busy, please try again later" (quota) and the error is logged; `unavailable` → handled silently as offline.
 - **Toasts** (sonner) report outcomes, and destructive actions carry Undo (UX-02).
 - **Logging:** a small `logger` wrapper. In production, errors go to **Sentry** (optional) with `beforeSend` scrubbing that removes names, phones, emails and addresses, and the user ID is hashed. No request bodies are logged.
-- **Web Vitals** go to Vercel Analytics (cookieless, optional).
+- **Web Vitals** go to optional self-hosted, cookieless analytics. A free uptime monitor watches `/api/health`.
 - **Quota monitoring (OPS-03):** a weekly manual review of the Firebase usage dashboard and Cloudinary credits, plus an email alert when Cloudinary credits pass 70% and a Firebase budget alert once on Blaze. The runbook is in the README's Operations section.
 
 ---
@@ -1835,8 +1838,9 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | Env | Firebase project | Cloudinary prefix | Hosting | Purpose |
 | --- | --- | --- | --- | --- |
 | local | **Emulator Suite** (Auth, Firestore), project `demo-shikor` | `shikor/dev/` (or mocked) | `pnpm dev` | development and tests |
-| preview | `shikor-dev` | `shikor/dev/` | Vercel preview per PR | review |
-| production | `shikor-prod` | `shikor/prod/` | Vercel production (`main`) | users |
+| CI | Emulator Suite | mocked | GitHub Actions (production build + E2E) | every push and PR; no per-PR preview sites |
+| staging (optional, later) | `shikor-dev` | `shikor/dev/` | a second Compose project on the VPS | trying risky changes |
+| production | `shikor-prod` | `shikor/prod/` | Contabo VPS, deployed from `main` (§27.4) | users |
 
 ### 27.2 Environment variables (`.env.example`)
 
@@ -1850,27 +1854,46 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | `FIREBASE_SERVICE_ACCOUNT` | server | base64 JSON of the service account (Admin SDK) |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | server | never exposed |
 | `APP_ENV` | server | `dev` or `prod` (Cloudinary prefix) |
-| `CRON_SECRET` | server | Vercel Cron authorization |
+| `CRON_SECRET` | server | authorizes the VPS cron job (generated on the server) |
 | `GUEST_RETENTION_DAYS` | server | default 365 |
 | `SENTRY_DSN` | both | optional |
+| `SITE_ADDRESS`, `IMAGE_TAG` | server (`/opt/shikor/.env`) | Caddy site address (the domain); deployed image version (managed by `deploy.sh`) |
+
+`NEXT_PUBLIC_*` values are **inlined at build time**. For production they come from GitHub repository *variables* as Docker build arguments, so changing one needs a new deploy. Server secrets live only in `/opt/shikor/.env` on the VPS and are never baked into the image.
 
 ### 27.3 CI (GitHub Actions)
 
 ```yaml
-# .github/workflows/ci.yml (outline)
-on: [pull_request, push]
+# .github/workflows/ci.yml — every push and PR
 jobs:
-  checks:      # pnpm install --frozen-lockfile → typecheck → lint → i18n:check → test:unit (coverage)
-  rules:       # firebase emulators:exec "pnpm test:rules"
-  build:       # next build
-  e2e:         # on PRs to main: build + emulators + playwright (mobile + desktop), upload traces on failure
-  lighthouse:  # on main: lhci autorun with budgets
-deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:indexes (service account secret)
+  checks:  # install → typecheck → lint → format:check → i18n:check → unit tests with coverage
+  rules:   # firebase emulators:exec "pnpm test:rules"
+  e2e:     # next build → Playwright (mobile Chrome, mobile Safari, desktop Chrome) with axe
+  image:   # docker build of the production Dockerfile (not pushed)
+# Later: lighthouse (budgets, P8-07) and deploy-rules (firebase deploy of rules and indexes, P8-12)
+
+# .github/workflows/deploy.yml — after CI succeeds on main (or by hand); off until DEPLOY_ENABLED=true
+jobs:
+  deploy:  # build + push ghcr.io/<owner>/shikor:<sha> → SSH → /opt/shikor/deploy.sh <sha> → check /api/health
 ```
 
 - **Branching:** trunk-based. While the owner works alone, small, frequent commits go directly to `main`, each passing the local checks. Once collaborators join, short-lived `feat/*`, `fix/*` and `docs/*` branches go to `main` through PRs. `main` is always deployable.
 - **Conventional Commits** are enforced by commitlint. Versions follow semver tags (`v1.0.0`…), and `CHANGELOG.md` is maintained (release-please is optional).
 - **Branch protection:** all checks green and one review (or a self-review checklist when working solo).
+
+### 27.4 Deployment (self-hosted VPS)
+
+**ADR-015: Self-host on a VPS with Docker Compose, Caddy and GitHub Actions deploys.** *Context:* the owner runs a Contabo VPS and prefers it to Vercel (D7). *Decision:* the image is built in GitHub Actions and pushed to GitHub Container Registry; the deploy job connects over SSH as a key-only `deploy` user and runs `deploy.sh`. *Consequences:* fixed cost and no platform limits; the owner maintains the server; there are no per-PR previews (CI's E2E against a production build takes that role); the server is stateless apart from its `.env`.
+
+| Piece | Detail |
+| --- | --- |
+| Image (`Dockerfile`) | Multi-stage: `pnpm install` → `next build` with `BUILD_STANDALONE=1` and `NEXT_PUBLIC_*` build args → runtime on `node:22-bookworm-slim` with only the standalone server, static assets and `public/`; runs as user `node`; health check on `/api/health` (every 2 s while starting, then every 30 s). |
+| Stack (`deploy/compose.yml`) | `web` (the image, port 3000, not published) and `caddy` (ports 80/443 incl. HTTP/3, automatic Let's Encrypt, zstd/gzip). Logs rotate at 10 MB × 5. |
+| Server setup (`deploy/setup-server.sh`) | Run once by the owner as root on Ubuntu/Debian: updates, Docker, key-only `deploy` user, `/opt/shikor` with a 600 `.env`, ufw (22/80/443), fail2ban, unattended upgrades, swap, optional `--harden-ssh` with a lock-out guard. |
+| Deploy (`deploy/deploy.sh`) | Syncs `compose.yml` and `Caddyfile` from the deployed commit, pulls the image (GHCR token only via stdin), records `IMAGE_TAG`, waits for health and **rolls back** to the previous version if the new one is unhealthy (the job then fails). |
+| Secrets | GitHub secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (strict host-key checking), optional `DEPLOY_PORT`. The VPS root password is never stored or shared. |
+
+Step-by-step owner instructions: [docs/DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ---
 
@@ -1883,7 +1906,7 @@ deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:index
 | Firestore (Spark) | 50k reads/day, 20k writes/day, 20k deletes/day, 1 GiB stored, 10 GiB/month egress |
 | Firebase Auth | anonymous, email and Google sign-in at no cost at our scale (Identity Platform **not** enabled, so no automatic anonymous cleanup; see AUTH-14) |
 | Cloudinary Free | **25 credits/month**. 1 credit = 1 GB storage **or** 1 GB bandwidth **or** 1,000 transformations, summed across all three |
-| Vercel Hobby | generous function and bandwidth limits; cron at most once a day; **non-commercial use only** |
+| Contabo VPS | fixed monthly price; no per-request or bandwidth billing at our scale; maintained by the owner |
 
 ### 28.2 Estimates
 
@@ -1897,7 +1920,7 @@ deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:index
 | --- | --- | --- |
 | Firestore reads > 70% of the daily quota on 3+ days | Switch Firebase to **Blaze** (free quotas still apply) and set a budget alert | a few cents per 100k reads beyond the free tier (region-dependent) |
 | Cloudinary credits > 70% for 2 consecutive months | Reduce variants, raise compression, or upgrade the Cloudinary plan. Alternatively, move photo storage to Firebase Storage once on Blaze (ADR revisit). | n/a |
-| Commercial launch | Vercel Pro or Firebase App Hosting (Blaze) | n/a |
+| Traffic outgrows the VPS (CPU or memory consistently > 70%) | A larger VPS plan, or a second instance behind a load balancer | VPS price difference |
 
 ---
 
@@ -1916,7 +1939,7 @@ deploy-rules:  # on main: firebase deploy --only firestore:rules,firestore:index
 | R-09 | Kinship terms wrong or regionally inappropriate | M / M | Native review, style setting, descriptive fallback, user feedback link |
 | R-10 | Collaboration conflicts confuse users | L / M | Field-level updates, live highlights, activity log, undo conflict warning |
 | R-11 | Security rule gaps | L / H | 100% rules path tests, CI deploys from the repository, periodic review |
-| R-12 | Vercel Hobby terms (non-commercial) | M / M | Decide on the commercial plan before a public launch (SRS Q4) |
+| R-12 | The single VPS fails or is misconfigured | L / H | Stateless server (data in Firebase/Cloudinary); Docker restart policy and health checks; automatic rollback on bad deploys; uptime monitor on `/api/health`; rebuild from `setup-server.sh` in minutes; keep a copy of `.env` |
 | R-13 | TypeScript 7 / typescript-eslint compatibility churn | L / L | Pin TS 6.0.x and upgrade deliberately |
 | R-14 | Large Family books exhaust phone memory or produce huge PDFs | M / M | Page-by-page rendering, one canvas alive at a time, JPEG pages, a 300-page warning and a 600-page limit, per-branch books (§14.1) |
 | R-15 | Few people have dates, so the Timeline looks empty | H / L | Show undated people with a count and an "add dates" link; approximate dates are accepted; the year-only input is the default (TL-02) |

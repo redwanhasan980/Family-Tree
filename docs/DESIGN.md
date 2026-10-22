@@ -1,7 +1,7 @@
 # Design Document
 
-**Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.1 (adds the Family card, Generation album, Timeline and Family book)
+**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.2 (adds the Family card, Generation album, Timeline and Family book; product named Shikor)
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Inputs:** [SRS](./SRS.md) · **Next:** [Implementation Plan](./IMPLEMENTATION_PLAN.md)
@@ -336,7 +336,7 @@ export interface LocalizedName { en?: string; bn?: string } // at least one non-
 export interface LifeEvent { date?: PartialDate; place?: string }
 
 export interface PhotoRef {
-  publicId: string;   // ft/{env}/{treeId}/{personId}/{random}
+  publicId: string;   // shikor/{env}/{treeId}/{personId}/{random}
   version: number;    // Cloudinary version for cache-busting
   width: number;
   height: number;
@@ -477,7 +477,7 @@ rateLimits/{key}                              counter                (server-onl
   "birth": { "date": { "year": 1931, "approximate": true }, "place": "শিবগঞ্জ, চাঁপাইনবাবগঞ্জ" },
   "death": { "date": { "year": 2004, "month": 3 } },
   "profession": "কৃষক",
-  "photo": { "publicId": "ft/prod/Xk2…/p9Q…/a8Fz…", "version": 1729500000, "width": 1200, "height": 1200 },
+  "photo": { "publicId": "shikor/prod/Xk2…/p9Q…/a8Fz…", "version": 1729500000, "width": 1200, "height": 1200 },
   "createdAt": "<ts>", "createdBy": "uidA", "updatedAt": "<ts>", "updatedBy": "uidA", "schemaVersion": 1
 }
 
@@ -640,7 +640,7 @@ service cloud.firestore {
         && (!('customFields' in p) || (p.customFields is list && p.customFields.size() <= 20))
         && (!('photo' in p) || p.photo == null
             || (p.photo.publicId is string
-                && p.photo.publicId.matches('^ft/[a-z]+/' + treeId + '/' + personId + '/[A-Za-z0-9_-]+$')));
+                && p.photo.publicId.matches('^shikor/[a-z]+/' + treeId + '/' + personId + '/[A-Za-z0-9_-]+$')));
     }
 
     function validRelationship(relId, r) {
@@ -755,7 +755,7 @@ sequenceDiagram
     S->>A: verifyIdToken(G) → provider == anonymous
     S->>F: create mergeTickets/{ticketId} {guestUid:G, expiresAt:+24h, used:false}
     S-->>C: {ticketId}
-    C->>C: localStorage["ft:pendingMerge"] = {ticketId, trees:[{id,name,personCount}]}
+    C->>C: localStorage["shikor:pendingMerge"] = {ticketId, trees:[{id,name,personCount}]}
     C->>A: signInWithCredential(existing credential) / signInWithEmailAndPassword
     A-->>C: user P
     C-->>C: show merge dialog (Move ✔ / Discard per tree)
@@ -767,7 +767,7 @@ sequenceDiagram
             S->>F: update ownerId=P, memberIds/roles: G→P
         else discard
             S->>F: recursiveDelete(trees/{id})
-            S->>K: delete_resources_by_prefix("ft/{env}/{id}/")
+            S->>K: delete_resources_by_prefix("shikor/{env}/{id}/")
         end
     end
     S->>F: delete users/G
@@ -779,7 +779,7 @@ sequenceDiagram
 **Properties:**
 
 - **Idempotent.** A used ticket returns the previous result. Trees already owned by P are skipped. A missing guest user counts as already merged.
-- **Resumable.** If the tab closes after sign-in, `ft:pendingMerge` is detected on the next load and the dialog reappears (until the ticket expires after 24 h).
+- **Resumable.** If the tab closes after sign-in, `shikor:pendingMerge` is detected on the next load and the dialog reappears (until the ticket expires after 24 h).
 - **Safe.** Tickets can only be created by an anonymous token for its own user ID, redeemed only by a non-anonymous user, are single-use, and expire after 24 h.
 - **Guest with no trees:** no ticket is needed. The orphaned anonymous user is removed by the cleanup cron (R2).
 
@@ -840,7 +840,7 @@ export async function verifyRequest(req: Request, opts: { allowGuest?: boolean }
 | `POST /api/account/merge` | permanent | `{ ticketId, decisions: [{ treeId, action: 'move'｜'discard' }] }` | Moves or deletes the guest's trees and deletes the guest (§9.4) → `{ moved, discarded }` | R1 |
 | `POST /api/account/delete` | any (recent login) | `{ confirm: true }` | Deletes owned trees (recursively, with photos), removes the user from shared trees, then the user document and auth user → `{ ok }` | R1 |
 | `POST /api/media/sign` | editor+ of tree (guests allowed) | `{ treeId, personId }` | Checks the role, applies a rate limit (60/h per user ID), returns `{ cloudName, apiKey, timestamp, signature, publicId, allowedFormats, transformation }` | R1 |
-| `POST /api/media/delete` | editor+ of tree | `{ treeId, publicIds: string[≤50] }` | Checks that each ID has the prefix `ft/{env}/{treeId}/`, then deletes from Cloudinary → `{ deleted }` | R1 |
+| `POST /api/media/delete` | editor+ of tree | `{ treeId, publicIds: string[≤50] }` | Checks that each ID has the prefix `shikor/{env}/{treeId}/`, then deletes from Cloudinary → `{ deleted }` | R1 |
 | `POST /api/invites/accept` | permanent | `{ inviteId }` | Validates the invite (not expired, revoked or used up), adds the user to `memberIds`/`roles`, increments `uses` → `{ treeId, role }` | R3 |
 | `POST /api/trees/{treeId}/transfer` | owner | `{ newOwnerId }` | Transfers ownership to an existing member | R3 |
 | `GET /api/cron/cleanup` | `Authorization: Bearer ${CRON_SECRET}` | n/a | Purges stale guests, expired tickets, invites and activity, and orphaned photos (bounded batch per run) | R2 |
@@ -1186,7 +1186,7 @@ flowchart LR
 **Details**
 
 - **The scene is rendered off-screen** (a hidden container that is not `display:none`) using the same view components with `mode="export"`. It uses the full content bounds, not the viewport (EXP-04). An optional "Expand all" re-runs the layout with an empty collapsed set.
-- **The header and footer are part of the SVG** (title, subtitle, date, legend, "Made with Family Tree"). They are rasterized too, so Bangla shaping is correct (EXP-05, ADR-006). jsPDF's `text()` is never used for user text.
+- **The header and footer are part of the SVG** (title, subtitle, date, legend, "Made with Shikor · শিকড়"). They are rasterized too, so Bangla shaping is correct (EXP-05, ADR-006). jsPDF's `text()` is never used for user text.
 - **Images:** export uses the `export` transformation (`c_fill,g_face,w_256,h_256/f_jpg,q_85`). Each image is fetched with CORS (Cloudinary sends `Access-Control-Allow-Origin: *`), converted to a data URL, and kept in a cache for the session. If an image fails, the initials avatar is used (never a broken image).
 - **Canvas limits (EXP-06):** the target scale is `quality × devicePixelRatio`. It is clamped so that `width × height × scale² ≤ 16,777,216` px on iOS Safari and `≤ 100 MP` elsewhere, and each side stays ≤ 16,384 px. If clamping would drop the effective resolution below 1×, PNG export suggests PDF tiling.
 - **PDF:** `new jsPDF({ unit: 'mm', format, orientation })`. With *Fit to one page* the scene is scaled into the printable area, with a warning if names would render smaller than about 6 pt. With *tiling*, the scene is split into page-sized tiles with 5 mm overlap and crop marks, and each tile is rasterized separately with a different `viewBox` (low memory). `setProperties({ title, creator })` sets the metadata.
@@ -1225,7 +1225,7 @@ flowchart LR
 ### 15.1 Identifiers
 
 ```text
-public_id = ft/{env}/{treeId}/{personId}/{nanoid(16)}      env ∈ prod | dev | test
+public_id = shikor/{env}/{treeId}/{personId}/{nanoid(16)}      env ∈ prod | dev | test
 ```
 
 The tree and person in the path make authorization checks and bulk deletion (by prefix) trivial. A random suffix per upload means replacing a photo never serves a stale CDN cache. `asset_folder` is set to the same path (minus the file name) for tidy browsing in the Cloudinary console.
@@ -1275,7 +1275,7 @@ The set of variants is **deliberately small**, because every unique transformati
 ### 15.4 Deletion and orphans
 
 - **Person deleted:** after the undo window, `media/delete` is called for that person's photo.
-- **Tree deleted, account deleted or merge discard:** the server calls `api.delete_resources_by_prefix('ft/{env}/{treeId}/')`.
+- **Tree deleted, account deleted or merge discard:** the server calls `api.delete_resources_by_prefix('shikor/{env}/{treeId}/')`.
 - **Orphan sweep (R2 cron):** list resources by prefix, page by page, and delete any whose `publicId` is not referenced by its person document and is more than 24 h old.
 
 ### 15.5 Privacy note
@@ -1290,6 +1290,7 @@ Delivery URLs are public but unguessable (random IDs, 96+ bits in total). The pr
 
 - `src/i18n/routing.ts`: `locales: ['bn', 'en']`, `defaultLocale: 'en'`, `localePrefix: 'always'`. Detection uses the cookie (`NEXT_LOCALE`), then `Accept-Language` (`bn` → `bn`), then `en`.
 - `src/proxy.ts`: the next-intl middleware. The matcher excludes `api`, `_next`, `__`, static files and `s/` share assets as needed.
+- The product name is a message too: `common.appName` is "শিকড়" in `bn` and "Shikor" in `en`.
 - Messages live in `messages/{locale}.json`, grouped by namespace: `common, nav, landing, auth, onboarding, dashboard, editor, person, relations, views, export, media, share, kinship, settings, errors, validation, help`.
 - **ICU** handles plurals and selects: `"childrenAdded": "{count, plural, one {# child added} other {# children added}}"`. In Bangla: `"{count, plural, other {#টি সন্তান যোগ হয়েছে}}"`, with digits formatted as Bangla by the `bn` locale.
 - **Language switch (I18N-01):** `router.replace(pathname, { locale })`. The tree state lives in stores and the Firestore cache, so nothing is refetched. Changing the language also persists `users/{uid}.locale`.
@@ -1391,10 +1392,10 @@ When the signature has no entry, compose a possessive chain from the step terms.
 
 ```jsonc
 {
-  "format": "family-tree-backup",
+  "format": "shikor-backup",
   "version": 1,
   "exportedAt": "2026-10-22T10:00:00Z",
-  "app": { "name": "Family Tree", "version": "1.0.0" },
+  "app": { "name": "Shikor", "version": "1.0.0" },
   "tree": { "name": "…", "description": "…", "rootPersonId": "…", "settings": { … } },
   "persons": [ { "id": "…", "names": { … }, …, "photo": { "publicId": "…", "version": 1, "url": "https://…" } } ],
   "relationships": [ { "id": "p_…_…", "type": "parent", … } ]
@@ -1437,7 +1438,7 @@ When the signature has no entry, compose a possessive chain from the step terms.
 | Firestore / Auth traffic | **Not intercepted** | Firestore has its own IndexedDB cache and offline queue |
 | `/api/*` | NetworkOnly | |
 
-- **Manifest** (`app/manifest.ts`): name and short name per locale (the default is Bangla-friendly), `display: standalone`, theme colour `#0F6B4F`, background `#FBF8F3`, any and maskable icons, shortcuts ("New person", "My trees").
+- **Manifest** (`app/manifest.ts`): localized name and short name ("শিকড়" in Bangla, "Shikor" in English), `display: standalone`, theme colour `#0F6B4F`, background `#FBF8F3`, any and maskable icons, shortcuts ("New person", "My trees").
 - **Install UX (PWA-01):** capture `beforeinstallprompt`. Offer installation after the second session or after adding 10 people, never on the first visit. iOS gets an "Add to Home Screen" guide sheet.
 - **Offline UX (PWA-03):** a header pill "অফলাইন • ৩টি পরিবর্তন সিঙ্ক হবে" ("Offline • 3 changes will sync"). Photo upload, export with uncached photos, and server actions (merge, invites) are disabled with explanations.
 
@@ -1490,7 +1491,7 @@ Redaction is a pure `redact(data, options)` function in `lib/domain`, shared wit
 
 ### 21.1 Personality
 
-Warm, familial, calm and celebratory: like a well-kept family album, not a database. The design has rounded shapes, generous spacing and soft paper-like surfaces. Colour comes from family branches and photos, not from chrome.
+The product is called **Shikor (শিকড়)**, meaning "roots". The brand is warm, familial, calm and celebratory: like a well-kept family album, not a database. A simple roots-and-tree mark (a small tree whose roots are drawn as a mirrored family tree) is the planned logo and favicon. The design has rounded shapes, generous spacing and soft paper-like surfaces. Colour comes from family branches and photos, not from chrome.
 
 ### 21.2 Colour tokens
 
@@ -1776,7 +1777,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | --- | --- |
 | Reading another user's tree | Rules: membership is checked through the tree's `roles` on every read; list queries must filter by `memberIds`. |
 | Privilege escalation (an editor makes themselves owner, an owner adds an arbitrary member) | Rules: `editorUpdate`/`ownerUpdate` key allow-lists; membership additions happen only on the server through invites. |
-| Forged photo references | Rules: the `photo.publicId` must match `ft/{env}/{treeId}/{personId}/…`; uploads are signed for that exact `public_id`. |
+| Forged photo references | Rules: the `photo.publicId` must match `shikor/{env}/{treeId}/{personId}/…`; uploads are signed for that exact `public_id`. |
 | Cloudinary credit drain | Signed uploads only (no unsigned presets), a role check, a rate limit (60/h per user), an incoming size cap, a small set of variants. |
 | Anonymous-account abuse (bots creating guests and data) | App Check (reCAPTCHA v3) enforced on Firestore; guests are created only on app entry, not on the landing page; per-tree limits (§6.2); guest cleanup (R2). |
 | XSS through user text | React escaping; no `dangerouslySetInnerHTML`; descriptions rendered as plain text with line breaks; CSP. |
@@ -1831,9 +1832,9 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 
 | Env | Firebase project | Cloudinary prefix | Hosting | Purpose |
 | --- | --- | --- | --- | --- |
-| local | **Emulator Suite** (Auth, Firestore) | `ft/dev/` (or mocked) | `pnpm dev` | development and tests |
-| preview | `family-tree-dev` | `ft/dev/` | Vercel preview per PR | review |
-| production | `family-tree-prod` | `ft/prod/` | Vercel production (`main`) | users |
+| local | **Emulator Suite** (Auth, Firestore) | `shikor/dev/` (or mocked) | `pnpm dev` | development and tests |
+| preview | `shikor-dev` | `shikor/dev/` | Vercel preview per PR | review |
+| production | `shikor-prod` | `shikor/prod/` | Vercel production (`main`) | users |
 
 ### 27.2 Environment variables (`.env.example`)
 

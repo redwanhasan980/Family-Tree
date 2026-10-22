@@ -1,8 +1,8 @@
-# 🌳 Family Tree · পারিবারিক বংশতালিকা
+# 🌳 Shikor · শিকড়
 
 > Build your family tree in minutes, in **বাংলা** or **English**, with no sign-up needed.
 
-Family Tree is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **family card** (one family at a time, made for phones), a **circle chart** or an **index list**, and later as a **photo album** and a **timeline**. You can download any view as an **image or PDF**, or print the whole family as a **family book**.
+**Shikor** (শিকড়, meaning "roots") is a web app for recording a family's history, starting from the oldest ancestor you remember. You add their sons and daughters, then their children, and keep going. You can explore the family as a **tree**, a **family card** (one family at a time, made for phones), a **circle chart** or an **index list**, and later as a **photo album** and a **timeline**. You can download any view as an **image or PDF**, or print the whole family as a **family book**.
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
@@ -152,7 +152,7 @@ pnpm install
 
 ### 2. Configure Firebase
 
-1. Create a Firebase project (for development, for example `family-tree-dev`).
+1. Create a Firebase project (for development, for example `shikor-dev`).
 2. **Firestore:** create the database in **`asia-south1` (Mumbai)**. The location cannot be changed later.
 3. **Authentication → Sign-in method:** enable **Anonymous**, **Email/Password** and **Google**.
 4. **Project settings → Your apps:** add a **Web app** and copy its config values.

@@ -1,9 +1,9 @@
 ---
 name: family-tree-dev
-description: Project playbook for building the Family Tree app (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
+description: Project playbook for building Shikor (শিকড়), the family-tree app in this repo (Next.js 16 + Firebase + Cloudinary, bilingual bn/en). Use when implementing, changing or reviewing any feature in this repo, including data model or Firestore rules changes, commands/undo, views (tree, family card, circle, list, album, timeline), export and the family book, photo upload, translations, Route Handlers, and verifying UI on mobile and desktop.
 ---
 
-# Family Tree development playbook
+# Shikor development playbook
 
 This skill holds the repeatable workflows for this repository. The *why* lives in `docs/DESIGN.md`, the *what* in `docs/SRS.md`, and the *order of work* in `docs/IMPLEMENTATION_PLAN.md`. The non-negotiable rules are in `CLAUDE.md`. Follow them.
 
@@ -145,7 +145,7 @@ Checklist: idempotent (safe to retry); bounded work per request (batch through l
 
 - The client never holds the API secret. Flow: pick → crop → compress → `POST /api/media/sign` → upload directly to Cloudinary (XHR with progress) → command updates `person.photo = { publicId, version, width, height }`.
 - Build URLs only with `features/media/cloudinaryUrl.ts` (variants `thumb`, `card`, `full`, `export`). **Don't add variants casually**, because each one consumes transformation credits.
-- `publicId` has the form `ft/{env}/{treeId}/{personId}/{random}`, and both the rules and `/api/media/delete` check that prefix.
+- `publicId` has the form `shikor/{env}/{treeId}/{personId}/{random}`, and both the rules and `/api/media/delete` check that prefix.
 - Delete the old photo **after** the undo window. Tree, account and merge-discard deletions use prefix deletion on the server.
 - In tests, mock Cloudinary with Playwright `page.route('https://api.cloudinary.com/**', …)`.
 

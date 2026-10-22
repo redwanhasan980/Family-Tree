@@ -1,7 +1,7 @@
 # Implementation Plan
 
-**Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.1 (adds the Family card, Generation album, Timeline and Family book; later phases renumbered)
+**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.2 (adds the Family card, Generation album, Timeline and Family book; later phases renumbered; product named Shikor)
 **Date:** 2026-10-22
 **Inputs:** [SRS](./SRS.md) (what) · [Design Document](./DESIGN.md) (how)
 
@@ -71,7 +71,7 @@
 
 ```mermaid
 gantt
-    title Family Tree: indicative schedule (working days)
+    title Shikor: indicative schedule (working days)
     dateFormat  YYYY-MM-DD
     excludes    weekends
     section R1 · v1.0 MVP
@@ -110,7 +110,7 @@ gantt
 
 **Goal:** an empty but production-grade skeleton. It runs in both languages, deploys previews, and every quality gate is wired up.
 
-- [ ] **P0-01** Scaffold Next.js 16 (App Router, `src/`, TypeScript, Tailwind v4) with pnpm (via Corepack, pinned in `packageManager`). Add `.nvmrc` (Node 22) and `.editorconfig`.
+- [ ] **P0-01** Scaffold Next.js 16 (package name `shikor`; App Router, `src/`, TypeScript, Tailwind v4) with pnpm (via Corepack, pinned in `packageManager`). Add `.nvmrc` (Node 22) and `.editorconfig`.
 - [ ] **P0-02** `tsconfig`: `strict`, `noUncheckedIndexedAccess`, path alias `@/*`. Pin TypeScript `6.0.x` (DESIGN §3).
 - [ ] **P0-03** ESLint flat config (next, typescript-eslint, import order). Add `no-restricted-imports` guards: `firebase/*` only inside `src/lib/firebase` and `src/lib/repositories`; no `react` or `firebase` in `src/lib/domain`; `firebase-admin` only in server files. Add Prettier with the Tailwind plugin.
 - [ ] **P0-04** Husky + lint-staged (format, lint changed files) + commitlint (Conventional Commits).
@@ -182,7 +182,7 @@ gantt
 - [ ] **P3-03** Editor shell `/trees/[treeId]`: view tabs (desktop) and bottom nav with a "More" sheet (mobile), feature flags for staged views (`lib/features.ts`, ADR-014), URL state (`?view=&focus=`), details container (side panel ≥ 1024 px, vaul drawer below), empty-tree state with "Add the first person". *(VIS-01)*
 - [ ] **P3-04** Tree settings dialog (name display, colour by, photos, dates, default view). *(TREE-06)*
 - [ ] **P3-05** Statistics popover (people, generations, living/deceased, earliest year). *(TREE-08, Could)*
-- [ ] **P3-06** **Guest merge:** `POST /api/account/merge-ticket`, `POST /api/account/merge` (transaction, idempotent), `MergeDialog` (move/discard per tree), resume through `ft:pendingMerge`. *(AUTH-06/07, DESIGN §9.4)*
+- [ ] **P3-06** **Guest merge:** `POST /api/account/merge-ticket`, `POST /api/account/merge` (transaction, idempotent), `MergeDialog` (move/discard per tree), resume through `shikor:pendingMerge`. *(AUTH-06/07, DESIGN §9.4)*
 - [ ] **P3-07** **Account and guest-data deletion:** `POST /api/account/delete` (recent-login check, recursive delete, membership removal; Cloudinary prefix deletion stubbed until P5). *(AUTH-10/12)*
 - [ ] **P3-08** Tests: API (merge idempotency, ticket expiry and reuse, a non-anonymous ticket creator is rejected). E2E: AC AUTH-07; dashboard CRUD; deletion.
 
@@ -444,7 +444,7 @@ The risk register lives in [DESIGN §29](./DESIGN.md#29-risks--mitigations). The
 
 These steps need your accounts, so they can't be automated from the repository:
 
-1. **Firebase:** create two projects, `family-tree-dev` and `family-tree-prod` (Spark plan).
+1. **Firebase:** create two projects, `shikor-dev` and `shikor-prod` (Spark plan). If an ID is taken, Firebase suggests a variant with a suffix, which is fine.
    - Choose the Firestore location **`asia-south1` (Mumbai)**. It is closest to Bangladesh, and **the location cannot be changed later**.
    - Enable **Authentication → Sign-in methods:** Anonymous, Email/Password, Google.
    - Register a **Web app** in each project and copy its config.
@@ -452,6 +452,6 @@ These steps need your accounts, so they can't be automated from the repository:
 2. **Cloudinary:** create a free account and note the **cloud name, API key and API secret**. In *Settings → Security*, keep **unsigned uploads disabled**.
 3. **Vercel:** create an account and import this GitHub repository.
 4. **reCAPTCHA v3 (App Check):** create a site key for the production domain (this can wait until P8).
-5. **Decisions** (SRS §9): product name and domain (Q1), licence (Q2), commercial plans (Q4), Bangla reviewer (Q5).
+5. **Decisions** (SRS §9): domain name (Q1), licence (Q2), commercial plans (Q4), Bangla reviewer (Q5).
 
 Once the docs are approved and steps 1–3 are done, **Phase 0 can start.**

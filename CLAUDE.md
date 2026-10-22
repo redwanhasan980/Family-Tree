@@ -4,7 +4,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 
 ## Project in one paragraph
 
-**Family Tree** is a bilingual (বাংলা / English) web app for building family trees. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in several views: **Tree**, **Family card**, **Circle** and **List** in v1.0; **Generation album** in v1.1; **Timeline** in v1.2. Every view exports as PNG or PDF, and v1.2 adds a printable **Family book**. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
+**Shikor (শিকড়, "roots")** is a bilingual (বাংলা / English) web app for building family trees. The repository is still named `Family-Tree`. Ease of use is the top priority. Visitors start immediately as a **guest** (Firebase anonymous auth); every edit is saved to Firestore and survives reloads. Guests can later sign up with email or Google without losing data. People and relationships (parent→child and spouse) are stored in Firestore and shown in several views: **Tree**, **Family card**, **Circle** and **List** in v1.0; **Generation album** in v1.1; **Timeline** in v1.2. Every view exports as PNG or PDF, and v1.2 adds a printable **Family book**. Photos live on **Cloudinary**. The app is **Next.js full-stack**: there is no separate Express server, and privileged logic runs in Next.js Route Handlers with the Firebase Admin SDK.
 
 ## Source of truth
 

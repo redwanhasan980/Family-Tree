@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 
-**Product:** Family Tree, a bilingual (বাংলা / English) family-tree builder
-**Document version:** 1.1
+**Product:** Shikor (শিকড়, "roots"), a bilingual (বাংলা / English) family-tree builder
+**Document version:** 1.2
 **Date:** 2026-10-22
 **Status:** Baseline for implementation
 **Related documents:** [Design Document](./DESIGN.md) · [Implementation Plan](./IMPLEMENTATION_PLAN.md) · [README](../README.md)
@@ -10,6 +10,7 @@
 | ------- | ---------- | ----------------------- | ------------------------------------------------------------- |
 | 1.0     | 2026-10-22 | Product owner + Claude  | Initial baseline after the requirements Q&A (see §1.6)          |
 | 1.1     | 2026-10-22 | Product owner + Claude  | Added Family card, Generation album, Timeline and Family book (decision D5) |
+| 1.2     | 2026-10-22 | Product owner + Claude  | Product named **Shikor (শিকড়)** (decision D6) |
 
 ---
 
@@ -32,7 +33,7 @@
 
 ### 1.1 Purpose
 
-This document specifies the requirements of **Family Tree**, a web application for building, exploring and sharing family trees, in Bangla and English. It is written for:
+This document specifies the requirements of **Shikor (শিকড়)**, a web application for building, exploring and sharing family trees, in Bangla and English. It is written for:
 
 - the **product owner**, to confirm the scope;
 - **developers**, including AI coding agents, who build the app from it;
@@ -40,7 +41,7 @@ This document specifies the requirements of **Family Tree**, a web application f
 
 ### 1.2 Scope
 
-Family Tree lets anyone open the website and immediately start recording their family, beginning with the oldest ancestor they remember (for example their grandfather), then his sons and daughters, then their children, and so on. Ease of use is the **number-one product priority**.
+Shikor lets anyone open the website and immediately start recording their family, beginning with the oldest ancestor they remember (for example their grandfather), then his sons and daughters, then their children, and so on. Ease of use is the **number-one product priority**.
 
 **In scope**
 
@@ -117,6 +118,7 @@ Family Tree lets anyone open the website and immediately start recording their f
 | D3 | Backend shape | **Next.js full-stack.** There is no separate Express server. Privileged operations run in Next.js Route Handlers using the Firebase Admin SDK. |
 | D4 | Extra features | **All in scope**, delivered in phases after the MVP: share & collaborate, Bangla relationship finder, backup import/export (JSON + GEDCOM), installable offline app (PWA). |
 | D5 | Additional views | **Family card** (R1), **Generation album** (R2), **Timeline** (R3) and **Family book** (R3) are added. The fan chart, hourglass chart and কুরসিনামা-style print were proposed but not selected. |
+| D6 | Product name | **Shikor (শিকড়)**, meaning "roots". It is written শিকড় in the Bangla UI and Shikor in the English UI. The domain is still open (Q1). |
 
 ---
 
@@ -124,11 +126,11 @@ Family Tree lets anyone open the website and immediately start recording their f
 
 ### 2.1 Product perspective
 
-Family Tree is a new, self-contained web application. It depends on three external managed services:
+Shikor is a new, self-contained web application. It depends on three external managed services:
 
 ```mermaid
 flowchart LR
-    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[Family Tree web app<br/>Next.js on Vercel]
+    U[User's browser<br/>mobile / desktop] -->|HTTPS| APP[Shikor web app<br/>Next.js on Vercel]
     U -->|Auth SDK| AUTH[Firebase Authentication<br/>anonymous · email · Google]
     U -->|Firestore SDK, realtime + offline cache| FS[(Cloud Firestore)]
     U -->|signed upload / image CDN| CL[Cloudinary]
@@ -872,7 +874,7 @@ Mapping to implementation phases: see [IMPLEMENTATION_PLAN.md §3](./IMPLEMENTAT
 
 | # | Item | Owner | Status |
 | --- | --- | --- | --- |
-| Q1 | **Product name and domain.** "Family Tree" is a working name. Suggestion: **শিকড় (Shikor, "roots")** or **বংশ (Bongsho)**. | Product owner | Open |
+| Q1 | **Domain name.** The product name is decided: **Shikor (শিকড়)** (D6). Candidates: `shikor.app`, `shikor.com.bd`, `getshikor.com` (availability to be checked). | Product owner | Open |
 | Q2 | **License:** proprietary or open source? | Product owner | Open |
 | Q3 | Default UI language when the browser is neither `bn` nor `en`: English proposed. | Product owner | Proposed |
 | Q4 | Commercial launch? This affects the Vercel plan (C-07). | Product owner | Open |

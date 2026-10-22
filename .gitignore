@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# firebase
+.firebase/
+*-debug.log
+firebase-export-*/
+
+# env files (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.log
+*.pem
+.vercel
+.idea/
+.vscode/*
+!.vscode/extensions.json

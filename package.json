@@ -22,7 +22,9 @@
     "prepare": "husky",
     "i18n:check": "tsx scripts/check-i18n.ts",
     "emulators": "firebase emulators:start --project demo-shikor",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-shikor \"vitest run --config vitest.rules.config.mts\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-shikor \"vitest run --config vitest.rules.config.mts\"",
+    "test:e2e": "playwright test",
+    "seed": "tsx scripts/seed-emulator.ts"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

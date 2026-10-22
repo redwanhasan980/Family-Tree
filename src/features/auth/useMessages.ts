@@ -9,7 +9,7 @@ export function useValidationText(): (key: string | undefined) => string | undef
   const t = useTranslations('validation');
   return (key) => {
     if (!key) return undefined;
-    return t.has(key as never) ? t(key as never) : t('emailInvalid');
+    return t.has(key as never) ? t(key as never) : t('invalid');
   };
 }
 

@@ -137,6 +137,22 @@
     "passwordTooShort": "কমপক্ষে ৮টি অক্ষর ব্যবহার করুন।",
     "passwordTooLong": "পাসওয়ার্ডটি অনেক লম্বা হয়ে গেছে।",
     "displayNameRequired": "নাম দিন।",
-    "displayNameTooLong": "নাম ৮০ অক্ষরের মধ্যে রাখুন।"
+    "displayNameTooLong": "নাম ৮০ অক্ষরের মধ্যে রাখুন।",
+    "invalid": "অনুগ্রহ করে এটি আবার দেখুন।",
+    "nameRequired": "ইংরেজি বা বাংলায় একটি নাম দিন।",
+    "nameTooLong": "নাম ১২০ অক্ষরের মধ্যে রাখুন।",
+    "nicknameTooLong": "ডাকনাম ৬০ অক্ষরের মধ্যে রাখুন।",
+    "textTooLong": "লেখাটি অনেক লম্বা হয়ে গেছে। একটু ছোট করুন।",
+    "descriptionTooLong": "বিবরণ ২,০০০ অক্ষরের মধ্যে রাখুন।",
+    "phoneInvalid": "ফোন নম্বরে শুধু সংখ্যা, স্পেস এবং + - ( ) ব্যবহার করুন।",
+    "tooManyPhones": "সর্বোচ্চ ৩টি ফোন নম্বর যোগ করা যায়।",
+    "tooManyCustomFields": "সর্বোচ্চ ২০টি অতিরিক্ত তথ্য যোগ করা যায়।",
+    "customLabelRequired": "এই তথ্যের একটি নাম দিন।",
+    "yearOutOfRange": "১০০০ থেকে আগামী বছরের মধ্যে একটি সাল দিন।",
+    "monthInvalid": "১ থেকে ১২-এর মধ্যে একটি মাস বেছে নিন।",
+    "dayInvalid": "এই মাসে এই তারিখ নেই।",
+    "dayWithoutMonth": "মাসটিও বেছে নিন।",
+    "treeNameRequired": "বংশতালিকার একটি নাম দিন।",
+    "treeNameTooLong": "নাম ৮০ অক্ষরের মধ্যে রাখুন।"
   }
 }

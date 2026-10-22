@@ -137,6 +137,22 @@
     "passwordTooShort": "Use at least 8 characters.",
     "passwordTooLong": "That password is too long.",
     "displayNameRequired": "Please enter a name.",
-    "displayNameTooLong": "Keep the name under 80 characters."
+    "displayNameTooLong": "Keep the name under 80 characters.",
+    "invalid": "Please check this value.",
+    "nameRequired": "Enter a name in English or Bangla.",
+    "nameTooLong": "Keep the name under 120 characters.",
+    "nicknameTooLong": "Keep the nickname under 60 characters.",
+    "textTooLong": "This is too long. Please shorten it.",
+    "descriptionTooLong": "Keep the description under 2,000 characters.",
+    "phoneInvalid": "Enter a phone number using digits, spaces and + - ( ).",
+    "tooManyPhones": "You can add up to 3 phone numbers.",
+    "tooManyCustomFields": "You can add up to 20 extra fields.",
+    "customLabelRequired": "Give this field a name.",
+    "yearOutOfRange": "Enter a year between 1000 and next year.",
+    "monthInvalid": "Choose a month from 1 to 12.",
+    "dayInvalid": "That day doesn't exist in this month.",
+    "dayWithoutMonth": "Choose the month as well.",
+    "treeNameRequired": "Give the family tree a name.",
+    "treeNameTooLong": "Keep the name under 80 characters."
   }
 }

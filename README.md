@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phase 0 (foundation) complete. Next: Phase 1, authentication and guest sessions.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0 and 1 complete: you can start as a guest, create an account (email or Google), log in and choose your settings. Next: Phase 2, the family data and its security rules.* See [Project status](#project-status).
 
 ---
 
@@ -117,8 +117,8 @@ flowchart LR
 | --- | --- | --- |
 | Docs | SRS, Design, Implementation Plan, CLAUDE.md, skill | ✅ Done |
 | P0 | Foundation & tooling, deployment pipeline | ✅ Done (first deploy waits for the owner's VPS setup) |
-| P1 | Authentication & guest session | ⏳ Next |
-| P2 | Domain core, data layer & security rules | ⬜ |
+| P1 | Authentication & guest session | ✅ Done (the iOS Safari redirect check waits for the domain) |
+| P2 | Domain core, data layer & security rules | ⏳ Next |
 | P3 | App shell, dashboard, guest merge | ⬜ |
 | P4 | Tree view & core editing | ⬜ |
 | P5 | Person details & photos | ⬜ |
@@ -168,7 +168,7 @@ pnpm exec playwright install chromium webkit                  # once, for end-to
 pnpm build && pnpm test:e2e                                   # end-to-end tests (mobile + desktop)
 ```
 
-If your machine already has a Chromium build and no WebKit, run the end-to-end tests with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e`; the iPhone (WebKit) project is then skipped.
+The end-to-end tests start the Auth and Firestore emulators themselves, or reuse the ones from `pnpm emulators` if they are already running. The build must use the emulators (`NEXT_PUBLIC_USE_EMULATORS=true`, as in `.env.example`). If your machine already has a Chromium build and no WebKit, run them with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e`; the iPhone (WebKit) project is then skipped.
 
 ### 4. Connect real services (before going live)
 
@@ -189,11 +189,15 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary dashboard (**server only**) |
 | `APP_ENV` | `dev` or `prod` |
 | `CRON_SECRET` | any long random string (v1.1+) |
-| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key for App Check (production) |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key for App Check (production). Once set, the server requires App Check tokens. |
 
 ### 5. Production notes
 
-- In production, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to **your app's domain**. Add `https://<your-domain>/__/auth/handler` to the Google OAuth client's authorized redirect URIs (the app proxies `/__/auth/*` to Firebase). See [DESIGN §9.5](docs/DESIGN.md#95-google-sign-in-specifics).
+- **Google sign-in on your own domain** (so redirects work in Safari and other browsers that block third-party storage, [DESIGN §9.5](docs/DESIGN.md#95-google-sign-in-specifics)):
+  1. Set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to **your app's domain** (for example `shikor.app`, without `https://`) and `NEXT_PUBLIC_FIREBASE_PROJECT_ID` to `shikor-fe44d`, then redeploy. These values are built into the app, which then proxies `/__/auth/*` and `/__/firebase/*` to `shikor-fe44d.firebaseapp.com`.
+  2. In *Firebase console → Authentication → Settings → Authorized domains*, add your domain.
+  3. In *Google Cloud console → APIs & Services → Credentials → the "Web client (auto created by Google Service)" OAuth client*, add `https://<your-domain>/__/auth/handler` to **Authorized redirect URIs**.
+  4. Check it: `https://<your-domain>/__/auth/handler` should load Firebase's page, and "Continue with Google" should work on an iPhone in Safari.
 - Firestore rules and indexes are deployed by CI from `firebase/`. Do not edit them in the console.
 
 ---

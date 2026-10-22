@@ -139,20 +139,22 @@ gantt
 
 **Goal:** every visitor to the app gets a persistent guest session and can upgrade it without losing anything.
 
-- [ ] **P1-01** `SessionProvider`, `useSession()` and the session state machine (DESIGN §9.2). `<AuthGate>` for the `(app)` route group, with skeleton states. *(AUTH-01, AUTH-13)*
-- [ ] **P1-02** Guest bootstrap with exponential-backoff retry while offline. Create `users/{uid}` (`isGuest`, `locale`, …). Daily `lastActiveAt` stamp. *(AUTH-01/02)*
-- [ ] **P1-03** Auth pages: login, sign-up, reset password. Zod forms, bilingual errors, Google button. *(AUTH-04/05/09)*
-- [ ] **P1-04** **Linking** flows: `linkWithCredential` (email), `linkWithPopup` (Google) with a redirect fallback on `popup-blocked`, and an error-code → message map. *(AUTH-04/05)*
-- [ ] **P1-05** `/__/auth/*` rewrite and an auth-domain configuration guide (README). Verify the redirect on iOS Safari against a preview domain. *(DESIGN §9.5)*
-- [ ] **P1-06** In-app browser detection with an "Open in your browser" guide and copy-link. *(AUTH-15)*
-- [ ] **P1-07** Email verification send and resend banner. *(AUTH-08)*
-- [ ] **P1-08** Server foundation: `lib/server/auth.ts` (`verifyRequest`), `http.ts` (error format and codes), App Check on the client (production) and verification on the server (a no-op with emulators).
-- [ ] **P1-09** Sign out (registered users). Guest chip and popover explaining guest storage; the prompt framework for milestone upgrade prompts (wired up in P8). *(AUTH-03, AUTH-10)*
-- [ ] **P1-10** Settings: display name, language, theme, persisted to the profile. *(AUTH-11, I18N-01)*
-- [ ] **P1-11** Rules for `users/{uid}` and their tests.
-- [ ] **P1-12** Tests: state-machine unit tests. E2E: *guest persists across reload and a new browser context with the same storage state* (AC AUTH-02); *sign-up keeps the user ID and data* (AC AUTH-04, against the emulator).
+- [x] **P1-01** `SessionProvider`, `useSession()` and the session state machine (DESIGN §9.2). `<AuthGate>` for the `(app)` route group, with skeleton states. *(AUTH-01, AUTH-13)*
+- [x] **P1-02** Guest bootstrap with exponential-backoff retry while offline. Create `users/{uid}` (`isGuest`, `locale`, …). Daily `lastActiveAt` stamp. *(AUTH-01/02)*
+- [x] **P1-03** Auth pages: login, sign-up, reset password. Zod forms, bilingual errors, Google button. *(AUTH-04/05/09)*
+- [x] **P1-04** **Linking** flows: `linkWithCredential` (email), `linkWithPopup` (Google) with a redirect fallback on `popup-blocked`, and an error-code → message map. *(AUTH-04/05)*
+- [ ] **P1-05** `/__/auth/*` rewrite and an auth-domain configuration guide (README). Verify the redirect on iOS Safari against a preview domain. *(DESIGN §9.5)* — *Rewrite and guide done; the iOS Safari check needs a real domain, so it happens with the first deploy (P0-17).*
+- [x] **P1-06** In-app browser detection with an "Open in your browser" guide and copy-link. *(AUTH-15)*
+- [x] **P1-07** Email verification send and resend banner. *(AUTH-08)*
+- [x] **P1-08** Server foundation: `lib/server/auth.ts` (`verifyRequest`), `http.ts` (error format and codes), App Check on the client (production) and verification on the server (a no-op with emulators).
+- [x] **P1-09** Sign out (registered users). Guest chip and popover explaining guest storage; the prompt framework for milestone upgrade prompts (`useUpgradePrompt`, wired up in P8). *(AUTH-03, AUTH-10)*
+- [x] **P1-10** Settings: display name, language, theme, persisted to the profile. *(AUTH-11, I18N-01)*
+- [x] **P1-11** Rules for `users/{uid}` and their tests.
+- [x] **P1-12** Tests: state-machine unit tests. E2E: *guest persists across reload and a new browser context with the same storage state* (AC AUTH-02); *sign-up keeps the user ID and data* (AC AUTH-04, against the emulator).
 
 **Exit criteria:** AC AUTH-02 and AUTH-04 pass in E2E on mobile and desktop projects; the in-app browser guide shows when the user agent is spoofed.
+
+**Status (2026-10-22):** done except the iOS Safari redirect check in P1-05, which needs the production domain. Visitors become guests when they enter the app (never on the landing page), and the guest survives reloads and new browser contexts. Sign-up links email or Google to the guest and keeps the user ID. Log-in, reset, verification, settings and the server foundation are in place. `e2e/auth.spec.ts` covers the acceptance criteria against the emulators on every CI run.
 
 ---
 

@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phase 0 (foundation) is complete**, including the VPS deployment pipeline; the first deploy (P0-17) waits for the owner's server setup. **Next: Phase 1** (authentication and guest session). Update this line when phases complete.
+**Current status:** **Phases 0 and 1 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 2** (domain core, data layer and security rules). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
@@ -37,7 +37,7 @@ pnpm format:check   # prettier --check (CI)
 pnpm test           # vitest (unit + component)
 pnpm test:coverage  # vitest with the domain coverage gate (CI)
 pnpm test:rules     # firestore rules tests (needs emulators: firebase emulators:exec)
-pnpm test:e2e       # playwright (mobile + desktop projects); run pnpm build first
+pnpm test:e2e       # playwright (mobile + desktop); starts the emulators itself; run pnpm build first
 pnpm i18n:check     # en/bn message key parity
 pnpm build          # production build
 ```

@@ -11,7 +11,7 @@ This skill holds the repeatable workflows for this repository. The *why* lives i
 
 1. Find the task in `docs/IMPLEMENTATION_PLAN.md` (for example `P4-07`) and the SRS IDs it lists.
 2. Read the referenced DESIGN sections. If the design doesn't cover what you're about to build, **update DESIGN first**, or ask the product owner when it changes product behaviour, data shape, cost or security.
-3. Check that the phase dependencies are done. Create a branch: `feat/p4-07-bulk-add-children`.
+3. Check that the phase dependencies are done. Work on `main` with small, frequent commits and push after each logical step (owner's choice); create a `feat/<task-id>-<slug>` branch only when asked.
 
 ## 1. Feature workflow (end to end)
 
@@ -152,7 +152,7 @@ Checklist: idempotent (safe to retry); bounded work per request (batch through l
 
 ## 8. Verification
 
-Run locally before every PR:
+Run locally before every commit and push (the pre-commit hook runs lint-staged; CI runs everything):
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check

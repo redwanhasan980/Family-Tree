@@ -140,7 +140,7 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Unit tests | **Vitest** + Testing Library | 5.x | Fast, ESM-native. |
 | Rules tests | @firebase/rules-unit-testing + Firebase Emulator Suite (firebase-tools) | 6.x / 15.x | Tests every rule path. |
 | E2E | **Playwright** + @axe-core/playwright | 1.6x / 4.x | Mobile and desktop projects, accessibility checks. |
-| Lint & format | ESLint (flat config) + typescript-eslint, Prettier (+ tailwind plugin) | 10.x / 8.x / 3.x | Consistency. |
+| Lint & format | ESLint (flat config) + typescript-eslint, Prettier (+ tailwind plugin) | 9.x / 8.x / 3.x | Consistency. ESLint stays on 9.x until `eslint-plugin-react`, `-import` and `-jsx-a11y` support ESLint 10. |
 | Git hooks | Husky + lint-staged + commitlint | 9.x / 17.x / 21.x | Conventional Commits, pre-commit checks. |
 | Package manager | **pnpm** (via Corepack, pinned in `packageManager`) | latest | Fast, strict. |
 | Runtime | Node.js | 22 LTS+ | Matches Vercel and CI. |
@@ -1326,7 +1326,7 @@ The person form shows **two name fields**. The field for the current UI language
 
 ### 16.6 Translation workflow
 
-- English and Bangla keys are added **in the same PR**. `pnpm i18n:check` (CI) fails on missing or extra keys and on unused keys.
+- English and Bangla keys are added **in the same PR**. `pnpm i18n:check` (CI) fails on missing or extra keys, mismatched ICU arguments and invalid ICU syntax. Unused-key detection follows in P8-09.
 - Bangla copy follows the glossary (SRS Appendix A) and the tone guide: warm and respectful, using the polite "আপনি" form.
 
 ---
@@ -1497,7 +1497,7 @@ The product is called **শিকড়** (pronounced *Shikor*), meaning "roots"
 
 ### 21.2 Colour tokens
 
-Defined as CSS variables in `globals.css` (Tailwind v4 `@theme`) and redefined for dark mode. They are used by the UI and by the SVG views.
+Defined as CSS variables in `src/app/globals.css` (Tailwind v4 `@theme`) and redefined for dark mode. They are used by the UI and by the SVG views. The code keeps shadcn/ui's semantic names, so the owned components work unchanged: `--accent` is the subtle hover surface (same value as `--surface-muted`), the brand marigold is `--highlight`, and the danger colour is `--destructive`. Cards and popovers use `--card` and `--popover`, which equal `--surface`.
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
@@ -1510,13 +1510,13 @@ Defined as CSS variables in `globals.css` (Tailwind v4 `@theme`) and redefined f
 | `--connector` | `#C9BFAE` | `#4A5664` | tree lines |
 | `--primary` | `#0F6B4F` | `#34B98A` | primary actions, selection ring (heritage green) |
 | `--primary-foreground` | `#FFFFFF` | `#0B1F17` | text on primary |
-| `--accent` | `#E8A33D` | `#F2B65A` | highlights, "me" star, celebrations (marigold) |
-| `--danger` | `#B42318` | `#F0806F` | destructive actions |
+| `--highlight` | `#E8A33D` | `#F2B65A` | highlights, "me" star, celebrations (marigold) |
+| `--destructive` | `#B42318` | `#F0806F` | destructive actions |
 | `--success` | `#15803D` | `#4ADE80` | saved state |
 | `--warning` | `#B45309` | `#FBBF24` | date warnings, offline |
 | `--ring` | `#0F6B4F` | `#34B98A` | focus ring |
 
-All text and background pairs meet WCAG AA (4.5:1 for body text, 3:1 for large text and UI components). This is verified in Phase 0 with an automated contrast test.
+All text and background pairs meet WCAG AA (4.5:1 for body text, 3:1 for large text and UI components). This is verified by `src/lib/design/contrast.test.ts`, which reads the tokens from `globals.css` and fails CI if any pair drops below its threshold.
 
 ### 21.3 Data colours (branch, gender, generation)
 
@@ -1834,7 +1834,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 
 | Env | Firebase project | Cloudinary prefix | Hosting | Purpose |
 | --- | --- | --- | --- | --- |
-| local | **Emulator Suite** (Auth, Firestore) | `shikor/dev/` (or mocked) | `pnpm dev` | development and tests |
+| local | **Emulator Suite** (Auth, Firestore), project `demo-shikor` | `shikor/dev/` (or mocked) | `pnpm dev` | development and tests |
 | preview | `shikor-dev` | `shikor/dev/` | Vercel preview per PR | review |
 | production | `shikor-prod` | `shikor/prod/` | Vercel production (`main`) | users |
 

@@ -110,25 +110,27 @@ gantt
 
 **Goal:** an empty but production-grade skeleton. It runs in both languages, deploys previews, and every quality gate is wired up.
 
-- [ ] **P0-01** Scaffold Next.js 16 (package name `shikor`; App Router, `src/`, TypeScript, Tailwind v4) with pnpm (via Corepack, pinned in `packageManager`). Add `.nvmrc` (Node 22) and `.editorconfig`.
-- [ ] **P0-02** `tsconfig`: `strict`, `noUncheckedIndexedAccess`, path alias `@/*`. Pin TypeScript `6.0.x` (DESIGN §3).
-- [ ] **P0-03** ESLint flat config (next, typescript-eslint, import order). Add `no-restricted-imports` guards: `firebase/*` only inside `src/lib/firebase` and `src/lib/repositories`; no `react` or `firebase` in `src/lib/domain`; `firebase-admin` only in server files. Add Prettier with the Tailwind plugin.
-- [ ] **P0-04** Husky + lint-staged (format, lint changed files) + commitlint (Conventional Commits).
-- [ ] **P0-05** Vitest + Testing Library + coverage thresholds (`src/lib/domain/**` ≥ 90%).
-- [ ] **P0-06** Playwright with `mobile-chrome`, `mobile-safari` and `desktop-chrome` projects, plus `@axe-core/playwright`.
-- [ ] **P0-07** Firebase: `firebase.json` and `.firebaserc` (dev/prod aliases), Emulator Suite (Auth, Firestore, UI), initial **deny-all** `firestore.rules` and the rules test harness (`firebase/tests`).
-- [ ] **P0-08** `src/lib/firebase/client.ts` (persistent multi-tab cache, emulator connection) and `admin.ts` (`server-only`, service account from env).
-- [ ] **P0-09** next-intl: `src/i18n/*`, `src/proxy.ts` (with the matcher excluding `api`, `_next`, `__/` and static files), `messages/en.json` and `bn.json` with namespaces, and the `scripts/check-i18n.ts` parity check.
-- [ ] **P0-10** Design tokens (DESIGN §21.2) in `globals.css` for light and dark; fonts (Inter + Hind Siliguri through `next/font`, the Bengali subset loaded in both locales); `src/lib/brand.ts` with `APP_NAME = 'শিকড়'` and the `<AppName />` component *(I18N-10)*; `next-themes`; an automated **contrast test** for the token pairs.
-- [ ] **P0-11** shadcn/ui init and base components: Button, Input, Textarea, Select, Dialog, Drawer (vaul), Sheet, DropdownMenu, Popover, Tabs, Tooltip, Command, Sonner, Skeleton.
-- [ ] **P0-12** `[locale]/layout.tsx` (html `lang`, providers), placeholder landing, `not-found`, `error`.
-- [ ] **P0-13** Security headers baseline in `next.config.ts` (HSTS, nosniff, Referrer-Policy, frame-ancestors; CSP in report-only mode).
-- [ ] **P0-14** GitHub Actions `ci.yml` (checks, rules, build), PR template, `CHANGELOG.md`, `.env.example`.
-- [ ] **P0-15** Vercel project linked; preview deployments on PRs; env vars configured (dev).
-- [ ] **P0-16** `scripts/seed-emulator.ts` skeleton and `pnpm` scripts (`dev`, `build`, `typecheck`, `lint`, `format`, `test`, `test:rules`, `test:e2e`, `emulators`, `seed`, `i18n:check`).
+- [x] **P0-01** Scaffold Next.js 16 (package name `shikor`; App Router, `src/`, TypeScript, Tailwind v4) with pnpm (via Corepack, pinned in `packageManager`). Add `.nvmrc` (Node 22) and `.editorconfig`.
+- [x] **P0-02** `tsconfig`: `strict`, `noUncheckedIndexedAccess`, path alias `@/*`. Pin TypeScript `6.0.x` (DESIGN §3).
+- [x] **P0-03** ESLint flat config (next, typescript-eslint, import order). Add `no-restricted-imports` guards: `firebase/*` only inside `src/lib/firebase` and `src/lib/repositories`; no `react` or `firebase` in `src/lib/domain`; `firebase-admin` only in server files. Add Prettier with the Tailwind plugin. *(Done with ESLint 9: `eslint-plugin-react`, `-import` and `-jsx-a11y` do not support ESLint 10 yet.)*
+- [x] **P0-04** Husky + lint-staged (format, lint changed files) + commitlint (Conventional Commits).
+- [x] **P0-05** Vitest + Testing Library + coverage thresholds (`src/lib/domain/**` ≥ 90%).
+- [x] **P0-06** Playwright with `mobile-chrome`, `mobile-safari` and `desktop-chrome` projects, plus `@axe-core/playwright`.
+- [x] **P0-07** Firebase: `firebase.json` and `.firebaserc` (dev/prod aliases), Emulator Suite (Auth, Firestore, UI), initial **deny-all** `firestore.rules` and the rules test harness (`firebase/tests`). *(Local work uses the `demo-shikor` emulator project, so no Firebase account is needed; emulators bind to 127.0.0.1.)*
+- [x] **P0-08** `src/lib/firebase/client.ts` (persistent multi-tab cache, emulator connection) and `admin.ts` (`server-only`, service account from env).
+- [x] **P0-09** next-intl: `src/i18n/*`, `src/proxy.ts` (with the matcher excluding `api`, `_next`, `__/` and static files), `messages/en.json` and `bn.json` with namespaces, and the `scripts/check-i18n.ts` parity check. *(The parity check also compares ICU arguments and syntax; unused-key detection is added in P8-09.)*
+- [x] **P0-10** Design tokens (DESIGN §21.2) in `globals.css` for light and dark; fonts (Inter + Hind Siliguri through `next/font`, the Bengali subset loaded in both locales); `src/lib/brand.ts` with `APP_NAME = 'শিকড়'` and the `<AppName />` component *(I18N-10)*; `next-themes`; an automated **contrast test** for the token pairs.
+- [x] **P0-11** shadcn/ui init and base components: Button, Input, Textarea, Select, Dialog, Drawer (vaul), Sheet, DropdownMenu, Popover, Tabs, Tooltip, Command, Sonner, Skeleton. *(Sources taken from the official shadcn/ui repository and adapted to our paths.)*
+- [x] **P0-12** `[locale]/layout.tsx` (html `lang`, providers), placeholder landing, `not-found`, `error`.
+- [x] **P0-13** Security headers baseline in `next.config.ts` (HSTS, nosniff, Referrer-Policy, frame-ancestors; CSP in report-only mode).
+- [x] **P0-14** GitHub Actions `ci.yml` (checks, rules, build), PR template, `CHANGELOG.md`, `.env.example`.
+- [ ] **P0-15** Vercel project linked; preview deployments on PRs; env vars configured (dev). *(Waiting for the owner's Vercel account; see §8.)*
+- [x] **P0-16** `scripts/seed-emulator.ts` skeleton and `pnpm` scripts (`dev`, `build`, `typecheck`, `lint`, `format`, `test`, `test:rules`, `test:e2e`, `emulators`, `seed`, `i18n:check`).
 
 **Deliverables:** a running skeleton, CI, preview URL, verified README "Getting started".
 **Exit criteria:** `pnpm dev` serves `/bn` and `/en`; CI is green; a preview deploy is reachable; a fresh clone runs by following the README alone.
+
+**Status (2026-10-22):** done except P0-15. `/bn` and `/en` are served, a fresh clone passes every check by following the README, and CI runs on every push to `main`. The preview deploy follows once the Vercel project exists.
 
 ---
 
@@ -280,7 +282,7 @@ gantt
 - [ ] **P8-06** **Accessibility audit:** axe at 0 serious issues, keyboard pass, TalkBack and VoiceOver pass; fixes. *(NFR-A11Y-*)*
 - [ ] **P8-07** **Performance pass:** bundle analysis, code-splitting checks, Lighthouse budgets in CI, FPS trace on the 500-person fixture. *(NFR-PERF-*)*
 - [ ] **P8-08** **Security pass:** enforce the CSP, App Check enforcement, rules review, secret scan, dependency audit. *(NFR-SEC-*)*
-- [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency. *(NFR-L10N-02)*
+- [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency; unused-key detection in `pnpm i18n:check`. *(NFR-L10N-02)*
 - [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), Vercel Analytics (optional), quota runbook in the README. *(OPS-02/03)*
 - [ ] **P8-11** **Usability test** with 5 target users (at least 3 on phones, at least 2 Bangla-first) against NFR-USE-01; fix the top issues.
 - [ ] **P8-12** Production setup: prod Firebase project, rules and indexes deployed by CI, OAuth redirect URIs, custom domain, auth-domain proxy verified on iOS Safari; release **v1.0.0** (tag, CHANGELOG, README).

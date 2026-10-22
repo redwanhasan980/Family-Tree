@@ -16,15 +16,15 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** documentation baseline is complete; **Phase 0 (foundation) has not started**. Update this line when phases complete.
+**Current status:** **Phase 0 (foundation) is complete**, except P0-15 (Vercel), which waits for the owner's account. **Next: Phase 1** (authentication and guest session). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
-Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (server SDK only) · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
+Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · ESLint 9 (not 10 until the React/import/a11y plugins support it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (server SDK only) · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
 
 ## Commands
 
-These are available once Phase 0 is done. Use `pnpm`, never npm or yarn.
+Use `pnpm`, never npm or yarn. Local work needs no Firebase account: `cp .env.example .env.local` turns on the emulators.
 
 ```bash
 pnpm dev            # Next.js dev server (http://localhost:3000/bn or /en)
@@ -33,9 +33,11 @@ pnpm seed           # seed emulator with fixture trees
 pnpm typecheck      # tsc --noEmit
 pnpm lint           # eslint
 pnpm format         # prettier --write
+pnpm format:check   # prettier --check (CI)
 pnpm test           # vitest (unit + component)
+pnpm test:coverage  # vitest with the domain coverage gate (CI)
 pnpm test:rules     # firestore rules tests (needs emulators: firebase emulators:exec)
-pnpm test:e2e       # playwright (mobile + desktop projects)
+pnpm test:e2e       # playwright (mobile + desktop projects); run pnpm build first
 pnpm i18n:check     # en/bn message key parity
 pnpm build          # production build
 ```
@@ -100,6 +102,10 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Fonts:** Bangla needs `line-height ≥ 1.6` and no letter-spacing. Measure SVG text with the canvas cache, using the same font stack.
 - **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.
 - **Quotas (free tier):** opening a tree costs about N + M reads. Never add per-person reads or count queries; use `personCount`.
+- **Emulators:** project `demo-shikor`, bound to `127.0.0.1` (some machines resolve `localhost` to IPv6, where the emulators don't listen). The browser uses `NEXT_PUBLIC_EMULATOR_HOST` (default `127.0.0.1`). `pnpm seed` always targets the emulators.
+- **Playwright:** E2E runs against the production build, so run `pnpm build` first. On machines with a preinstalled Chromium and no WebKit, set `PLAYWRIGHT_CHROMIUM_PATH`; the iPhone project is then skipped (CI runs it).
+- **Design tokens:** shadcn names are kept: `--accent` is the hover surface, the brand marigold is `--highlight`. The contrast test fails CI if a text/background pair drops below WCAG AA.
+- **pnpm build scripts:** pnpm 10 blocks dependency install scripts; allowed ones are listed in `package.json` → `pnpm.onlyBuiltDependencies`.
 
 ## Working style for Claude
 

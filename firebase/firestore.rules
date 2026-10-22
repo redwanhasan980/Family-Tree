@@ -1,9 +1,49 @@
 rules_version = '2';
 
-// Phase 0 baseline: deny all client access. The full rules from DESIGN §8 land in P2-05,
-// and every allow/deny path is covered by tests in firebase/tests (NFR-SEC-01).
+// Security rules (DESIGN §8). Every allow/deny path is covered by tests in firebase/tests.
+// Trees, persons and relationships arrive in P2-05; until then everything else is denied.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isGuestToken() { return request.auth.token.firebase.sign_in_provider == 'anonymous'; }
+    function optStr(d, k, max) { return !(k in d) || (d[k] is string && d[k].size() <= max); }
+    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    // ---------- users/{uid}: each user reads and writes only their own profile ----------
+    match /users/{uid} {
+      allow read: if signedIn() && me() == uid;
+      allow create: if signedIn() && me() == uid
+        && validUser(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.lastActiveAt == request.time;
+      allow update: if signedIn() && me() == uid
+        && validUser(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (!changedKeys().hasAny(['lastActiveAt']) || request.resource.data.lastActiveAt == request.time);
+      allow delete: if false; // server only (guest merge, account deletion)
+    }
+
+    function validUser(u) {
+      return u.keys().hasAll(['isGuest', 'locale', 'theme', 'createdAt', 'lastActiveAt', 'schemaVersion'])
+        && u.keys().hasOnly(['isGuest', 'displayName', 'email', 'photoURL', 'locale', 'theme',
+                             'selfPersonIds', 'onboardingCompleted', 'createdAt', 'lastActiveAt',
+                             'schemaVersion'])
+        // A profile is a guest exactly when the signed-in account is anonymous.
+        && u.isGuest == isGuestToken()
+        && u.locale in ['bn', 'en']
+        && u.theme in ['system', 'light', 'dark']
+        && optStr(u, 'displayName', 80)
+        && optStr(u, 'photoURL', 2048)
+        && (!('email' in u) || (u.email is string && u.email == request.auth.token.email))
+        && (!('selfPersonIds' in u) || u.selfPersonIds is map)
+        && (!('onboardingCompleted' in u) || u.onboardingCompleted is bool)
+        && u.schemaVersion == 1;
+    }
+
+    // ---------- everything else: denied until its rules ship ----------
     match /{document=**} {
       allow read, write: if false;
     }

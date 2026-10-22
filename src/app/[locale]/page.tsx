@@ -18,17 +18,15 @@ export default function LandingPage({ params }: { params: Promise<{ locale: Loca
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
         <span className="flex items-center gap-2 text-xl">
           <span aria-hidden>🌳</span>
           <AppName />
         </span>
         <div className="flex items-center gap-1">
           <LanguageSwitch compact />
-          <div className="hidden min-[400px]:block">
-            <ThemeToggle />
-          </div>
-          <Button asChild variant="ghost" className="h-11 px-3">
+          <ThemeToggle />
+          <Button asChild variant="ghost" className="h-11 px-2 sm:px-3">
             <Link href="/login">{t('logIn')}</Link>
           </Button>
         </div>

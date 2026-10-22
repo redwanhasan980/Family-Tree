@@ -1,0 +1,7 @@
+# Reverse proxy with automatic HTTPS (Let's Encrypt) for শিকড়.
+# SITE_ADDRESS comes from .env: your domain (for example "shikor.app, www.shikor.app") once
+# its DNS points to this server, or ":80" to serve plain HTTP on the server's IP while testing.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

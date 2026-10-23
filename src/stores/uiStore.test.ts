@@ -50,17 +50,20 @@ describe('uiStore', () => {
     expect(store.getState()).toMatchObject({ treeId: null, selectedId: null, focusId: null });
   });
 
-  it('remembers explicit collapse states and the orientation (VIS-10, TV-02)', () => {
+  it('remembers collapse states, the orientation and the list mode (VIS-10, TV-02, LV-04)', () => {
     const store = createUiStore();
     store.getState().openTree('t3', 'tree');
     expect(store.getState().collapsed.tree).toBeUndefined();
+    expect(store.getState().listMode).toBe('outline');
     store.getState().setCollapsed('tree', ['a', 'b']);
     store.getState().setOrientation('horizontal');
+    store.getState().setListMode('directory');
     const later = createUiStore();
     later.getState().openTree('t3', 'tree');
     expect(later.getState()).toMatchObject({
       collapsed: { tree: ['a', 'b'] },
       orientation: 'horizontal',
+      listMode: 'directory',
     });
   });
 

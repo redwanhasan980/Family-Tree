@@ -123,3 +123,41 @@ test('a row adds relatives and reorders siblings, undoably (LV-03)', async ({ pa
     row(page, 'Karima').getByRole('button', { name: 'Husband: Jamal Uddin' }),
   ).toBeVisible();
 });
+
+test('everyone, found by name, sorted and filtered (LV-04)', async ({ page }) => {
+  await familyOfFive(page);
+  await openList(page);
+  await page.getByRole('button', { name: 'Everyone' }).click();
+  const people = page.getByRole(isPhone(page) ? 'list' : 'table', {
+    name: 'Everyone in the tree',
+  });
+  await expect(people).toBeVisible();
+  await expect(page.getByText('4 people')).toBeVisible();
+
+  await page.getByPlaceholder('Find by name').fill('kar');
+  await expect(page.getByText('2 people')).toBeVisible();
+  await page.getByRole('button', { name: 'Clear filters' }).click();
+  await expect(page.getByText('4 people')).toBeVisible();
+
+  if (isPhone(page)) await page.getByRole('button', { name: 'Filters' }).click();
+  await page.getByRole('combobox', { name: 'Men or women' }).selectOption({ label: 'Women' });
+  await expect(page.getByText('1 person')).toBeVisible();
+  await page
+    .getByRole('combobox', { name: 'Men or women' })
+    .selectOption({ label: 'Men and women' });
+  await page.getByRole('combobox', { name: 'Generation' }).selectOption({ label: 'Generation 2' });
+  await expect(page.getByText('3 people')).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).include('main').analyze();
+  const serious = results.violations.filter((v) =>
+    ['serious', 'critical'].includes(v.impact ?? ''),
+  );
+  expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // The list mode is remembered, and choosing someone shows their details.
+  await page.reload();
+  await expect(people).toBeVisible();
+  await people.getByRole('button', { name: /Karima/ }).click();
+  if (isPhone(page)) await page.getByRole('button', { name: 'Details: Karima' }).click();
+  await expect(page.getByRole('heading', { name: 'Karima' })).toBeVisible();
+});

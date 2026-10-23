@@ -19,6 +19,8 @@ export interface UiState {
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
   /** Tree view direction (TV-02). */
   orientation: 'vertical' | 'horizontal';
+  /** The List view as family lines or as everyone (LV-04). */
+  listMode: ListMode;
   /** Someone to bring into view; the current view shows them, then clears it (VIS-04). */
   revealRequest: { personId: ID; nonce: number } | null;
   /** The person whose delete confirmation is open (PER-06, the Del key). */
@@ -43,12 +45,15 @@ export interface UiState {
   /** Replaces a view's collapsed keys (expand all, show N generations, defaults). */
   setCollapsed: (view: ViewKind, keys: readonly string[]) => void;
   setOrientation: (orientation: UiState['orientation']) => void;
+  setListMode: (mode: ListMode) => void;
   /** Selects someone and asks the current view to expand the way to them and centre them. */
   reveal: (personId: ID) => void;
   revealDone: () => void;
   setDeleting: (personId: ID | null) => void;
   setSearchOpen: (open: boolean) => void;
 }
+
+export type ListMode = 'outline' | 'directory';
 
 /** Adding a relative (REL-02): the quick-add menu, or a form for one kind of relative. */
 export type AddKind = 'menu' | 'child' | 'spouse' | 'parent' | 'sibling' | 'link';
@@ -72,6 +77,7 @@ interface Saved {
   view?: ViewKind;
   collapsed?: UiState['collapsed'];
   orientation?: UiState['orientation'];
+  listMode?: ListMode;
 }
 
 // Per-browser convenience only: storage may be blocked or full.
@@ -90,6 +96,7 @@ function save(state: UiState): void {
       view: state.view,
       collapsed: state.collapsed,
       orientation: state.orientation,
+      listMode: state.listMode,
     };
     window.localStorage.setItem(storageKey(state.treeId), JSON.stringify(saved));
   } catch {
@@ -107,6 +114,7 @@ export function createUiStore() {
     addFlow: null,
     collapsed: {},
     orientation: 'vertical',
+    listMode: 'outline',
     revealRequest: null,
     deletingId: null,
     searchOpen: false,
@@ -119,6 +127,7 @@ export function createUiStore() {
         view: [view, saved.view, defaultView].find(usable) ?? 'tree',
         collapsed: saved.collapsed ?? {},
         orientation: saved.orientation ?? 'vertical',
+        listMode: saved.listMode ?? 'outline',
         addFlow: null,
         selectedId: null,
         focusId: focusId ?? null,
@@ -160,6 +169,10 @@ export function createUiStore() {
     },
     setOrientation: (orientation) => {
       set({ orientation });
+      save(get());
+    },
+    setListMode: (listMode) => {
+      set({ listMode });
       save(get());
     },
     reveal: (personId) =>

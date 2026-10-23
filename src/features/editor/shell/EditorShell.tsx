@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
+import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
 import { hasUser } from '@/lib/domain/auth/session';
@@ -27,6 +28,7 @@ import { useTreeSession } from '../useTreeSession';
 import { DetailsContainer } from './DetailsContainer';
 import { EditorHeader } from './EditorHeader';
 import { EmptyTree } from './EmptyTree';
+import { SelectionBar } from './SelectionBar';
 import { StatisticsList } from './Statistics';
 import { TreeSettingsDialog } from './TreeSettingsDialog';
 import { editorSearch, readEditorParams } from './urlState';
@@ -142,6 +144,7 @@ function ViewArea() {
   if (count === 0) {
     return <Skeleton className="mx-auto mt-6 h-40 w-[calc(100%-2rem)] max-w-2xl rounded-2xl" />;
   }
+  if (view === 'tree') return <TreeView />;
   return <ViewPlaceholder view={view} />;
 }
 
@@ -209,6 +212,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
           </main>
           <DetailsContainer />
         </div>
+        <SelectionBar className="lg:hidden" />
         <BottomNav className="lg:hidden" onMore={() => open('more')} />
       </div>
 

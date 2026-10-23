@@ -1,0 +1,428 @@
+'use client';
+
+import { ArrowUpIcon, LoaderCircleIcon, MinusIcon } from 'lucide-react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
+import { usePersonText } from '@/features/editor/shell/usePersonText';
+import { branchOf, buildDescendantTree, parentsOf, type FamilyGraph } from '@/lib/domain/graph';
+import { displayName } from '@/lib/domain/names';
+import type { ID, Locale, Person } from '@/lib/domain/types';
+import { selectGraph, useTree } from '@/stores/treeStore';
+import { uiStore, useUi } from '@/stores/uiStore';
+
+import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
+import { PersonCard } from './PersonCard';
+import { TreeControls } from './TreeControls';
+import { initialCollapsed } from '../shared/collapse';
+import { accentColor } from '../shared/colors';
+import { useCamera } from '../shared/useCamera';
+import { useElementSize } from '../shared/useElementSize';
+import { useFonts } from '../shared/useFonts';
+import {
+  centreTransform,
+  fitTransform,
+  initialView,
+  intersects,
+  visibleRect,
+} from '../shared/viewport';
+
+/** Above this many visible cards, position changes are not animated (TV-05). */
+const ANIMATE_LIMIT = 300;
+
+/** The tree's start: its root, or the oldest-added person without parents. */
+export function startingPerson(g: FamilyGraph, rootId: ID | undefined): ID | null {
+  if (rootId && g.persons.has(rootId)) return rootId;
+  const people = [...g.persons.values()].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+  return (people.find((p) => parentsOf(g, p.id).length === 0) ?? people[0])?.id ?? null;
+}
+
+function CardFor({
+  card,
+  person,
+  layout,
+  accent,
+  selected,
+  compact,
+  fonts,
+  showDates,
+  tabbable,
+  onActivate,
+  onKeyDown,
+}: {
+  card: LaidCard;
+  person: Person;
+  layout: TreeLayout;
+  accent: string | null;
+  selected: boolean;
+  compact: boolean;
+  fonts: { family: string; version: number };
+  showDates: boolean;
+  tabbable: boolean;
+  onActivate: (card: LaidCard) => void;
+  onKeyDown: (event: KeyboardEvent<SVGGElement>, card: LaidCard) => void;
+}) {
+  const t = useTranslations('treeView');
+  const { name, years } = usePersonText(person);
+  const shownYears = showDates ? years : '';
+  const deceased = !person.isLiving;
+  const label = [name.text, shownYears, deceased && t('deceased')].filter(Boolean).join(', ');
+  const isRepeated = card.isRef || (layout.cardsOf.get(person.id)?.length ?? 0) > 1;
+  const linkLabel = card.isRef
+    ? t('reference', { name: name.text })
+    : card.isAlsoBloodline || isRepeated
+      ? t('alsoBloodline')
+      : null;
+  return (
+    <PersonCard
+      card={card}
+      name={name}
+      years={shownYears}
+      deceased={deceased}
+      accent={accent}
+      selected={selected}
+      compact={compact}
+      fontFamily={fonts.family}
+      fontsVersion={fonts.version}
+      label={card.isRef ? t('reference', { name: name.text }) : label}
+      linkLabel={linkLabel}
+      tabbable={tabbable}
+      onActivate={onActivate}
+      onKeyDown={onKeyDown}
+    />
+  );
+}
+
+/** The "−" or "+N" control under a person with descendants (VIS-02). */
+function Toggle({
+  card,
+  personName,
+  onToggle,
+}: {
+  card: LaidCard;
+  personName: string;
+  onToggle: (key: string) => void;
+}) {
+  const t = useTranslations('treeView');
+  const format = useFormatter();
+  const toggle = card.toggle!;
+  const text = toggle.collapsed ? `+${format.number(toggle.hiddenCount)}` : '';
+  const width = toggle.collapsed ? Math.max(28, 14 + text.length * 8) : 22;
+  return (
+    <g
+      className="tree-toggle"
+      role="button"
+      tabIndex={-1}
+      aria-label={t(toggle.collapsed ? 'showDescendants' : 'hideDescendants', { name: personName })}
+      aria-expanded={!toggle.collapsed}
+      style={{ transform: `translate(${toggle.x}px, ${toggle.y}px)`, cursor: 'pointer' }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle(card.nodeKey);
+      }}
+    >
+      {/* A bigger invisible target for fingers. */}
+      <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+      <rect
+        x={-width / 2}
+        y={-11}
+        width={width}
+        height={22}
+        rx={11}
+        fill={toggle.collapsed ? 'var(--primary)' : 'var(--background)'}
+        stroke={toggle.collapsed ? 'none' : 'var(--border)'}
+      />
+      {toggle.collapsed ? (
+        <text
+          y={0}
+          dy="0.35em"
+          textAnchor="middle"
+          fontSize={12}
+          fontWeight={600}
+          fill="var(--primary-foreground)"
+        >
+          {text}
+        </text>
+      ) : (
+        <MinusIcon x={-7} y={-7} width={14} height={14} color="var(--muted-foreground)" />
+      )}
+    </g>
+  );
+}
+
+/**
+ * The Tree view (TV-01..05, DESIGN §13.3): the focus person's descendants as a tidy
+ * tree of family units, with pan and zoom, expand/collapse, selection and focus.
+ */
+export function TreeView() {
+  const t = useTranslations('treeView');
+  const locale = useLocale() as Locale;
+  const graph = useTree(selectGraph);
+  const settings = useTree((s) => s.tree!.settings);
+  const rootId = useTree((s) => s.tree?.rootPersonId);
+  const treeId = useTree((s) => s.treeId);
+  // Relationships still on their way (a big tree on a cold start): say so.
+  const loadingLinks = useTree(
+    (s) => !s.fromServer.relationships && s.relationships.size === 0 && s.persons.size > 1,
+  );
+  const focusSetting = useUi((s) => s.focusId);
+  const selectedId = useUi((s) => s.selectedId);
+  const saved = useUi((s) => s.collapsed.tree);
+  const orientation = useUi((s) => s.orientation);
+  const desktop = useIsDesktop();
+  const metrics = desktop ? COMFORTABLE : COMPACT;
+
+  const start = startingPerson(graph, rootId);
+  const focusId = focusSetting && graph.persons.has(focusSetting) ? focusSetting : start;
+
+  // Without a saved state, big trees open a few generations deep (§13.1).
+  const collapsed = useMemo(() => {
+    if (saved) return new Set(saved);
+    const full = focusId ? buildDescendantTree(graph, focusId) : null;
+    return new Set(full ? initialCollapsed(full) : []);
+  }, [saved, graph, focusId]);
+  const descTree = useMemo(
+    () => (focusId ? buildDescendantTree(graph, focusId, { collapsed }) : null),
+    [graph, focusId, collapsed],
+  );
+  const layout = useMemo(
+    () => (descTree ? layoutTree(descTree, metrics, orientation) : null),
+    [descTree, metrics, orientation],
+  );
+  const branches = useMemo(() => (descTree ? branchOf(descTree) : new Map()), [descTree]);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const layerRef = useRef<SVGGElement>(null);
+  const size = useElementSize(containerRef);
+  const camera = useCamera(svgRef, layerRef);
+  // The camera's functions are stable; only `transform` changes.
+  const { moveTo, current, interacted, markInteracted, resetInteraction } = camera;
+  const fonts = useFonts(svgRef);
+
+  // Frame the tree when it opens, the focus or direction changes, or the card size does,
+  // and keep framing it while it loads until the user moves or changes anything.
+  const fitted = useRef<string | null>(null);
+  const fitKey = `${treeId}|${focusId}|${orientation}|${desktop}`;
+  useEffect(() => {
+    if (!layout || size.width === 0) return;
+    const fresh = fitted.current !== fitKey;
+    if (!fresh && interacted()) return;
+    if (fresh) resetInteraction();
+    fitted.current = fitKey;
+    const anchor = layout.cards.find((c) => c.key === focusId);
+    moveTo(
+      initialView(
+        layout.bounds,
+        size,
+        anchor
+          ? orientation === 'vertical'
+            ? { x: anchor.x + anchor.w / 2, y: anchor.y }
+            : { x: anchor.x, y: anchor.y + anchor.h / 2 }
+          : { x: 0, y: 0 },
+        { minScale: desktop ? 0.5 : 0.7, horizontal: orientation === 'horizontal' },
+      ),
+      false,
+    );
+  }, [layout, size, fitKey, focusId, orientation, desktop, moveTo, interacted, resetInteraction]);
+
+  const visible = useMemo(() => {
+    if (!layout || size.width === 0) return [];
+    const rect = visibleRect(camera.transform, size);
+    return layout.cards.filter((card) => intersects(card, rect));
+  }, [layout, camera.transform, size]);
+
+  const toggle = useCallback(
+    (key: string) => {
+      markInteracted();
+      const next = new Set(collapsed);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      uiStore.getState().setCollapsed('tree', [...next]);
+    },
+    [collapsed, markInteracted],
+  );
+
+  const centreOnCard = useCallback(
+    (key: string) => {
+      const card = layout?.cards.find((c) => c.key === key);
+      if (!card || size.width === 0) return;
+      const k = Math.max(current().k, 0.6);
+      moveTo(centreTransform({ x: card.x + card.w / 2, y: card.y + card.h / 2 }, size, k));
+    },
+    [layout, size, current, moveTo],
+  );
+
+  const activate = useCallback(
+    (card: LaidCard) => {
+      markInteracted();
+      uiStore.getState().select(card.personId);
+      // A repeated person jumps to their full card (VIS-09).
+      if (card.isRef) {
+        const primary = layout?.cardsOf.get(card.personId)?.[0];
+        if (primary) centreOnCard(primary);
+      }
+    },
+    [layout, centreOnCard, markInteracted],
+  );
+
+  const onCardKey = useCallback(
+    (event: KeyboardEvent<SVGGElement>, card: LaidCard) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        activate(card);
+        uiStore.getState().setDetailsOpen(true);
+      }
+    },
+    [activate],
+  );
+
+  if (!layout || !focusId) return null;
+  const focusPerson = graph.persons.get(focusId)!;
+  const focusParents = parentsOf(graph, focusId).flatMap((id) => graph.persons.get(id) ?? []);
+  const focusCard = layout.cards.find((c) => c.key === focusId)!;
+  const tabbableKey =
+    (selectedId && layout.cardsOf.get(selectedId)?.[0]) ?? layout.cards[0]?.key ?? null;
+  const animate = visible.length <= ANIMATE_LIMIT;
+  const nameOf = (id: ID) => {
+    const person = graph.persons.get(id);
+    return person ? displayName(person.names, settings.nameDisplay, locale).text : '';
+  };
+  // Show the parents' tree: the father first, as the tree's root usually is.
+  const upTo = focusParents.find((p) => p.gender === 'male') ?? focusParents[0];
+
+  return (
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-background">
+      <svg
+        ref={svgRef}
+        className={`h-full w-full touch-none font-sans select-none ${animate ? 'tree-animate' : ''}`}
+        role="tree"
+        aria-label={t('label')}
+      >
+        <g ref={layerRef}>
+          <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
+            {layout.lines.map((line) => (
+              <path key={line.key} d={line.d} strokeDasharray={line.dashed ? '6 5' : undefined} />
+            ))}
+            {layout.lines.map(
+              (line) =>
+                line.ring && (
+                  <circle
+                    key={`r:${line.key}`}
+                    cx={line.ring[0]}
+                    cy={line.ring[1]}
+                    r={4}
+                    fill="var(--background)"
+                  />
+                ),
+            )}
+          </g>
+          {upTo && focusCard && (
+            <g
+              className="tree-toggle"
+              role="button"
+              tabIndex={-1}
+              aria-label={t('showParents')}
+              style={{
+                transform: `translate(${focusCard.x + focusCard.w / 2}px, ${focusCard.y - 18}px)`,
+                cursor: 'pointer',
+              }}
+              onClick={() => uiStore.getState().focus(upTo.id)}
+            >
+              <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+              <circle r={12} fill="var(--background)" stroke="var(--border)" />
+              <ArrowUpIcon x={-7} y={-7} width={14} height={14} color="var(--muted-foreground)" />
+            </g>
+          )}
+          {visible.map((card) => {
+            const person = graph.persons.get(card.personId);
+            if (!person) return null;
+            const accent = accentColor(settings.colorBy, {
+              branch: branches.get(card.nodeKey) ?? null,
+              generation: card.depth,
+              gender: person.gender,
+            });
+            return (
+              <CardFor
+                key={card.key}
+                card={card}
+                person={person}
+                layout={layout}
+                accent={accent}
+                selected={card.personId === selectedId}
+                compact={!desktop}
+                fonts={fonts}
+                showDates={settings.showDates}
+                tabbable={card.key === tabbableKey}
+                onActivate={activate}
+                onKeyDown={onCardKey}
+              />
+            );
+          })}
+          {visible.map(
+            (card) =>
+              card.toggle && (
+                <Toggle
+                  key={`t:${card.key}`}
+                  card={card}
+                  personName={nameOf(card.personId)}
+                  onToggle={toggle}
+                />
+              ),
+          )}
+        </g>
+      </svg>
+
+      {focusId !== start && start && (
+        <div className="absolute top-3 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-full border bg-background/95 py-1 pr-1 pl-3 text-sm shadow-sm">
+          <span className="truncate">
+            {t.rich('showingFrom', {
+              name: nameOf(focusId),
+              person: (chunks) => (
+                <strong lang={displayName(focusPerson.names, settings.nameDisplay, locale).lang}>
+                  {chunks}
+                </strong>
+              ),
+            })}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-full"
+            onClick={() => uiStore.getState().focus(null)}
+          >
+            {t('backTo', { name: nameOf(start) })}
+          </Button>
+        </div>
+      )}
+
+      {loadingLinks && (
+        <div
+          role="status"
+          className="absolute top-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 text-sm shadow-sm"
+        >
+          <LoaderCircleIcon className="size-4 animate-spin" aria-hidden />
+          {t('loading')}
+        </div>
+      )}
+
+      <TreeControls
+        onZoomIn={() => camera.zoomBy(1.25)}
+        onZoomOut={() => camera.zoomBy(0.8)}
+        onFit={() => camera.moveTo(fitTransform(layout.bounds, size))}
+        onCentre={
+          selectedId && layout.cardsOf.get(selectedId)
+            ? () => centreOnCard(layout.cardsOf.get(selectedId)![0]!)
+            : undefined
+        }
+        onExpandAll={
+          collapsed.size > 0 ? () => uiStore.getState().setCollapsed('tree', []) : undefined
+        }
+      />
+    </div>
+  );
+}

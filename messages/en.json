@@ -235,7 +235,9 @@
     "soonTitle": "{view} is coming soon",
     "soonBody": "Your family is saved. This view arrives in an update soon. Meanwhile, here is everyone in the tree.",
     "details": "Details",
-    "detailsSoon": "More details, photos and adding relatives arrive in the next update."
+    "detailsSoon": "More details, photos and adding relatives arrive in the next update.",
+    "openDetails": "Details",
+    "clearSelection": "Clear selection"
   },
   "person": {
     "genderLabel": "Man or woman?",
@@ -332,5 +334,25 @@
     "body": "All the trees you made as a guest will be deleted for good. This can't be undone.",
     "submit": "Delete for good",
     "done": "Your guest data has been deleted."
+  },
+  "treeView": {
+    "label": "Family tree",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit to screen",
+    "centre": "Centre on the selected person",
+    "leftToRight": "Show left to right",
+    "expandAll": "Expand all",
+    "showDescendants": "Show descendants of {name}",
+    "hideDescendants": "Hide descendants of {name}",
+    "moreHidden": "{count, plural, one {# more person} other {# more people}}",
+    "reference": "{name} also appears elsewhere in the tree. Go to their card.",
+    "alsoBloodline": "Also part of this family line",
+    "deceased": "deceased",
+    "showParents": "Show parents",
+    "showingFrom": "Showing the tree from <person>{name}</person>",
+    "backTo": "Back to {name}",
+    "cardControls": "Tree controls",
+    "loading": "Loading the family…"
   }
 }

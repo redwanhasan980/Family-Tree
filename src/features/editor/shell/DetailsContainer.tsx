@@ -52,6 +52,7 @@ export function DetailsContainer() {
   const t = useTranslations();
   const selectedId = useUi((s) => s.selectedId);
   const person = useTree((s) => (selectedId ? s.persons.get(selectedId) : undefined));
+  const detailsOpen = useUi((s) => s.detailsOpen);
   const desktop = useIsDesktop();
   const close = () => uiStore.getState().select(null);
 
@@ -88,8 +89,12 @@ export function DetailsContainer() {
     );
   }
 
+  // Phones: a tap selects and shows the selection bar; the sheet opens from there.
   return (
-    <Drawer open={Boolean(person)} onOpenChange={(open) => !open && close()}>
+    <Drawer
+      open={Boolean(person) && detailsOpen}
+      onOpenChange={(open) => uiStore.getState().setDetailsOpen(open)}
+    >
       {/* The summary itself describes the person, so there's no separate description. */}
       <DrawerContent aria-describedby={undefined}>
         <DrawerHeader className="sr-only">

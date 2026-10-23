@@ -21,6 +21,11 @@ export const estimateWidth: Measure = (text, font) => {
 let context: CanvasRenderingContext2D | null | undefined;
 const cache = new Map<string, number>();
 
+/** Forgets measured widths, for example once web fonts have loaded. */
+export function clearMeasureCache(): void {
+  cache.clear();
+}
+
 /** Canvas measurement with a cache; falls back to an estimate without a canvas. */
 export const measureText: Measure = (text, font) => {
   const key = `${font}|${text}`;

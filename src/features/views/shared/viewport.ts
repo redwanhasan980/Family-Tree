@@ -65,3 +65,26 @@ export function centreTransform(
 ): CameraTransform {
   return { x: size.width / 2 - point.x * k, y: size.height / 2 - point.y * k, k };
 }
+
+/**
+ * Where the camera starts: the whole tree when it is readable at `minScale` or more;
+ * otherwise `minScale` with the focus person near the top (or the left, sideways), so a
+ * big tree opens at its start rather than as specks.
+ */
+export function initialView(
+  bounds: Rect,
+  size: { width: number; height: number },
+  anchor: { x: number; y: number },
+  {
+    minScale,
+    horizontal = false,
+    padding = 48,
+  }: { minScale: number; horizontal?: boolean; padding?: number },
+): CameraTransform {
+  const fit = fitTransform(bounds, size, { padding, minScale: 0, maxScale: 1 });
+  if (fit.k >= minScale) return fit;
+  const k = minScale;
+  return horizontal
+    ? { k, x: padding - anchor.x * k, y: size.height / 2 - anchor.y * k }
+    : { k, x: size.width / 2 - anchor.x * k, y: padding - anchor.y * k };
+}

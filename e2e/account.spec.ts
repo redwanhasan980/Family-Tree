@@ -28,7 +28,7 @@ async function createTree(page: Page, name: string, root: string): Promise<strin
   await dialog.getByText('Man', { exact: true }).click();
   await dialog.getByRole('button', { name: 'Create tree' }).click();
   await expect(page).toHaveURL(/\/en\/trees\/[A-Za-z0-9]+\?view=tree$/);
-  await expect(page.getByRole('button', { name: new RegExp(root) })).toBeVisible();
+  await expect(page.getByRole('treeitem', { name: new RegExp(root) })).toBeVisible();
   return /\/trees\/([A-Za-z0-9]+)/.exec(page.url())![1]!;
 }
 

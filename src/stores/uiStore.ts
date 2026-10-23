@@ -11,6 +11,8 @@ export interface UiState {
   treeId: ID | null;
   view: ViewKind;
   selectedId: ID | null;
+  /** Phones: whether the selected person's details sheet is open (not just the bar). */
+  detailsOpen: boolean;
   focusId: ID | null;
   /** Collapsed path keys per view; missing until the view saves a state. */
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
@@ -26,6 +28,7 @@ export interface UiState {
   closeTree: () => void;
   setView: (view: ViewKind) => void;
   select: (personId: ID | null) => void;
+  setDetailsOpen: (open: boolean) => void;
   focus: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
   /** Replaces a view's collapsed keys (expand all, show N generations, defaults). */
@@ -75,6 +78,7 @@ export function createUiStore() {
     treeId: null,
     view: 'tree',
     selectedId: null,
+    detailsOpen: false,
     focusId: null,
     collapsed: {},
     orientation: 'vertical',
@@ -96,7 +100,8 @@ export function createUiStore() {
       set({ view });
       save(get());
     },
-    select: (selectedId) => set({ selectedId }),
+    select: (selectedId) => set({ selectedId, detailsOpen: false }),
+    setDetailsOpen: (detailsOpen) => set({ detailsOpen }),
     focus: (focusId) => set({ focusId }),
     toggleCollapsed: (key) => {
       const { view, collapsed } = get();

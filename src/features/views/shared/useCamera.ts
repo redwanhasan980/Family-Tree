@@ -26,6 +26,10 @@ export interface Camera {
   zoomBy: (factor: number) => void;
   /** The live transform, read without waiting for a render. */
   current: () => CameraTransform;
+  /** Whether the user has moved the camera or changed the view since `resetInteraction`. */
+  interacted: () => boolean;
+  markInteracted: () => void;
+  resetInteraction: () => void;
 }
 
 /**
@@ -39,6 +43,7 @@ export function useCamera(
 ): Camera {
   const [transform, setTransform] = useState<CameraTransform>(IDENTITY);
   const live = useRef<CameraTransform>(IDENTITY);
+  const touched = useRef(false);
   const behavior = useMemo<ZoomBehavior<SVGSVGElement, unknown>>(
     () => zoom<SVGSVGElement, unknown>().scaleExtent([MIN_SCALE, MAX_SCALE]).clickDistance(6),
     [],
@@ -48,11 +53,21 @@ export function useCamera(
     const svg = svgRef.current;
     if (!svg) return;
     behavior
-      .on('zoom', (event: { transform: CameraTransform & { toString(): string } }) => {
-        live.current = { x: event.transform.x, y: event.transform.y, k: event.transform.k };
-        layerRef.current?.setAttribute('transform', event.transform.toString());
-      })
-      .on('end', () => setTransform(live.current));
+      .on(
+        'zoom',
+        (event: { transform: CameraTransform & { toString(): string }; sourceEvent: unknown }) => {
+          // Gestures have a source event; programmatic moves (fit, centre) don't.
+          if (event.sourceEvent) touched.current = true;
+          live.current = { x: event.transform.x, y: event.transform.y, k: event.transform.k };
+          layerRef.current?.setAttribute('transform', event.transform.toString());
+        },
+      )
+      .on('end', () =>
+        setTransform((old) => {
+          const next = live.current;
+          return old.x === next.x && old.y === next.y && old.k === next.k ? old : next;
+        }),
+      );
     const selection = select(svg);
     selection.call(behavior).on('dblclick.zoom', null);
     return () => {
@@ -87,5 +102,15 @@ export function useCamera(
   );
 
   const current = useCallback(() => live.current, []);
-  return { transform, moveTo, zoomBy, current };
+  const interacted = useCallback(() => touched.current, []);
+  const markInteracted = useCallback(() => {
+    touched.current = true;
+  }, []);
+  const resetInteraction = useCallback(() => {
+    touched.current = false;
+  }, []);
+  return useMemo(
+    () => ({ transform, moveTo, zoomBy, current, interacted, markInteracted, resetInteraction }),
+    [transform, moveTo, zoomBy, current, interacted, markInteracted, resetInteraction],
+  );
 }

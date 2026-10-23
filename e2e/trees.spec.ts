@@ -50,7 +50,7 @@ test.describe('dashboard', () => {
 
     // The editor opens on the new tree, with the first person in it.
     await expect(page).toHaveURL(/\/en\/trees\/[A-Za-z0-9]+\?view=tree$/);
-    await expect(page.getByRole('button', { name: /Abdul Karim/ })).toBeVisible();
+    await expect(page.getByRole('treeitem', { name: /Abdul Karim/ })).toBeVisible();
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible();
 
     await page.getByRole('link', { name: 'All my trees' }).first().click();
@@ -111,11 +111,14 @@ test.describe('editor shell', () => {
     await dialog.getByLabel('Name').fill('রহিমা বেগম');
     await dialog.getByText('Woman', { exact: true }).click();
     await dialog.getByRole('button', { name: 'Add', exact: true }).click();
-    // The new person is selected, so their details open (a drawer on phones).
+    // The new person is in the tree and selected: details beside it on desktop, and the
+    // selection bar on phones, which opens the details sheet.
+    await expect(page.getByRole('treeitem', { name: /রহিমা বেগম/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    if (isPhone(page)) await page.getByRole('button', { name: /^Details: রহিমা বেগম/ }).click();
     await expect(page.getByText('More details, photos and adding relatives')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByText('More details, photos and adding relatives')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /রহিমা বেগম/ })).toBeVisible();
   });
 
   test('views live in the URL and survive a reload (VIS-01)', async ({ page }) => {
@@ -168,7 +171,7 @@ test.describe('editor shell', () => {
     const uid = await enterApp(page);
     await createTree(page, 'Karim family', 'Abdul Karim');
     await page.reload();
-    await expect(page.getByRole('button', { name: /Abdul Karim/ })).toBeVisible();
+    await expect(page.getByRole('treeitem', { name: /Abdul Karim/ })).toBeVisible();
     expect(await readUid(page)).toBe(uid);
   });
 });

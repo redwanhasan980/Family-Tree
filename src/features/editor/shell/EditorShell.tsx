@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
+import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
 import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
@@ -216,6 +217,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
         <BottomNav className="lg:hidden" onMore={() => open('more')} />
       </div>
 
+      <AddRelativeFlows />
       <TreeSettingsDialog tree={tree} open={panel === 'settings'} onOpenChange={close} />
       <MoreSheet
         open={panel === 'more'}

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronUpIcon, XIcon } from 'lucide-react';
+import { ChevronUpIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 
 function Bar({ person, actions }: { person: Person; actions?: ReactNode }) {
   const t = useTranslations('editor');
+  const tr = useTranslations('relatives');
   const { name, years } = usePersonText(person);
   return (
     <div className="flex items-center gap-2 border-t bg-card px-2 py-1.5">
@@ -40,6 +41,14 @@ function Bar({ person, actions }: { person: Person; actions?: ReactNode }) {
         <ChevronUpIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
       </button>
       {actions}
+      <Button
+        size="icon"
+        className="size-11 shrink-0 rounded-full"
+        aria-label={tr('menuTitle', { name: name.text })}
+        onClick={() => uiStore.getState().startAdd({ personId: person.id, kind: 'menu' })}
+      >
+        <PlusIcon className="size-5" aria-hidden />
+      </Button>
       <Button
         variant="ghost"
         size="icon"

@@ -14,6 +14,7 @@ export interface UiState {
   /** Phones: whether the selected person's details sheet is open (not just the bar). */
   detailsOpen: boolean;
   focusId: ID | null;
+  addFlow: AddFlow | null;
   /** Collapsed path keys per view; missing until the view saves a state. */
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
   /** Tree view direction (TV-02). */
@@ -29,11 +30,23 @@ export interface UiState {
   setView: (view: ViewKind) => void;
   select: (personId: ID | null) => void;
   setDetailsOpen: (open: boolean) => void;
+  startAdd: (flow: AddFlow) => void;
+  endAdd: () => void;
   focus: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
   /** Replaces a view's collapsed keys (expand all, show N generations, defaults). */
   setCollapsed: (view: ViewKind, keys: readonly string[]) => void;
   setOrientation: (orientation: UiState['orientation']) => void;
+}
+
+/** Adding a relative (REL-02): the quick-add menu, or a form for one kind of relative. */
+export type AddKind = 'menu' | 'child' | 'spouse' | 'parent' | 'sibling' | 'link';
+
+export interface AddFlow {
+  personId: ID;
+  kind: AddKind;
+  /** Screen rectangle the desktop menu opens next to. */
+  anchor?: { x: number; y: number; width: number; height: number };
 }
 
 export interface InitialUi {
@@ -80,6 +93,7 @@ export function createUiStore() {
     selectedId: null,
     detailsOpen: false,
     focusId: null,
+    addFlow: null,
     collapsed: {},
     orientation: 'vertical',
     openTree: (treeId, defaultView, { view, focusId, allowed } = {}) => {
@@ -91,17 +105,20 @@ export function createUiStore() {
         view: [view, saved.view, defaultView].find(usable) ?? 'tree',
         collapsed: saved.collapsed ?? {},
         orientation: saved.orientation ?? 'vertical',
+        addFlow: null,
         selectedId: null,
         focusId: focusId ?? null,
       });
     },
-    closeTree: () => set({ treeId: null, selectedId: null, focusId: null }),
+    closeTree: () => set({ treeId: null, selectedId: null, focusId: null, addFlow: null }),
     setView: (view) => {
       set({ view });
       save(get());
     },
     select: (selectedId) => set({ selectedId, detailsOpen: false }),
     setDetailsOpen: (detailsOpen) => set({ detailsOpen }),
+    startAdd: (addFlow) => set({ addFlow }),
+    endAdd: () => set({ addFlow: null }),
     focus: (focusId) => set({ focusId }),
     toggleCollapsed: (key) => {
       const { view, collapsed } = get();

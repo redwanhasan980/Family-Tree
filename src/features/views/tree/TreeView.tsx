@@ -1,12 +1,13 @@
 'use client';
 
-import { ArrowUpIcon, LoaderCircleIcon, MinusIcon } from 'lucide-react';
+import { ArrowUpIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
+import { startAdd } from '@/features/person/AddRelativeFlows';
 import { branchOf, buildDescendantTree, parentsOf, type FamilyGraph } from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
 import type { ID, Locale, Person } from '@/lib/domain/types';
@@ -15,6 +16,7 @@ import { uiStore, useUi } from '@/stores/uiStore';
 
 import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
 import { PersonCard } from './PersonCard';
+import { PersonMenu } from './PersonMenu';
 import { TreeControls } from './TreeControls';
 import { initialCollapsed } from '../shared/collapse';
 import { accentColor } from '../shared/colors';
@@ -160,6 +162,7 @@ function Toggle({
  */
 export function TreeView() {
   const t = useTranslations('treeView');
+  const tr = useTranslations('relatives');
   const locale = useLocale() as Locale;
   const graph = useTree(selectGraph);
   const settings = useTree((s) => s.tree!.settings);
@@ -297,85 +300,120 @@ export function TreeView() {
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-background">
-      <svg
-        ref={svgRef}
-        className={`h-full w-full touch-none font-sans select-none ${animate ? 'tree-animate' : ''}`}
-        role="tree"
-        aria-label={t('label')}
-      >
-        <g ref={layerRef}>
-          <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
-            {layout.lines.map((line) => (
-              <path key={line.key} d={line.d} strokeDasharray={line.dashed ? '6 5' : undefined} />
-            ))}
-            {layout.lines.map(
-              (line) =>
-                line.ring && (
-                  <circle
-                    key={`r:${line.key}`}
-                    cx={line.ring[0]}
-                    cy={line.ring[1]}
-                    r={4}
-                    fill="var(--background)"
+      <PersonMenu>
+        <svg
+          ref={svgRef}
+          className={`h-full w-full touch-none font-sans select-none ${animate ? 'tree-animate' : ''}`}
+          role="tree"
+          aria-label={t('label')}
+        >
+          <g ref={layerRef}>
+            <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
+              {layout.lines.map((line) => (
+                <path key={line.key} d={line.d} strokeDasharray={line.dashed ? '6 5' : undefined} />
+              ))}
+              {layout.lines.map(
+                (line) =>
+                  line.ring && (
+                    <circle
+                      key={`r:${line.key}`}
+                      cx={line.ring[0]}
+                      cy={line.ring[1]}
+                      r={4}
+                      fill="var(--background)"
+                    />
+                  ),
+              )}
+            </g>
+            {upTo && focusCard && (
+              <g
+                className="tree-toggle"
+                role="button"
+                tabIndex={-1}
+                aria-label={t('showParents')}
+                style={{
+                  transform: `translate(${focusCard.x + focusCard.w / 2}px, ${focusCard.y - 18}px)`,
+                  cursor: 'pointer',
+                }}
+                onClick={() => uiStore.getState().focus(upTo.id)}
+              >
+                <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+                <circle r={12} fill="var(--background)" stroke="var(--border)" />
+                <ArrowUpIcon x={-7} y={-7} width={14} height={14} color="var(--muted-foreground)" />
+              </g>
+            )}
+            {visible.map((card) => {
+              const person = graph.persons.get(card.personId);
+              if (!person) return null;
+              const accent = accentColor(settings.colorBy, {
+                branch: branches.get(card.nodeKey) ?? null,
+                generation: card.depth,
+                gender: person.gender,
+              });
+              return (
+                <CardFor
+                  key={card.key}
+                  card={card}
+                  person={person}
+                  layout={layout}
+                  accent={accent}
+                  selected={card.personId === selectedId}
+                  compact={!desktop}
+                  fonts={fonts}
+                  showDates={settings.showDates}
+                  tabbable={card.key === tabbableKey}
+                  onActivate={activate}
+                  onKeyDown={onCardKey}
+                />
+              );
+            })}
+            {visible.map(
+              (card) =>
+                card.toggle && (
+                  <Toggle
+                    key={`t:${card.key}`}
+                    card={card}
+                    personName={nameOf(card.personId)}
+                    onToggle={toggle}
                   />
                 ),
             )}
+            {visible.map(
+              (card) =>
+                card.personId === selectedId &&
+                !card.isRef && (
+                  <g
+                    key={`a:${card.key}`}
+                    className="tree-toggle"
+                    role="button"
+                    tabIndex={-1}
+                    data-add-for={card.personId}
+                    aria-label={tr('menuTitle', { name: nameOf(card.personId) })}
+                    style={{
+                      transform: `translate(${card.x + card.w - 20}px, ${card.y + card.h + 2}px)`,
+                      cursor: 'pointer',
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      markInteracted();
+                      startAdd(card.personId, 'menu', event.currentTarget.getBoundingClientRect());
+                    }}
+                  >
+                    <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+                    <circle r={14} fill="var(--primary)" />
+                    <PlusIcon
+                      x={-9}
+                      y={-9}
+                      width={18}
+                      height={18}
+                      color="var(--primary-foreground)"
+                    />
+                  </g>
+                ),
+            )}
           </g>
-          {upTo && focusCard && (
-            <g
-              className="tree-toggle"
-              role="button"
-              tabIndex={-1}
-              aria-label={t('showParents')}
-              style={{
-                transform: `translate(${focusCard.x + focusCard.w / 2}px, ${focusCard.y - 18}px)`,
-                cursor: 'pointer',
-              }}
-              onClick={() => uiStore.getState().focus(upTo.id)}
-            >
-              <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
-              <circle r={12} fill="var(--background)" stroke="var(--border)" />
-              <ArrowUpIcon x={-7} y={-7} width={14} height={14} color="var(--muted-foreground)" />
-            </g>
-          )}
-          {visible.map((card) => {
-            const person = graph.persons.get(card.personId);
-            if (!person) return null;
-            const accent = accentColor(settings.colorBy, {
-              branch: branches.get(card.nodeKey) ?? null,
-              generation: card.depth,
-              gender: person.gender,
-            });
-            return (
-              <CardFor
-                key={card.key}
-                card={card}
-                person={person}
-                layout={layout}
-                accent={accent}
-                selected={card.personId === selectedId}
-                compact={!desktop}
-                fonts={fonts}
-                showDates={settings.showDates}
-                tabbable={card.key === tabbableKey}
-                onActivate={activate}
-                onKeyDown={onCardKey}
-              />
-            );
-          })}
-          {visible.map(
-            (card) =>
-              card.toggle && (
-                <Toggle
-                  key={`t:${card.key}`}
-                  card={card}
-                  personName={nameOf(card.personId)}
-                  onToggle={toggle}
-                />
-              ),
-          )}
-        </g>
-      </svg>
+        </svg>
+      </PersonMenu>
 
       {focusId !== start && start && (
         <div className="absolute top-3 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-full border bg-background/95 py-1 pr-1 pl-3 text-sm shadow-sm">

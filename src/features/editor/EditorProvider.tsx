@@ -19,9 +19,17 @@ export interface Editor {
    * Builds a command against the open tree and runs it when it is valid (CLAUDE.md rule
    * 4). The result comes back so the UI can show problems. Writes are not awaited.
    */
-  run: (build: (ctx: CommandContext) => BuildResult) => BuildResult;
+  run: (build: (ctx: CommandContext) => BuildResult, options?: RunOptions) => BuildResult;
   undo: () => void;
   redo: () => void;
+}
+
+export interface RunOptions {
+  /**
+   * False holds back a valid command that has warnings (a possible duplicate, unlikely
+   * dates), so the UI can ask first and run it again once the user confirms.
+   */
+  allowWarnings?: boolean;
 }
 
 const EditorContext = createContext<Editor | null>(null);
@@ -49,7 +57,7 @@ export function EditorProvider({ actorId, children }: { actorId: ID; children: R
       },
     });
     return {
-      run(build) {
+      run(build, { allowWarnings = true } = {}) {
         const state = treeStore.getState();
         if (!state.treeId || !state.tree) return NOT_READY;
         const result = build({
@@ -59,7 +67,9 @@ export function EditorProvider({ actorId, children }: { actorId: ID; children: R
           actorId,
           newId: () => newId(),
         });
-        if (result.ok) void executor.run(result.command);
+        if (result.ok && (allowWarnings || result.warnings.length === 0)) {
+          void executor.run(result.command);
+        }
         return result;
       },
       undo: () => void executor.undo(),

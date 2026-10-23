@@ -33,6 +33,8 @@ export function TreeControls({
   const t = useTranslations('treeView');
   const horizontal = useUi((s) => s.orientation === 'horizontal');
   const button = 'size-11 rounded-none first:rounded-t-xl last:rounded-b-xl lg:size-10';
+  // Phones pinch to zoom (DESIGN §13.3), so +/− stay on larger screens.
+  const zoomButton = `${button} hidden lg:inline-flex`;
   return (
     <div
       role="toolbar"
@@ -46,7 +48,7 @@ export function TreeControls({
       <Button
         variant="ghost"
         size="icon"
-        className={button}
+        className={zoomButton}
         onClick={onZoomIn}
         aria-label={t('zoomIn')}
       >
@@ -55,7 +57,7 @@ export function TreeControls({
       <Button
         variant="ghost"
         size="icon"
-        className={button}
+        className={zoomButton}
         onClick={onZoomOut}
         aria-label={t('zoomOut')}
       >

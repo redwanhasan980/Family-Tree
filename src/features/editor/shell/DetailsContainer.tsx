@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { RelativeActions } from '@/features/person/AddRelativeFlows';
 import { initials } from '@/lib/domain/names';
 import type { Person } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
@@ -39,6 +40,7 @@ function PersonSummary({ person }: { person: Person }) {
           {years && <p className="text-sm text-muted-foreground tabular-nums">{years}</p>}
         </div>
       </div>
+      <RelativeActions personId={person.id} />
       <p className="text-sm text-muted-foreground">{t('detailsSoon')}</p>
     </div>
   );

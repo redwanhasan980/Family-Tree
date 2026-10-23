@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { acceptsShortcuts } from '@/features/editor/shortcuts';
 import { PersonPanel } from '@/features/person/PersonPanel';
 import { useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
@@ -27,7 +28,11 @@ export function DetailsContainer() {
   useEffect(() => {
     if (!desktop || !person) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') uiStore.getState().select(null);
+      // Escape in a dialog or menu closes that, not the panel.
+      if (event.key !== 'Escape' || event.defaultPrevented || !acceptsShortcuts(event.target)) {
+        return;
+      }
+      uiStore.getState().select(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

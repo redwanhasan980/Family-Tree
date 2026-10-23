@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
+import { DeletePersonFlow } from '@/features/person/DeletePersonDialog';
 import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
@@ -25,10 +26,12 @@ import { useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
 
 import { EditorProvider } from '../EditorProvider';
+import { useEditorShortcuts } from '../useEditorShortcuts';
 import { useTreeSession } from '../useTreeSession';
 import { DetailsContainer } from './DetailsContainer';
 import { EditorHeader } from './EditorHeader';
 import { EmptyTree } from './EmptyTree';
+import { SearchDialog } from './SearchDialog';
 import { SelectionBar } from './SelectionBar';
 import { StatisticsList } from './Statistics';
 import { TreeSettingsDialog } from './TreeSettingsDialog';
@@ -136,6 +139,11 @@ function MoreSheet({
   );
 }
 
+function Shortcuts() {
+  useEditorShortcuts();
+  return null;
+}
+
 /** The view area: the empty-tree start, or the current view. */
 function ViewArea() {
   const view = useUi((s) => s.view);
@@ -217,7 +225,10 @@ export function EditorShell({ treeId }: { treeId: ID }) {
         <BottomNav className="lg:hidden" onMore={() => open('more')} />
       </div>
 
+      <Shortcuts />
       <AddRelativeFlows />
+      <DeletePersonFlow />
+      <SearchDialog />
       <TreeSettingsDialog tree={tree} open={panel === 'settings'} onOpenChange={close} />
       <MoreSheet
         open={panel === 'more'}

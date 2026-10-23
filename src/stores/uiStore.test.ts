@@ -71,6 +71,38 @@ describe('uiStore', () => {
     expect(store.getState()).toMatchObject({ selectedId: 'p1', focusId: 'p2' });
   });
 
+  it('asks the view to reveal someone, selecting them (VIS-04)', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'tree');
+    store.getState().select('p1');
+    store.getState().setDetailsOpen(true);
+    store.getState().reveal('p2');
+    expect(store.getState()).toMatchObject({
+      selectedId: 'p2',
+      detailsOpen: false,
+      revealRequest: { personId: 'p2', nonce: 1 },
+    });
+    // The same person again is a new request.
+    store.getState().reveal('p2');
+    expect(store.getState().revealRequest).toEqual({ personId: 'p2', nonce: 2 });
+    store.getState().revealDone();
+    expect(store.getState().revealRequest).toBeNull();
+  });
+
+  it('forgets open dialogs when the tree closes', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'tree');
+    store.getState().setDeleting('p1');
+    store.getState().setSearchOpen(true);
+    store.getState().reveal('p2');
+    store.getState().closeTree();
+    expect(store.getState()).toMatchObject({
+      deletingId: null,
+      searchOpen: false,
+      revealRequest: null,
+    });
+  });
+
   it('works when storage is blocked', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');

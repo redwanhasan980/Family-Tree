@@ -2,7 +2,6 @@
 
 import { FocusIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +11,6 @@ import type { Person } from '@/lib/domain/types';
 import { uiStore } from '@/stores/uiStore';
 
 import { RelativeActions } from './AddRelativeFlows';
-import { DeletePersonDialog } from './DeletePersonDialog';
 import { PersonDetailsForm } from './PersonDetailsForm';
 import { PersonFamily } from './PersonFamily';
 
@@ -24,7 +22,6 @@ import { PersonFamily } from './PersonFamily';
 export function PersonPanel({ person }: { person: Person }) {
   const t = useTranslations('person');
   const { name, years } = usePersonText(person);
-  const [deleting, setDeleting] = useState(false);
 
   return (
     <div className="space-y-5">
@@ -74,12 +71,11 @@ export function PersonPanel({ person }: { person: Person }) {
         <Button
           variant="ghost"
           className="h-11 justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => setDeleting(true)}
+          onClick={() => uiStore.getState().setDeleting(person.id)}
         >
           <Trash2Icon aria-hidden /> {t('delete')}
         </Button>
       </div>
-      {deleting && <DeletePersonDialog personId={person.id} onClose={() => setDeleting(false)} />}
     </div>
   );
 }

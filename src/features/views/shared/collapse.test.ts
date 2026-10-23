@@ -4,7 +4,7 @@ import { generateFamily } from '@/lib/domain/fixtures/generate';
 import { testFamily } from '@/lib/domain/fixtures/testFamily';
 import { buildDescendantTree, buildGraph } from '@/lib/domain/graph';
 
-import { cardCount, collapseBeyond, initialCollapsed } from './collapse';
+import { cardCount, collapseBeyond, initialCollapsed, keysToReveal } from './collapse';
 
 describe('collapse defaults (VIS-02)', () => {
   const { persons, relationships } = testFamily();
@@ -28,5 +28,15 @@ describe('collapse defaults (VIS-02)', () => {
     const keys = initialCollapsed(bigTree);
     expect(keys.length).toBeGreaterThan(0);
     expect(keys.every((key) => key.split('/').length === 3)).toBe(true);
+  });
+
+  it('finds what to open to show someone (VIS-04)', () => {
+    expect(keysToReveal(tree, 'G')).toEqual([]);
+    expect(keysToReveal(tree, 'K')).toEqual(['G', 'G/S1', 'G/S1/SS']);
+    // A wife shows beside her husband.
+    expect(keysToReveal(tree, 'SW')).toEqual(['G']);
+    // DD first appears as SS's wife, before her own card under D1.
+    expect(keysToReveal(tree, 'DD')).toEqual(['G', 'G/S1']);
+    expect(keysToReveal(tree, 'O')).toBeNull();
   });
 });

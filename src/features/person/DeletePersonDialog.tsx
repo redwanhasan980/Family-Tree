@@ -21,7 +21,7 @@ import { countDescendants } from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
 import type { ID, Locale } from '@/lib/domain/types';
 import { selectGraph, useTree } from '@/stores/treeStore';
-import { uiStore } from '@/stores/uiStore';
+import { uiStore, useUi } from '@/stores/uiStore';
 
 /**
  * PER-06: delete a person with an Undo toast. Someone with descendants can go alone (the
@@ -97,5 +97,19 @@ export function DeletePersonDialog({ personId, onClose }: { personId: ID; onClos
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The delete confirmation for whoever `uiStore.deletingId` names (the panel or the Del key). */
+export function DeletePersonFlow() {
+  const deletingId = useUi((s) => s.deletingId);
+  const exists = useTree((s) => (deletingId ? s.persons.has(deletingId) : false));
+  if (!deletingId || !exists) return null;
+  return (
+    <DeletePersonDialog
+      key={deletingId}
+      personId={deletingId}
+      onClose={() => uiStore.getState().setDeleting(null)}
+    />
   );
 }

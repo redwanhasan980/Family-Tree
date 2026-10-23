@@ -25,10 +25,29 @@ function avatarText(name: string | null, email: string | null): string {
   return initials((name ?? '').trim() || (email ?? '').trim()) || '?';
 }
 
+/** Signs out and goes to the landing page. */
+export function useLogOut(): () => Promise<void> {
+  const t = useTranslations();
+  const { releaseSession } = useSession();
+  const router = useRouter();
+  return async () => {
+    // Signing out leaves nobody signed in: without this, the app page would create a
+    // fresh guest before the landing page loads (DESIGN §9.6).
+    releaseSession();
+    router.replace('/');
+    try {
+      await signOutUser();
+      toast(t('account.loggedOut'));
+    } catch (error) {
+      logger.error('auth.sign_out', error);
+    }
+  };
+}
+
 export function AccountMenu() {
   const t = useTranslations();
-  const { session, releaseSession } = useSession();
-  const router = useRouter();
+  const { session } = useSession();
+  const logOut = useLogOut();
 
   if (session.status === 'guest') {
     return (
@@ -43,18 +62,6 @@ export function AccountMenu() {
   if (session.status !== 'registered') return null;
 
   const { user } = session;
-  const logOut = async () => {
-    // Signing out leaves nobody signed in: without this, the app page would create a
-    // fresh guest before the landing page loads (DESIGN §9.6).
-    releaseSession();
-    router.replace('/');
-    try {
-      await signOutUser();
-      toast(t('account.loggedOut'));
-    } catch (error) {
-      logger.error('auth.sign_out', error);
-    }
-  };
 
   return (
     <DropdownMenu>

@@ -2,23 +2,33 @@
 
 import { ArrowUpIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
+import { acceptsShortcuts, editorShortcut } from '@/features/editor/shortcuts';
 import { startAdd } from '@/features/person/AddRelativeFlows';
-import { branchOf, buildDescendantTree, parentsOf, type FamilyGraph } from '@/lib/domain/graph';
+import {
+  branchOf,
+  buildDescendantTree,
+  parentsOf,
+  reachableFrom,
+  unplacedPersons,
+  type FamilyGraph,
+} from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
 import type { ID, Locale, Person } from '@/lib/domain/types';
 import { selectGraph, useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
 
 import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
+import { createNavigator, stepFor } from './navigation';
 import { PersonCard } from './PersonCard';
 import { PersonMenu } from './PersonMenu';
 import { TreeControls } from './TreeControls';
-import { initialCollapsed } from '../shared/collapse';
+import { UnplacedTray } from './UnplacedTray';
+import { initialCollapsed, keysToReveal } from '../shared/collapse';
 import { accentColor } from '../shared/colors';
 import { useCamera } from '../shared/useCamera';
 import { useElementSize } from '../shared/useElementSize';
@@ -176,6 +186,7 @@ export function TreeView() {
   const selectedId = useUi((s) => s.selectedId);
   const saved = useUi((s) => s.collapsed.tree);
   const orientation = useUi((s) => s.orientation);
+  const revealRequest = useUi((s) => s.revealRequest);
   const desktop = useIsDesktop();
   const metrics = desktop ? COMFORTABLE : COMPACT;
 
@@ -197,6 +208,15 @@ export function TreeView() {
     [descTree, metrics, orientation],
   );
   const branches = useMemo(() => (descTree ? branchOf(descTree) : new Map()), [descTree]);
+  const navigate = useMemo(
+    () => (layout ? createNavigator(layout, orientation) : null),
+    [layout, orientation],
+  );
+  const unplaced = useMemo(() => unplacedPersons(graph, start ?? undefined), [graph, start]);
+  // The card keyboard focus is on (roving tabindex), and work left for after a render.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const pendingFocus = useRef<string | null>(null);
+  const pendingReveal = useRef<ID | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -233,11 +253,13 @@ export function TreeView() {
     );
   }, [layout, size, fitKey, focusId, orientation, desktop, moveTo, interacted, resetInteraction]);
 
+  // Cards on screen, plus the active and selected ones so keyboard focus can reach them.
   const visible = useMemo(() => {
     if (!layout || size.width === 0) return [];
     const rect = visibleRect(camera.transform, size);
-    return layout.cards.filter((card) => intersects(card, rect));
-  }, [layout, camera.transform, size]);
+    const keep = new Set([activeKey, selectedId && layout.cardsOf.get(selectedId)?.[0]]);
+    return layout.cards.filter((card) => keep.has(card.key) || intersects(card, rect));
+  }, [layout, camera.transform, size, activeKey, selectedId]);
 
   const toggle = useCallback(
     (key: string) => {
@@ -250,46 +272,146 @@ export function TreeView() {
     [collapsed, markInteracted],
   );
 
+  // The canvas as it is now: the details panel may have just opened beside it, before
+  // `size` catches up.
+  const liveSize = useCallback(() => {
+    const element = containerRef.current;
+    return element ? { width: element.clientWidth, height: element.clientHeight } : size;
+  }, [size]);
+
   const centreOnCard = useCallback(
     (key: string) => {
       const card = layout?.cards.find((c) => c.key === key);
-      if (!card || size.width === 0) return;
+      const now = liveSize();
+      if (!card || now.width === 0) return;
       const k = Math.max(current().k, 0.6);
-      moveTo(centreTransform({ x: card.x + card.w / 2, y: card.y + card.h / 2 }, size, k));
+      moveTo(centreTransform({ x: card.x + card.w / 2, y: card.y + card.h / 2 }, now, k));
     },
-    [layout, size, current, moveTo],
+    [layout, liveSize, current, moveTo],
+  );
+
+  /** Centres a card that isn't fully on screen. */
+  const ensureVisible = useCallback(
+    (card: LaidCard) => {
+      const { x, y, k } = current();
+      const now = liveSize();
+      const margin = 24;
+      const left = card.x * k + x;
+      const top = card.y * k + y;
+      const inside =
+        left >= margin &&
+        top >= margin &&
+        left + card.w * k <= now.width - margin &&
+        top + card.h * k <= now.height - margin;
+      if (!inside) centreOnCard(card.key);
+    },
+    [current, liveSize, centreOnCard],
   );
 
   const activate = useCallback(
     (card: LaidCard) => {
       markInteracted();
       uiStore.getState().select(card.personId);
+      setActiveKey(card.key);
       // A repeated person jumps to their full card (VIS-09).
       if (card.isRef) {
         const primary = layout?.cardsOf.get(card.personId)?.[0];
-        if (primary) centreOnCard(primary);
+        if (primary) {
+          setActiveKey(primary);
+          pendingFocus.current = primary;
+          centreOnCard(primary);
+        }
       }
     },
     [layout, centreOnCard, markInteracted],
   );
 
+  // TV-09: arrows move between parents, children and the people beside them.
   const onCardKey = useCallback(
     (event: KeyboardEvent<SVGGElement>, card: LaidCard) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         activate(card);
         uiStore.getState().setDetailsOpen(true);
+        return;
       }
+      const step = stepFor(event.key, orientation);
+      if (!step || !navigate) return;
+      event.preventDefault();
+      const target = navigate(card, step);
+      if (!target) return;
+      markInteracted();
+      uiStore.getState().select(target.personId);
+      setActiveKey(target.key);
+      pendingFocus.current = target.key;
+      ensureVisible(target);
     },
-    [activate],
+    [activate, orientation, navigate, markInteracted, ensureVisible],
   );
+
+  const fit = useCallback(() => {
+    if (layout) moveTo(fitTransform(layout.bounds, size));
+  }, [layout, size, moveTo]);
+
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented || !acceptsShortcuts(event.target)) return;
+      if (editorShortcut(event) !== 'fit') return;
+      event.preventDefault();
+      fit();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fit]);
+
+  // VIS-04: show the tree from where it starts (or from the person, when it doesn't reach
+  // them), open the branches on the way, then centre them once they're laid out.
+  useEffect(() => {
+    if (!revealRequest) return;
+    const ui = uiStore.getState();
+    ui.revealDone();
+    const { personId } = revealRequest;
+    if (!graph.persons.has(personId)) return;
+    const shows = (from: ID | null): from is ID =>
+      from !== null && reachableFrom(graph, from).has(personId);
+    const from = shows(focusId) ? focusId : shows(start) ? start : personId;
+    if (from !== focusId) ui.focus(from === start ? null : from);
+    const full = buildDescendantTree(graph, from);
+    const open = full ? keysToReveal(full, personId) : null;
+    const base = ui.collapsed.tree ?? (full ? initialCollapsed(full) : []);
+    const next = open ? base.filter((key) => !open.includes(key)) : base;
+    if (next.length !== base.length) ui.setCollapsed('tree', next);
+    pendingReveal.current = personId;
+  }, [revealRequest, graph, focusId, start]);
+
+  // After every render: finish a reveal once its card exists, then move keyboard focus.
+  useEffect(() => {
+    const revealing = pendingReveal.current;
+    const revealKey = revealing && layout?.cardsOf.get(revealing)?.[0];
+    if (revealKey) {
+      pendingReveal.current = null;
+      markInteracted();
+      centreOnCard(revealKey);
+      pendingFocus.current = revealKey;
+    }
+    const key = pendingFocus.current;
+    const element =
+      key && svgRef.current?.querySelector<SVGGElement>(`[data-card-key="${CSS.escape(key)}"]`);
+    if (element) {
+      pendingFocus.current = null;
+      element.focus({ preventScroll: true });
+    }
+  });
 
   if (!layout || !focusId) return null;
   const focusPerson = graph.persons.get(focusId)!;
   const focusParents = parentsOf(graph, focusId).flatMap((id) => graph.persons.get(id) ?? []);
   const focusCard = layout.cards.find((c) => c.key === focusId)!;
+  const selectedKeys = selectedId ? layout.cardsOf.get(selectedId) : undefined;
   const tabbableKey =
-    (selectedId && layout.cardsOf.get(selectedId)?.[0]) ?? layout.cards[0]?.key ?? null;
+    (activeKey && selectedKeys?.includes(activeKey) ? activeKey : selectedKeys?.[0]) ??
+    layout.cards[0]?.key ??
+    null;
   const animate = visible.length <= ANIMATE_LIMIT;
   const nameOf = (id: ID) => {
     const person = graph.persons.get(id);
@@ -448,10 +570,16 @@ export function TreeView() {
         </div>
       )}
 
+      <p aria-live="polite" className="sr-only">
+        {selectedKeys ? t('selected', { name: nameOf(selectedId!) }) : ''}
+      </p>
+
+      <UnplacedTray ids={unplaced} className="absolute right-3 bottom-3" />
+
       <TreeControls
         onZoomIn={() => camera.zoomBy(1.25)}
         onZoomOut={() => camera.zoomBy(0.8)}
-        onFit={() => camera.moveTo(fitTransform(layout.bounds, size))}
+        onFit={fit}
         onCentre={
           selectedId && layout.cardsOf.get(selectedId)
             ? () => centreOnCard(layout.cardsOf.get(selectedId)![0]!)

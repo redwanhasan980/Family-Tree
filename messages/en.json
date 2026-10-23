@@ -236,7 +236,14 @@
     "soonBody": "Your family is saved. This view arrives in an update soon. Meanwhile, here is everyone in the tree.",
     "details": "Details",
     "openDetails": "Details",
-    "clearSelection": "Clear selection"
+    "clearSelection": "Clear selection",
+    "undo": "Undo",
+    "redo": "Redo",
+    "undoWhat": "Undo: {action}",
+    "redoWhat": "Redo: {action}",
+    "undone": "Undone: {action}",
+    "redone": "Done again: {action}",
+    "search": "Find someone"
   },
   "person": {
     "genderLabel": "Man or woman?",
@@ -402,7 +409,8 @@
     "showingFrom": "Showing the tree from <person>{name}</person>",
     "backTo": "Back to {name}",
     "cardControls": "Tree controls",
-    "loading": "Loading the family…"
+    "loading": "Loading the family…",
+    "selected": "Selected: {name}"
   },
   "issues": {
     "cycle": "This can't be done: it would make someone their own ancestor.",
@@ -474,5 +482,34 @@
     "showFromHere": "Show the tree from here",
     "makeRoot": "Start the tree from this person",
     "openDetails": "Details"
+  },
+  "history": {
+    "addChildren": "{count, plural, one {adding a child} other {adding # children}}",
+    "addParent": "adding a father or mother",
+    "addPerson": "adding a person",
+    "addSibling": "adding a brother or sister",
+    "addSpouse": "adding a husband or wife",
+    "changeOtherParent": "changing a parent",
+    "createTree": "creating the tree",
+    "deletePerson": "deleting a person",
+    "linkParent": "linking a parent and child",
+    "linkSpouse": "linking a husband and wife",
+    "moveBranch": "moving a branch",
+    "removeRelationship": "removing a relationship",
+    "renameTree": "renaming the tree",
+    "reorderChildren": "changing the children's order",
+    "setParentKind": "changing how a parent is related",
+    "setRoot": "changing where the tree starts",
+    "setSpouseStatus": "changing a marriage",
+    "treeSettings": "changing tree settings",
+    "updatePerson": "editing details",
+    "other": "the last change"
+  },
+  "unplaced": {
+    "button": "{count, plural, one {# person not in the tree} other {# people not in the tree}}",
+    "title": "Not yet in the tree",
+    "body": "These people aren't connected to the person the tree starts from. Connect each one to a relative.",
+    "connect": "Connect",
+    "show": "Show"
   }
 }

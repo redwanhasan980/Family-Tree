@@ -457,6 +457,19 @@
     "selected": "Selected: {name}",
     "you": "You"
   },
+  "listView": {
+    "label": "Family list",
+    "number": "number {number}",
+    "generation": "Generation {number}",
+    "relation": "{role}: {name}",
+    "relationStatus": "{role} ({status}): {name}",
+    "seeFirst": "Also listed at {number}",
+    "goToFirst": "Go to {name} at {number}",
+    "reorder": "Drag to change the order: {name}",
+    "up": "Up",
+    "down": "Down",
+    "addRelative": "Add"
+  },
   "issues": {
     "cycle": "This can't be done: it would make someone their own ancestor.",
     "tooManyBiologicalParents": "{gender, select, male {This person already has a father.} female {This person already has a mother.} other {This person already has two parents.}}",

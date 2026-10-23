@@ -457,6 +457,19 @@
     "selected": "নির্বাচিত: {name}",
     "you": "আপনি"
   },
+  "listView": {
+    "label": "পরিবারের তালিকা",
+    "number": "নম্বর {number}",
+    "generation": "প্রজন্ম {number}",
+    "relation": "{role}: {name}",
+    "relationStatus": "{role} ({status}): {name}",
+    "seeFirst": "{number} নম্বরেও আছেন",
+    "goToFirst": "{number} নম্বরে যান: {name}",
+    "reorder": "ক্রম বদলাতে টেনে আনুন: {name}",
+    "up": "ওপরে",
+    "down": "নিচে",
+    "addRelative": "যোগ করুন"
+  },
   "issues": {
     "cycle": "এটি করা যাবে না: এতে কেউ নিজেরই পূর্বপুরুষ হয়ে যাবেন।",
     "tooManyBiologicalParents": "{gender, select, male {এই ব্যক্তির বাবা আগে থেকেই আছেন।} female {এই ব্যক্তির মা আগে থেকেই আছেন।} other {এই ব্যক্তির বাবা-মা দুজনই আগে থেকে আছেন।}}",

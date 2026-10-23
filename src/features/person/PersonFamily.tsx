@@ -19,11 +19,8 @@ import {
   reorderChildren,
   setParentKind,
   setSpouseStatus,
-  type BuildResult,
-  type CommandContext,
 } from '@/features/editor/commands';
-import { useEditor } from '@/features/editor/EditorProvider';
-import { useIssueText } from '@/features/editor/useIssueText';
+import { useChange } from '@/features/editor/useChange';
 import { useUndoToast } from '@/features/editor/useUndoToast';
 import {
   childrenOf,
@@ -55,19 +52,6 @@ function useName() {
     return person
       ? displayName(person.names, nameDisplay, locale)
       : { text: '', lang: locale as Locale };
-  };
-}
-
-/** Runs a relationship change and explains a refusal in a toast. */
-function useChange() {
-  const editor = useEditor();
-  const issueText = useIssueText();
-  return (build: (ctx: CommandContext) => BuildResult) => {
-    const result = editor.run(build);
-    if (!result.ok && !result.issues.every((i) => i.code === 'noChanges')) {
-      toast.error(issueText(result.issues[0]!));
-    }
-    return result.ok;
   };
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
 
 import type { Issue } from '@/lib/domain/types';
 
@@ -10,11 +11,14 @@ import type { Issue } from '@/lib/domain/types';
  */
 export function useIssueText(): (issue: Issue) => string {
   const t = useTranslations();
-  return (issue) => {
-    const values = (issue.params ?? {}) as Record<string, string | number>;
-    if (t.has(`issues.${issue.code}` as never))
-      return t(`issues.${issue.code}` as never, values as never);
-    if (t.has(`validation.${issue.code}` as never)) return t(`validation.${issue.code}` as never);
-    return t('issues.unknown');
-  };
+  return useCallback(
+    (issue: Issue) => {
+      const values = (issue.params ?? {}) as Record<string, string | number>;
+      if (t.has(`issues.${issue.code}` as never))
+        return t(`issues.${issue.code}` as never, values as never);
+      if (t.has(`validation.${issue.code}` as never)) return t(`validation.${issue.code}` as never);
+      return t('issues.unknown');
+    },
+    [t],
+  );
 }

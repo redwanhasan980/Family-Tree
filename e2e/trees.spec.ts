@@ -127,9 +127,9 @@ test.describe('editor shell', () => {
     await createTree(page, 'Karim family', 'Abdul Karim');
     await page.getByRole('button', { name: 'List', exact: true }).click();
     await expect(page).toHaveURL(/\?view=list$/);
-    await expect(page.getByRole('heading', { name: 'List view is coming soon' })).toBeVisible();
+    await expect(page.getByRole('tree', { name: 'Family list' })).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'List view is coming soon' })).toBeVisible();
+    await expect(page.getByRole('tree', { name: 'Family list' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveAttribute(
       'aria-current',
       'true',

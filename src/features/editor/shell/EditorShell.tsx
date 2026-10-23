@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
 import { DeletePersonFlow } from '@/features/person/DeletePersonDialog';
+import { ListView } from '@/features/views/list/ListView';
 import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
@@ -154,6 +155,7 @@ function ViewArea() {
     return <Skeleton className="mx-auto mt-6 h-40 w-[calc(100%-2rem)] max-w-2xl rounded-2xl" />;
   }
   if (view === 'tree') return <TreeView />;
+  if (view === 'list') return <ListView />;
   return <ViewPlaceholder view={view} />;
 }
 

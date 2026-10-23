@@ -273,8 +273,8 @@ gantt
 
 **Goal:** the same family in three more beautiful, useful forms, including the simplest view for phones.
 
-- [ ] **P6-01** **List outline:** flattening, d'Aboville numbering, rows (avatar, names, partners, years, profession), chevrons, virtualization above 200 rows, ARIA `tree` pattern and keyboard support. *(LV-01/02/05/06)*
-- [ ] **P6-02** Inline quick add per row; sibling reorder (drag handle on desktop, up/down on mobile) → fractional `childOrder`. *(LV-03)*
+- [x] **P6-01** **List outline:** flattening, d'Aboville numbering, rows (avatar, names, partners, years, profession), chevrons, virtualization above 200 rows, ARIA `tree` pattern and keyboard support. *(LV-01/02/05/06)*
+- [x] **P6-02** Inline quick add per row; sibling reorder (drag handle on desktop, up/down on mobile) → fractional `childOrder`. *(LV-03)*
 - [ ] **P6-03** **Directory mode:** sortable, filterable table (desktop) and cards (mobile). *(LV-04)*
 - [ ] **P6-04** **Circle layout** (pure): partition with leaf weighting, radii, padding, the 6 px seam gap, tint ramp per ring, label placement (tangential / radial / hidden, with flipping). Geometry tests. *(CV-01/02)*
 - [ ] **P6-05** `CircleView`: arcs, centre disc with photo, tooltips with spouses, selection, **zoom to person** with breadcrumbs, depth control (2–8), legend. *(CV-03/04/05/07)*

@@ -2,7 +2,7 @@
 
 import { ArrowUpIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
@@ -53,7 +53,8 @@ export function startingPerson(g: FamilyGraph, rootId: ID | undefined): ID | nul
   return (people.find((p) => parentsOf(g, p.id).length === 0) ?? people[0])?.id ?? null;
 }
 
-function CardFor({
+// Memoized so a pan or zoom only renders the cards that came into view (P4-13).
+const CardFor = memo(function CardFor({
   card,
   person,
   layout,
@@ -107,10 +108,36 @@ function CardFor({
       onKeyDown={onKeyDown}
     />
   );
-}
+});
+
+/**
+ * Every connector of the tree. They aren't culled, so they're memoized: a pan or zoom
+ * re-renders the cards without diffing thousands of paths (P4-13).
+ */
+const Connectors = memo(function Connectors({ lines }: { lines: TreeLayout['lines'] }) {
+  return (
+    <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
+      {lines.map((line) => (
+        <path key={line.key} d={line.d} strokeDasharray={line.dashed ? '6 5' : undefined} />
+      ))}
+      {lines.map(
+        (line) =>
+          line.ring && (
+            <circle
+              key={`r:${line.key}`}
+              cx={line.ring[0]}
+              cy={line.ring[1]}
+              r={4}
+              fill="var(--background)"
+            />
+          ),
+      )}
+    </g>
+  );
+});
 
 /** The "−" or "+N" control under a person with descendants (VIS-02). */
-function Toggle({
+const Toggle = memo(function Toggle({
   card,
   personName,
   onToggle,
@@ -164,7 +191,7 @@ function Toggle({
       )}
     </g>
   );
-}
+});
 
 /**
  * The Tree view (TV-01..05, DESIGN §13.3): the focus person's descendants as a tidy
@@ -430,23 +457,7 @@ export function TreeView() {
           aria-label={t('label')}
         >
           <g ref={layerRef}>
-            <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
-              {layout.lines.map((line) => (
-                <path key={line.key} d={line.d} strokeDasharray={line.dashed ? '6 5' : undefined} />
-              ))}
-              {layout.lines.map(
-                (line) =>
-                  line.ring && (
-                    <circle
-                      key={`r:${line.key}`}
-                      cx={line.ring[0]}
-                      cy={line.ring[1]}
-                      r={4}
-                      fill="var(--background)"
-                    />
-                  ),
-              )}
-            </g>
+            <Connectors lines={layout.lines} />
             {upTo && focusCard && (
               <g
                 className="tree-toggle"

@@ -24,7 +24,8 @@
     "emulators": "firebase emulators:start --project demo-shikor",
     "test:rules": "firebase emulators:exec --only auth,firestore --project demo-shikor \"vitest run --config vitest.rules.config.mts\"",
     "test:e2e": "playwright test",
-    "seed": "tsx scripts/seed-emulator.ts"
+    "seed": "tsx scripts/seed-emulator.ts",
+    "bench:tree": "tsx scripts/bench-tree.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "6.0.0",

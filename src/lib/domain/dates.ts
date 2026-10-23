@@ -50,9 +50,16 @@ export function formatPartialDate(date: PartialDate, locale: Locale): string {
   return formatter(locale, parts).format(at);
 }
 
-/** A year in the locale's digits, without grouping ("১৯৩১"). */
+const yearFormatters = new Map<Locale, Intl.NumberFormat>();
+
+/** A year in the locale's digits, without grouping ("১৯৩১"). Every card calls this. */
 export function formatYear(year: number, locale: Locale): string {
-  return new Intl.NumberFormat(INTL_LOCALE[locale], { useGrouping: false }).format(year);
+  let f = yearFormatters.get(locale);
+  if (!f) {
+    f = new Intl.NumberFormat(INTL_LOCALE[locale], { useGrouping: false });
+    yearFormatters.set(locale, f);
+  }
+  return f.format(year);
 }
 
 /**

@@ -10,6 +10,8 @@ import {
   linkWithPopup,
   linkWithRedirect,
   onIdTokenChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   reload,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -62,6 +64,20 @@ export function observeAuth(callback: (user: SessionUser | null) => void): () =>
   return onIdTokenChanged(auth(), (user) => callback(user ? toSessionUser(user) : null));
 }
 
+/** The signed-in guest's ID, or null when nobody or a registered user is signed in. */
+export function currentGuestUid(): string | null {
+  const user = auth().currentUser;
+  return user?.isAnonymous ? user.uid : null;
+}
+
+/**
+ * Runs just before a guest's session is replaced by an existing account, while the guest
+ * can still read its trees (the guest merge, DESIGN §9.4).
+ */
+export interface SwitchHooks {
+  beforeSwitch?: () => Promise<void>;
+}
+
 export async function createGuest(): Promise<void> {
   await signInAnonymously(auth());
 }
@@ -88,7 +104,12 @@ export async function signUpWithEmail(
   void sendEmailVerification(user, actionUrl(locale, '/trees')).catch(() => undefined);
 }
 
-export async function signInWithEmail(email: string, password: string): Promise<void> {
+export async function signInWithEmail(
+  email: string,
+  password: string,
+  { beforeSwitch }: SwitchHooks = {},
+): Promise<void> {
+  await beforeSwitch?.();
   await signInWithEmailAndPassword(auth(), email, password);
 }
 
@@ -104,10 +125,13 @@ function googleProvider(): GoogleAuthProvider {
 
 /**
  * Continue with Google (AUTH-05/06). A guest links the Google account; if that account
- * already exists we sign in to it (the P3-06 merge ticket will move guest trees first).
+ * already exists we sign in to it, after `beforeSwitch` prepared the guest merge.
  * Returns "redirecting" when the popup was blocked and a full-page redirect started.
  */
-export async function continueWithGoogle(locale: Locale): Promise<'done' | 'redirecting'> {
+export async function continueWithGoogle(
+  locale: Locale,
+  { beforeSwitch }: SwitchHooks = {},
+): Promise<'done' | 'redirecting'> {
   const a = auth();
   a.languageCode = locale;
   const provider = googleProvider();
@@ -120,6 +144,7 @@ export async function continueWithGoogle(locale: Locale): Promise<'done' | 'redi
     if (code === 'auth/credential-already-in-use') {
       const credential = googleCredentialFrom(error);
       if (!credential) throw error;
+      await beforeSwitch?.();
       await signInWithCredential(a, credential);
     } else if (code === 'auth/popup-blocked') {
       if (current?.isAnonymous) await linkWithRedirect(current, provider);
@@ -134,7 +159,7 @@ export async function continueWithGoogle(locale: Locale): Promise<'done' | 'redi
 }
 
 /** Finishes a redirect sign-in after the page reloads. */
-export async function completeRedirectSignIn(): Promise<void> {
+export async function completeRedirectSignIn({ beforeSwitch }: SwitchHooks = {}): Promise<void> {
   const a = auth();
   try {
     const result = await getRedirectResult(a);
@@ -142,8 +167,26 @@ export async function completeRedirectSignIn(): Promise<void> {
   } catch (error) {
     if (errorCode(error) !== 'auth/credential-already-in-use') throw error;
     const credential = googleCredentialFrom(error);
-    if (credential) await signInWithCredential(a, credential);
+    if (!credential) return;
+    await beforeSwitch?.();
+    await signInWithCredential(a, credential);
   }
+}
+
+/**
+ * Confirms it is really the user before deleting the account (DESIGN §9.6): their
+ * password, or Google in a popup.
+ */
+export async function reauthenticate(password?: string): Promise<void> {
+  const user = auth().currentUser;
+  if (!user || user.isAnonymous) return;
+  const providers = user.providerData.map((p) => p.providerId);
+  if (providers.includes('password') && user.email && password !== undefined) {
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+  } else {
+    await reauthenticateWithPopup(user, googleProvider());
+  }
+  await refreshToken();
 }
 
 /** Always resolves the same way, so the form never reveals whether an account exists. */

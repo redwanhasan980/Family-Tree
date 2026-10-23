@@ -9,6 +9,7 @@ import { detectInAppBrowser } from '@/lib/domain/auth/inAppBrowser';
 import type { Locale } from '@/lib/domain/types';
 import { continueWithGoogle } from '@/lib/repositories/auth';
 
+import { prepareGuestMerge } from './guestMerge';
 import { InAppBrowserNotice } from './InAppBrowserNotice';
 import { useAuthErrorText } from './useMessages';
 
@@ -69,7 +70,8 @@ export function GoogleButton({
     onError(null);
     onStart?.();
     try {
-      if ((await continueWithGoogle(locale)) === 'done') onDone();
+      const outcome = await continueWithGoogle(locale, { beforeSwitch: prepareGuestMerge });
+      if (outcome === 'done') onDone();
     } catch (error) {
       // Closing the popup is a choice, not an error.
       onError(authErrorKey(error) === 'popupClosed' ? null : errorText(error));

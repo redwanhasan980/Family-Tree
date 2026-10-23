@@ -54,6 +54,8 @@ export interface GuestTreeSummary {
 export interface PendingMerge {
   ticketId: string;
   expiresAt: string;
+  /** The guest the ticket belongs to, so a retried sign-in reuses it. */
+  guestUid: string;
   trees: GuestTreeSummary[];
 }
 
@@ -62,6 +64,7 @@ export const PENDING_MERGE_KEY = 'shikor:pendingMerge';
 const PendingMergeSchema = z.object({
   ticketId: IdSchema,
   expiresAt: z.iso.datetime(),
+  guestUid: z.string().min(1),
   trees: z
     .array(
       z.object({

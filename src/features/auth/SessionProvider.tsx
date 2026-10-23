@@ -35,6 +35,8 @@ import {
   updateSettings,
 } from '@/lib/repositories/users';
 
+import { prepareGuestMerge } from './guestMerge';
+
 interface SessionContextValue {
   session: SessionState;
   profile: UserProfile | null;
@@ -47,6 +49,11 @@ interface SessionContextValue {
   markSignedIn: (pending?: boolean) => void;
   /** Called before signing out, so leaving the app doesn't create a new guest on the way. */
   releaseSession: () => void;
+  /**
+   * Called with the user's ID while their account is being deleted (and with null if that
+   * fails), so the profile isn't recreated when the server removes it.
+   */
+  markClosing: (uid: string | null) => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -67,6 +74,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState<{ uid: string; profile: UserProfile | null } | null>(null);
   const [wantsSession, setWantsSession] = useState(false);
   const justSignedIn = useRef(false);
+  const closingUid = useRef<string | null>(null);
   const touchedFor = useRef<string | null>(null);
   const locale = useLocale() as Locale;
   const { theme, setTheme } = useTheme();
@@ -76,7 +84,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Auth state, and finishing a Google redirect sign-in after the page reloads.
   useEffect(() => {
     const stop = observeAuth((user) => dispatch({ type: 'AUTH_CHANGED', user }));
-    completeRedirectSignIn().catch((error: unknown) => logger.error('auth.redirect', error));
+    completeRedirectSignIn({ beforeSwitch: prepareGuestMerge }).catch((error: unknown) =>
+      logger.error('auth.redirect', error),
+    );
     return stop;
   }, []);
 
@@ -125,7 +135,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       uid,
       (next, { fromCache }) => {
         setLoaded({ uid, profile: next });
-        if (!next && !fromCache) {
+        if (!next && !fromCache && closingUid.current !== uid) {
           const isGuest = isGuestRef.current;
           createProfile(uid, { isGuest, locale, theme: isTheme(theme) ? theme : 'system' }).catch(
             (error: unknown) => logger.error('profile.create', error),
@@ -189,10 +199,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     justSignedIn.current = pending;
   }, []);
   const releaseSession = useCallback(() => setWantsSession(false), []);
+  const markClosing = useCallback((closing: string | null) => {
+    closingUid.current = closing;
+  }, []);
 
   const value = useMemo(
-    () => ({ session, profile, requireSession, markSignedIn, releaseSession }),
-    [session, profile, requireSession, markSignedIn, releaseSession],
+    () => ({ session, profile, requireSession, markSignedIn, releaseSession, markClosing }),
+    [session, profile, requireSession, markSignedIn, releaseSession, markClosing],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

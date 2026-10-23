@@ -81,3 +81,95 @@ export async function verifyEmailInEmulator(email: string): Promise<void> {
   const response = await fetch(link!);
   expect(response.ok).toBe(true);
 }
+
+function encode(value: unknown): Value {
+  if (value === null) return { nullValue: null };
+  if (typeof value === 'string') return { stringValue: value };
+  if (typeof value === 'boolean') return { booleanValue: value };
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  if (value instanceof Date) return { timestampValue: value.toISOString() };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(encode) } };
+  const fields = Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, encode(v)]),
+  );
+  return { mapValue: { fields } };
+}
+
+const documents = `${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+/** Writes a document with emulator admin rights (bypassing the rules). */
+export async function writeDoc(path: string, data: Record<string, unknown>): Promise<void> {
+  const { mapValue } = encode(data) as { mapValue: { fields: Record<string, Value> } };
+  const response = await fetch(`${documents}/${path}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: mapValue.fields }),
+  });
+  expect(response.ok, await response.text()).toBe(true);
+}
+
+export async function docExists(path: string): Promise<boolean> {
+  const response = await fetch(`${documents}/${path}`, {
+    headers: { Authorization: 'Bearer owner' },
+  });
+  return response.ok;
+}
+
+/** A tree owned by `uid`, as `createTree` would write it, without its people. */
+export async function seedTree(
+  uid: string,
+  treeId: string,
+  { name, personCount = 0 }: { name: string; personCount?: number },
+): Promise<void> {
+  const now = new Date();
+  await writeDoc(`trees/${treeId}`, {
+    name,
+    ownerId: uid,
+    memberIds: [uid],
+    roles: { [uid]: 'owner' },
+    personCount,
+    settings: {
+      nameDisplay: 'auto',
+      colorBy: 'branch',
+      showPhotos: true,
+      showDates: true,
+      defaultView: 'tree',
+      kinshipStyle: 'bd',
+    },
+    createdAt: now,
+    updatedAt: now,
+    updatedBy: uid,
+    schemaVersion: 1,
+  });
+}
+
+/** Creates an email/password account in the Auth emulator and returns its ID. */
+export async function createAccount(email: string, password: string): Promise<string> {
+  const response = await fetch(
+    `${AUTH}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    },
+  );
+  const data = (await response.json()) as { localId: string };
+  expect(response.ok).toBe(true);
+  return data.localId;
+}
+
+/** Whether the Auth emulator still has this user. */
+export async function authUserExists(uid: string): Promise<boolean> {
+  const response = await fetch(
+    `${AUTH}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:lookup`,
+    {
+      method: 'POST',
+      headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ localId: [uid] }),
+    },
+  );
+  const data = (await response.json()) as { users?: unknown[] };
+  return (data.users ?? []).length > 0;
+}

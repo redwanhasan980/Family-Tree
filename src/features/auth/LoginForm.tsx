@@ -14,10 +14,11 @@ import { signInWithEmail } from '@/lib/repositories/auth';
 import { AuthCard } from './AuthCard';
 import { FormError, FormField, PasswordField } from './FormField';
 import { GoogleButton } from './GoogleButton';
+import { prepareGuestMerge } from './guestMerge';
 import { useSession } from './SessionProvider';
 import { useAuthErrorText, useValidationText } from './useMessages';
 
-/** Log in to an existing account (AUTH-06). Moving guest trees across arrives in P3-06. */
+/** Log in to an existing account (AUTH-06). A guest's trees can then be moved across. */
 export function LoginForm() {
   const t = useTranslations('auth');
   const router = useRouter();
@@ -43,7 +44,8 @@ export function LoginForm() {
     setFormError(null);
     try {
       markSignedIn();
-      await signInWithEmail(values.email, values.password);
+      // A guest with trees gets a merge ticket first (AUTH-06).
+      await signInWithEmail(values.email, values.password, { beforeSwitch: prepareGuestMerge });
       done();
     } catch (error) {
       markSignedIn(false);

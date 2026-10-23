@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { authErrorKey } from '@/lib/domain/auth/errors';
 import { ApiError } from '@/lib/repositories/api';
 
+import { GuestMergeError } from './guestMerge';
+
 /** Turns Zod issue keys (validation namespace) into translated text. */
 export function useValidationText(): (key: string | undefined) => string | undefined {
   const t = useTranslations('validation');
@@ -14,10 +16,13 @@ export function useValidationText(): (key: string | undefined) => string | undef
   };
 }
 
-/** Turns any Firebase Auth error into translated, user-friendly text. */
+/** Turns any sign-in failure into translated, user-friendly text. */
 export function useAuthErrorText(): (error: unknown) => string {
-  const t = useTranslations('authErrors');
-  return (error) => t(authErrorKey(error));
+  const t = useTranslations();
+  return (error) =>
+    error instanceof GuestMergeError
+      ? t('merge.prepareFailed')
+      : t(`authErrors.${authErrorKey(error)}`);
 }
 
 /** Turns a failed call to our API (`ApiError`) into translated text. */

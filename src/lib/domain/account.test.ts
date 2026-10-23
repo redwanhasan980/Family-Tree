@@ -13,6 +13,7 @@ const now = new Date('2026-10-23T12:00:00Z');
 const pending = {
   ticketId: 'ticket1',
   expiresAt: '2026-10-24T11:00:00.000Z',
+  guestUid: 'guest1',
   trees: [{ id: 'tree1', name: 'করিম পরিবার', personCount: 12 }],
 };
 

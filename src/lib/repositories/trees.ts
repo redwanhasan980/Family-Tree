@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocFromCache,
+  getDocs,
   getDocsFromCache,
   onSnapshot,
   orderBy,
@@ -153,6 +154,19 @@ export async function readPerson(
   }
 }
 
+const myTreesQuery = (db: Firestore, uid: ID) =>
+  query(
+    collection(db, 'trees'),
+    where('memberIds', 'array-contains', uid),
+    orderBy('updatedAt', 'desc'),
+  );
+
+/** The user's trees once, from the server when online (the guest merge reads them). */
+export async function readMyTrees(uid: ID, db: Firestore = defaultDb()): Promise<Tree[]> {
+  const snapshot = await getDocs(myTreesQuery(db, uid));
+  return snapshot.docs.flatMap((d) => treeFromSnapshot(d) ?? []);
+}
+
 /** The user's trees, most recently updated first (dashboard, DESIGN §7.4). */
 export function subscribeMyTrees(
   uid: ID,
@@ -161,11 +175,7 @@ export function subscribeMyTrees(
   db: Firestore = defaultDb(),
 ): Unsubscribe {
   return onSnapshot(
-    query(
-      collection(db, 'trees'),
-      where('memberIds', 'array-contains', uid),
-      orderBy('updatedAt', 'desc'),
-    ),
+    myTreesQuery(db, uid),
     (snapshot) =>
       onTrees(
         snapshot.docs.flatMap((d) => treeFromSnapshot(d) ?? []),

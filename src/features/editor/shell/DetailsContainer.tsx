@@ -5,13 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { initials } from '@/lib/domain/names';
 import type { Person } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
@@ -96,10 +90,10 @@ export function DetailsContainer() {
 
   return (
     <Drawer open={Boolean(person)} onOpenChange={(open) => !open && close()}>
-      <DrawerContent>
+      {/* The summary itself describes the person, so there's no separate description. */}
+      <DrawerContent aria-describedby={undefined}>
         <DrawerHeader className="sr-only">
           <DrawerTitle>{t('editor.details')}</DrawerTitle>
-          <DrawerDescription>{t('editor.detailsSoon')}</DrawerDescription>
         </DrawerHeader>
         <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           {person && <PersonSummary person={person} />}

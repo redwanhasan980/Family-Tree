@@ -17,6 +17,8 @@ import { ProfileSettingsSchema } from '@/lib/domain/auth/forms';
 import type { ThemePreference } from '@/lib/domain/types';
 import { updateDisplayName } from '@/lib/repositories/auth';
 
+import { DeleteAccountSection } from './DeleteAccountSection';
+
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -132,6 +134,7 @@ export function SettingsForm() {
             </Button>
           </div>
         )}
+        <DeleteAccountSection />
       </Section>
     </div>
   );

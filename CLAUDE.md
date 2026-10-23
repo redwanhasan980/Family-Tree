@@ -20,7 +20,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 
 ## Tech stack (pinned in package.json once scaffolded)
 
-Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · ESLint 9 (not 10 until the React/import/a11y plugins support it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (REST from Route Handlers, no SDK) · react-easy-crop · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
+Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · ESLint 9 (not 10 until the React/import/a11y plugins support it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-flextree / d3-shape / d3-zoom (d3-scale arrives with the Timeline) · @tanstack/react-virtual · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (REST from Route Handlers, no SDK) · react-easy-crop · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
 
 ## Commands
 

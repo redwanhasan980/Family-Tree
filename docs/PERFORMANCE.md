@@ -37,3 +37,19 @@ The data load times are for the local emulators, which are much slower than Fire
 - `formatYear` reuses one `Intl.NumberFormat` per language instead of creating two per card.
 
 **Worth revisiting** (P8-07): switching the direction of a 500-person tree on a phone animates every visible card (about 0.5 s of style work at 4×); animations are already off above 300 cards. The end-of-gesture frame on the biggest trees could be split across frames if real phones show it.
+
+## Circle view (P6-05)
+
+**Method.** A Playwright script against the production build and the demo trees (as above, Chromium 4× throttled): change the depth control between 5 and 8 rings and time it to the next painted frame, then double-tap an arc and count animation frames while it zooms.
+
+**Results** (2026-10-23, same machine):
+
+| | 500 · phone | 500 · desktop | 2,000 · desktop |
+| --- | --- | --- | --- |
+| Arcs drawn (8 rings) | 379 | 379 | 1,512 |
+| One ring more or less → painted | 0.2–0.3 s | 0.2–0.3 s | about 0.8 s |
+| Zoom into a person | about 25 fps | about 27 fps | no animation (over 400 arcs) |
+
+**Changes the measurements led to:** while zooming, the arcs are drawn by one light layer of plain paths (no labels, handlers or per-arc hooks); the full, labelled arcs return when the zoom ends. That raised the zoom from about 10 to about 25 frames per second on the throttled 500-person circle. Above 400 arcs re-centring jumps without animating.
+
+**Worth revisiting** (P8-07): changing the ring count re-renders every arc; on the 2,000-person tree at 8 rings that is about 0.8 s at 4× throttle (about 0.2 s unthrottled).

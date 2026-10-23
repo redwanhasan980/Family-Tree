@@ -496,6 +496,16 @@
     "columnBranch": "Branch",
     "notInTree": "Not in the tree yet"
   },
+  "circleView": {
+    "label": "Family circle",
+    "breadcrumb": "From the start of the tree",
+    "rings": "{count, plural, one {# generation} other {# generations}}",
+    "fewerRings": "Show fewer generations",
+    "moreRings": "Show more generations",
+    "makeCentre": "Put {name} in the centre",
+    "centreHint": "Double-tap a person to put them in the centre.",
+    "inCentre": "{name}, in the centre"
+  },
   "issues": {
     "cycle": "This can't be done: it would make someone their own ancestor.",
     "tooManyBiologicalParents": "{gender, select, male {This person already has a father.} female {This person already has a mother.} other {This person already has two parents.}}",

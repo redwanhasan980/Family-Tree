@@ -10,6 +10,15 @@ import { uiStore, useUi } from '@/stores/uiStore';
 import { initialCollapsed } from './collapse';
 import { planReveal, startingPerson } from './focus';
 
+const NONE: ReadonlySet<string> = new Set();
+
+export interface DescendantOptions {
+  /** The deepest generation shown; deeper people are counted (the Circle's rings). */
+  maxDepth?: number;
+  /** Whether the view folds branches (Tree, List); the Circle doesn't. */
+  collapsible?: boolean;
+}
+
 export interface DescendantView {
   graph: FamilyGraph;
   /** Where the tree starts (its root). */
@@ -25,7 +34,10 @@ export interface DescendantView {
  * view's own collapsed branches. Without a saved state, big trees open a few
  * generations deep (DESIGN §13.1).
  */
-export function useDescendantView(view: ViewKind): DescendantView {
+export function useDescendantView(
+  view: ViewKind,
+  { maxDepth, collapsible = true }: DescendantOptions = {},
+): DescendantView {
   const graph = useTree(selectGraph);
   const rootId = useTree((s) => s.tree?.rootPersonId);
   const focusSetting = useUi((s) => s.focusId);
@@ -34,13 +46,20 @@ export function useDescendantView(view: ViewKind): DescendantView {
   const start = useMemo(() => startingPerson(graph, rootId), [graph, rootId]);
   const focusId = focusSetting && graph.persons.has(focusSetting) ? focusSetting : start;
   const collapsed = useMemo(() => {
+    if (!collapsible) return NONE;
     if (saved) return new Set(saved);
     const full = focusId ? buildDescendantTree(graph, focusId) : null;
     return new Set(full ? initialCollapsed(full) : []);
-  }, [saved, graph, focusId]);
+  }, [collapsible, saved, graph, focusId]);
   const descTree = useMemo(
-    () => (focusId ? buildDescendantTree(graph, focusId, { collapsed }) : null),
-    [graph, focusId, collapsed],
+    () =>
+      focusId
+        ? buildDescendantTree(graph, focusId, {
+            collapsed,
+            ...(maxDepth !== undefined && { maxDepth }),
+          })
+        : null,
+    [graph, focusId, collapsed, maxDepth],
   );
   return { graph, start, focusId, collapsed, descTree };
 }

@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
 import { DeletePersonFlow } from '@/features/person/DeletePersonDialog';
+import { CircleView } from '@/features/views/circle/CircleView';
 import { ListView } from '@/features/views/list/ListView';
 import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
@@ -156,6 +157,7 @@ function ViewArea() {
   }
   if (view === 'tree') return <TreeView />;
   if (view === 'list') return <ListView />;
+  if (view === 'circle') return <CircleView />;
   return <ViewPlaceholder view={view} />;
 }
 

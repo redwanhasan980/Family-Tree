@@ -21,6 +21,7 @@ export function TreeControls({
   onFit,
   onCentre,
   onExpandAll,
+  orientation = true,
   className,
 }: {
   onZoomIn: () => void;
@@ -28,6 +29,8 @@ export function TreeControls({
   onFit: () => void;
   onCentre?: () => void;
   onExpandAll?: () => void;
+  /** The Tree view's direction switch (TV-02); other views leave it out. */
+  orientation?: boolean;
   className?: string;
 }) {
   const t = useTranslations('treeView');
@@ -77,16 +80,18 @@ export function TreeControls({
           <CrosshairIcon aria-hidden />
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(button, horizontal && 'bg-accent')}
-        aria-pressed={horizontal}
-        aria-label={t('leftToRight')}
-        onClick={() => uiStore.getState().setOrientation(horizontal ? 'vertical' : 'horizontal')}
-      >
-        <RotateCwSquareIcon aria-hidden />
-      </Button>
+      {orientation && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(button, horizontal && 'bg-accent')}
+          aria-pressed={horizontal}
+          aria-label={t('leftToRight')}
+          onClick={() => uiStore.getState().setOrientation(horizontal ? 'vertical' : 'horizontal')}
+        >
+          <RotateCwSquareIcon aria-hidden />
+        </Button>
+      )}
       {onExpandAll && (
         <Button
           variant="ghost"

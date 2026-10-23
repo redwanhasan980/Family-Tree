@@ -132,7 +132,7 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Forms & validation | react-hook-form + **Zod** | 7.x / 4.x | Shared schemas for client, server and import validation. |
 | i18n | **next-intl** | 4.x | App Router support, ICU messages, locale routing. |
 | Theme | next-themes | 0.4.x | System/light/dark. |
-| Layout math | d3-hierarchy, **d3-flextree**, d3-shape, d3-zoom, d3-interpolate, d3-scale | 3.x / 2.x / 4.x | Tree layout with variable-width couple nodes, sunburst partition, arcs, pan/zoom, timeline year scale. |
+| Layout math | **d3-flextree**, d3-shape, d3-zoom, d3-scale (R3) | 2.x / 3.x / 3.x / 4.x | Tree layout with variable-width couple nodes, circle arcs, pan/zoom, timeline year scale. The circle's partition and its zoom are a few lines of our own (§13.4), so `d3-hierarchy` and `d3-interpolate` aren't needed. |
 | Virtualization | @tanstack/react-virtual | 3.x | Long lists. |
 | Export | **html-to-image**, **jsPDF** | 1.11 / 4.x | Rasterize browser-rendered output (correct Bangla shaping) and paginate into a PDF. SVG views are serialized directly; html-to-image is used for the HTML views and Family book pages (§14). |
 | Images | react-easy-crop | 6.x | Square crop with zoom and rotation; the crop is drawn to a canvas and saved as a JPEG of at most 1600 px (no compression library). |
@@ -995,14 +995,17 @@ Shortcuts (`features/editor/shortcuts.ts`) match letters by the physical key whe
 
 ### 13.4 Circle view (CV)
 
-**Layout** (`features/views/circle/layout.ts`):
+**Layout** (`features/views/circle/layout.ts`, pure and tested):
 
-1. `d3.hierarchy(descTree)` → `.sum(d => (d.children.length ? 0 : 1))`, so each leaf counts 1 and every person gets a visible slice → `d3.partition().size([2π, depthLimit])`.
-2. Radii: centre disc `r0 = 64` (compact: 52) shows the focus person's photo and name (CV-07). Ring `d` covers `[r0 + (d−1)·w, r0 + d·w − 2]` with `w = 72` (compact: 56).
-3. `d3.arc()` with `padAngle 0.004` and `cornerRadius 3`. A 2 px surface stroke separates arcs. The **seam** at 12 o'clock (between the last and the first branch) gets a 6 px gap, which also marks the start of the reading order (see §21.3).
-4. **Labels** (CV-02). If the arc length at mid-radius is at least the text width, the name is tangential, following a curved path. Otherwise, if the ring width allows, it is radial. Otherwise it is hidden, with a tooltip on hover/tap. Labels on the left half are flipped so they never read upside down. Spouses appear in the tooltip ("& Rahima", CV-05).
-5. **Zoom to person** (CV-03): animate `x0..x1` and the depth domain to the clicked node's subtree (the classic zoomable sunburst), using `d3-interpolate` driven by `motion`. Breadcrumbs lead back.
-6. **Depth limit** (CV-04): 2–8 rings, default 5. Deeper generations show a thin outer tick on their ancestor's arc.
+1. The `DescNode` tree from `useDescendantView('circle', { maxDepth: rings, collapsible: false })` is partitioned directly (no `d3-hierarchy`): each person's slice is proportional to the number of leaves under them (a person without shown children counts 1), so everyone gets a visible slice. Angles are clockwise from 12 o'clock, so the first branch starts at the top.
+2. Radii: centre disc `r0 = 64` (compact: 52) shows the focus person's photo or initials and name (CV-07). Ring `d` covers `[r0 + (d−1)·w, r0 + d·w − 2]` with `w = 72` (compact: 56).
+3. Arc paths come from `d3-shape`'s `arc()` with `padAngle` up to 0.004 and `cornerRadius 3`. A 2 px surface stroke separates arcs. The **seam** at 12 o'clock (between the last and the first branch) is a 6 px surface line, which also marks the start of the reading order (see §21.3). Fills are `color-mix(in oklab, <data colour> p%, var(--card))` with p = 55 at ring 1, 8 less per ring, at least 20; ring-1 arcs have a 3 px full-strength band on the inner edge. Repeated people (VIS-09) have a dashed edge.
+4. **Labels** (CV-02, `fitLabel`): measured with the canvas cache. If the arc at mid-radius is longer than the name plus padding, the name follows the arc (`textPath`, drawn anticlockwise in the bottom half so it is upright); otherwise, if the ring is wide enough, it runs along the radius (flipped on the left half); otherwise it is hidden and shown in the info card.
+5. **Info card** (CV-05): the hovered (desktop) or selected person, with years, husbands or wives as label forms ("স্ত্রী: রহিমা"), and *Put … in the centre*. On phones, where the selection bar already shows the person, it is a one-line strip with an icon button.
+6. **Zoom to person** (CV-03): double-tap an arc or use *Put … in the centre*. Re-centring goes through the shared focus (so the URL, Back to the start and the Tree view agree), and a breadcrumb from the tree's start leads back. The change animates the classic zoomable sunburst: a window (`x0..x1` and a depth offset, `projectArc`) is eased over 550 ms with `requestAnimationFrame` (no animation library), zooming into the chosen slice or out of the previous centre. While it runs, a light layer of plain paths replaces the arcs. Off with reduced motion and above 400 arcs.
+7. **Depth limit** (CV-04): 2–8 rings, default 5, remembered per tree (`uiStore.circleRings`). Arcs with descendants beyond the outer ring get a thin outer tick.
+8. **Keyboard:** arcs are `treeitem`s with a roving tabindex; ↑ goes inward (to the parent or the centre), ↓ outward (to the first child), ←/→ around the ring; Enter opens the details. The centre disc's name comes from an invisible text ("Karim, in the centre") rather than an `aria-label`, which would have to repeat its visible initials.
+9. **Legend:** shared with the other views (P6-07).
 
 ### 13.5 List view (LV)
 

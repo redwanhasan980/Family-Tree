@@ -183,6 +183,17 @@
   .tree-toggle {
     outline: none;
   }
+  /* Circle view arcs (DESIGN §13.4): a lighter tint on hover, a ring for keyboard focus. */
+  .circle-arc > path:first-child {
+    transition: filter 150ms ease;
+  }
+  .circle-arc:hover > path:first-child {
+    filter: brightness(1.06) saturate(1.1);
+  }
+  .circle-arc:focus-visible .circle-focus {
+    stroke: var(--ring);
+    stroke-width: 3px;
+  }
   .tree-animate .tree-card,
   .tree-animate .tree-toggle {
     transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);

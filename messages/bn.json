@@ -496,6 +496,16 @@
     "columnBranch": "শাখা",
     "notInTree": "এখনো বংশতালিকায় নেই"
   },
+  "circleView": {
+    "label": "পরিবারের বৃত্ত",
+    "breadcrumb": "বংশতালিকার শুরু থেকে",
+    "rings": "{count, plural, other {# প্রজন্ম}}",
+    "fewerRings": "কম প্রজন্ম দেখান",
+    "moreRings": "আরও প্রজন্ম দেখান",
+    "makeCentre": "মাঝখানে আনুন: {name}",
+    "centreHint": "কাউকে মাঝখানে আনতে দুবার ট্যাপ করুন।",
+    "inCentre": "মাঝখানে: {name}"
+  },
   "issues": {
     "cycle": "এটি করা যাবে না: এতে কেউ নিজেরই পূর্বপুরুষ হয়ে যাবেন।",
     "tooManyBiologicalParents": "{gender, select, male {এই ব্যক্তির বাবা আগে থেকেই আছেন।} female {এই ব্যক্তির মা আগে থেকেই আছেন।} other {এই ব্যক্তির বাবা-মা দুজনই আগে থেকে আছেন।}}",

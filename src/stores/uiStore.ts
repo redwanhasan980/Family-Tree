@@ -21,6 +21,8 @@ export interface UiState {
   orientation: 'vertical' | 'horizontal';
   /** The List view as family lines or as everyone (LV-04). */
   listMode: ListMode;
+  /** Generations the Circle view shows around the centre (CV-04). */
+  circleRings: number;
   /** Someone to bring into view; the current view shows them, then clears it (VIS-04). */
   revealRequest: { personId: ID; nonce: number } | null;
   /** The person whose delete confirmation is open (PER-06, the Del key). */
@@ -46,6 +48,7 @@ export interface UiState {
   setCollapsed: (view: ViewKind, keys: readonly string[]) => void;
   setOrientation: (orientation: UiState['orientation']) => void;
   setListMode: (mode: ListMode) => void;
+  setCircleRings: (rings: number) => void;
   /** Selects someone and asks the current view to expand the way to them and centre them. */
   reveal: (personId: ID) => void;
   revealDone: () => void;
@@ -54,6 +57,11 @@ export interface UiState {
 }
 
 export type ListMode = 'outline' | 'directory';
+
+/** The Circle view's depth control (CV-04): 2–8 rings, 5 at first. */
+export const MIN_CIRCLE_RINGS = 2;
+export const MAX_CIRCLE_RINGS = 8;
+export const DEFAULT_CIRCLE_RINGS = 5;
 
 /** Adding a relative (REL-02): the quick-add menu, or a form for one kind of relative. */
 export type AddKind = 'menu' | 'child' | 'spouse' | 'parent' | 'sibling' | 'link';
@@ -78,6 +86,7 @@ interface Saved {
   collapsed?: UiState['collapsed'];
   orientation?: UiState['orientation'];
   listMode?: ListMode;
+  circleRings?: number;
 }
 
 // Per-browser convenience only: storage may be blocked or full.
@@ -97,6 +106,7 @@ function save(state: UiState): void {
       collapsed: state.collapsed,
       orientation: state.orientation,
       listMode: state.listMode,
+      circleRings: state.circleRings,
     };
     window.localStorage.setItem(storageKey(state.treeId), JSON.stringify(saved));
   } catch {
@@ -115,6 +125,7 @@ export function createUiStore() {
     collapsed: {},
     orientation: 'vertical',
     listMode: 'outline',
+    circleRings: DEFAULT_CIRCLE_RINGS,
     revealRequest: null,
     deletingId: null,
     searchOpen: false,
@@ -128,6 +139,7 @@ export function createUiStore() {
         collapsed: saved.collapsed ?? {},
         orientation: saved.orientation ?? 'vertical',
         listMode: saved.listMode ?? 'outline',
+        circleRings: saved.circleRings ?? DEFAULT_CIRCLE_RINGS,
         addFlow: null,
         selectedId: null,
         focusId: focusId ?? null,
@@ -173,6 +185,12 @@ export function createUiStore() {
     },
     setListMode: (listMode) => {
       set({ listMode });
+      save(get());
+    },
+    setCircleRings: (rings) => {
+      set({
+        circleRings: Math.min(MAX_CIRCLE_RINGS, Math.max(MIN_CIRCLE_RINGS, Math.round(rings))),
+      });
       save(get());
     },
     reveal: (personId) =>

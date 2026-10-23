@@ -15,8 +15,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
+import { Avatar, useShownPhoto } from '@/features/media/Avatar';
 import { startAdd } from '@/features/person/AddRelativeFlows';
-import { initials } from '@/lib/domain/names';
 import type { ID, Person } from '@/lib/domain/types';
 import { cn } from '@/lib/utils';
 import { useTree } from '@/stores/treeStore';
@@ -25,14 +25,10 @@ import { uiStore } from '@/stores/uiStore';
 function Row({ person, onDone }: { person: Person; onDone: () => void }) {
   const t = useTranslations('unplaced');
   const { name, years } = usePersonText(person);
+  const photo = useShownPhoto(person.photo);
   return (
     <li className="flex min-h-12 items-center gap-2 py-1">
-      <span
-        aria-hidden
-        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold"
-      >
-        {initials(name.text, name.lang)}
-      </span>
+      <Avatar name={name} photo={photo} size="sm" className="bg-muted text-foreground" />
       <span className="min-w-0 flex-1">
         <span lang={name.lang} className="block truncate font-medium">
           {name.text}

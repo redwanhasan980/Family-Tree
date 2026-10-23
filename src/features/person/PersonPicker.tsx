@@ -11,7 +11,8 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
-import { compareNames, displayName, initials } from '@/lib/domain/names';
+import { Avatar, useShownPhoto } from '@/features/media/Avatar';
+import { compareNames, displayName } from '@/lib/domain/names';
 import { searchPersons } from '@/lib/domain/search';
 import type { ID, Locale, Person } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
@@ -20,14 +21,10 @@ const SHOWN = 30;
 
 function Row({ person }: { person: Person }) {
   const { name, years } = usePersonText(person);
+  const photo = useShownPhoto(person.photo);
   return (
     <>
-      <span
-        aria-hidden
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
-      >
-        {initials(name.text, name.lang)}
-      </span>
+      <Avatar name={name} photo={photo} size="xs" className="bg-muted text-foreground" />
       <span lang={name.lang} className="min-w-0 flex-1 truncate">
         {name.text}
       </span>

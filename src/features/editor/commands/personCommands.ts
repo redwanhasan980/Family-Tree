@@ -12,10 +12,12 @@ import {
   type FamilyGraph,
 } from '@/lib/domain/graph';
 import { parentLinkId, spouseLinkId, spousePair } from '@/lib/domain/ids';
+import { parsePhotoId } from '@/lib/domain/media';
 import {
   LIMITS,
   NewPersonSchema,
   PersonDetailsSchema,
+  PhotoRefSchema,
   type NewPersonInput,
 } from '@/lib/domain/schemas';
 import type {
@@ -25,6 +27,7 @@ import type {
   ParentLink,
   Person,
   PersonDetails,
+  PhotoRef,
   Relationship,
   SpouseLink,
   SpouseStatus,
@@ -467,6 +470,38 @@ export function updatePerson(
     inverse: [update(ctx, path, inverseData)],
     touched: [path],
     coalesceKey: `person:${personId}`,
+  });
+}
+
+/**
+ * Sets, replaces or removes a person's photo (MED-05). It is its own undo step, apart
+ * from typed edits, and only takes photos stored for this person in this tree.
+ */
+export function setPersonPhoto(
+  ctx: CommandContext,
+  personId: ID,
+  photo: PhotoRef | null,
+): BuildResult {
+  const current = ctx.graph.persons.get(personId);
+  if (!current) return fail('missingPerson');
+  if (photo) {
+    const path = parsePhotoId(photo.publicId);
+    const valid = PhotoRefSchema.safeParse(photo).success;
+    if (!valid || path?.treeId !== ctx.treeId || path.personId !== personId) {
+      return fail('invalidPhoto');
+    }
+  }
+  const before = current.photo ?? null;
+  if (same(before, photo)) {
+    return { ok: false, issues: [{ severity: 'warning', code: 'noChanges' }] };
+  }
+  const path = personPath(ctx, personId);
+  return ok({
+    id: commandId(),
+    labelKey: !photo ? 'removePhoto' : before ? 'replacePhoto' : 'addPhoto',
+    forward: [update(ctx, path, { photo: photo ?? DELETE_FIELD })],
+    inverse: [update(ctx, path, { photo: before ?? DELETE_FIELD })],
+    touched: [path],
   });
 }
 

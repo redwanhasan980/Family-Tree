@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  CameraIcon,
   CheckIcon,
   FocusIcon,
   PencilIcon,
@@ -16,9 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
 import { useIssueText } from '@/features/editor/useIssueText';
+import { Avatar } from '@/features/media/Avatar';
+import { photosEnabled } from '@/features/media/cloudinaryUrl';
+import { Lightbox } from '@/features/media/Lightbox';
+import { PhotoDialog } from '@/features/media/PhotoDialog';
 import { ageAt, today } from '@/lib/domain/dates';
 import { personDateWarnings } from '@/lib/domain/graph';
-import { displayName, initials } from '@/lib/domain/names';
+import { displayName } from '@/lib/domain/names';
 import type { ID, Locale, Person } from '@/lib/domain/types';
 import { selectGraph, useTree } from '@/stores/treeStore';
 import { uiStore } from '@/stores/uiStore';
@@ -39,6 +44,12 @@ function useAgeText(person: Person, now: Date): string {
   if (!age) return '';
   if (person.isLiving) return t(age.approximate ? 'ageApprox' : 'age', { years: age.years });
   return t(age.approximate ? 'ageAtDeathApprox' : 'ageAtDeath', { years: age.years });
+}
+
+function SelfStar() {
+  return (
+    <StarIcon className="absolute -top-1 -left-1 size-6 fill-highlight text-highlight drop-shadow-sm" />
+  );
 }
 
 /** Unlikely dates around this person, naming the relative when it's about them. */
@@ -92,19 +103,44 @@ export function PersonPanel({ person }: { person: Person }) {
   const editing = editingId === person.id;
   const isSelf = selfId === person.id;
   const age = useAgeText(person, now);
+  const tm = useTranslations('media');
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const canAddPhotos = photosEnabled();
 
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className="relative flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary"
-        >
-          {initials(name.text, name.lang)}
-          {isSelf && (
-            <StarIcon className="absolute -right-1 -bottom-1 size-5 fill-highlight text-highlight" />
+        <div className="relative shrink-0">
+          {person.photo ? (
+            <button
+              type="button"
+              className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              aria-label={tm('view', { name: name.text })}
+              onClick={() => setLightboxOpen(true)}
+            >
+              <Avatar name={name} photo={person.photo} size="lg">
+                {isSelf && <SelfStar />}
+              </Avatar>
+            </button>
+          ) : (
+            <Avatar name={name} size="lg">
+              {isSelf && <SelfStar />}
+            </Avatar>
           )}
-        </span>
+          {canAddPhotos && (
+            <button
+              type="button"
+              className="group absolute -right-3 -bottom-3 flex size-11 items-center justify-center rounded-full outline-none"
+              aria-label={person.photo ? tm('changePhoto') : tm('addPhoto')}
+              onClick={() => setPhotoOpen(true)}
+            >
+              <span className="flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm group-hover:bg-primary/90 group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50">
+                <CameraIcon className="size-4" aria-hidden />
+              </span>
+            </button>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <h2 lang={name.lang} className="text-lg leading-snug font-semibold">
             {name.text}
@@ -157,6 +193,17 @@ export function PersonPanel({ person }: { person: Person }) {
         <PersonFamily personId={person.id} />
       </section>
       <Separator />
+      {canAddPhotos && (
+        <PhotoDialog person={person} name={name} open={photoOpen} onOpenChange={setPhotoOpen} />
+      )}
+      {person.photo && (
+        <Lightbox
+          name={name}
+          photo={person.photo}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+        />
+      )}
       <div className="flex flex-col gap-2">
         <Button
           variant="outline"

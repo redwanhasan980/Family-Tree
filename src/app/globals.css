@@ -161,6 +161,11 @@
 
 /* Tree view cards (DESIGN §13.2–13.3). Positions are CSS transforms so they can animate. */
 @layer components {
+  /* An open dialog or sheet turns pointer events off for the page; toasts (Undo) must
+     stay tappable above it. */
+  [data-sonner-toaster] [data-sonner-toast] {
+    pointer-events: auto;
+  }
   .tree-card {
     cursor: pointer;
     outline: none;

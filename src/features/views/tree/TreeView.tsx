@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
 import { acceptsShortcuts, editorShortcut } from '@/features/editor/shortcuts';
+import { useShownPhoto } from '@/features/media/Avatar';
+import { photoUrl } from '@/features/media/cloudinaryUrl';
 import { startAdd } from '@/features/person/AddRelativeFlows';
 import { useSelfPerson } from '@/features/person/useSelfPerson';
 import {
@@ -25,7 +27,7 @@ import { uiStore, useUi } from '@/stores/uiStore';
 
 import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
 import { createNavigator, stepFor } from './navigation';
-import { PersonCard } from './PersonCard';
+import { AvatarClip, PersonCard } from './PersonCard';
 import { PersonMenu } from './PersonMenu';
 import { TreeControls } from './TreeControls';
 import { UnplacedTray } from './UnplacedTray';
@@ -84,6 +86,7 @@ const CardFor = memo(function CardFor({
 }) {
   const t = useTranslations('treeView');
   const { name, years } = usePersonText(person);
+  const photo = useShownPhoto(person.photo);
   const shownYears = showDates ? years : '';
   const deceased = !person.isLiving;
   const label = [name.text, shownYears, deceased && t('deceased'), isSelf && t('you')]
@@ -104,6 +107,7 @@ const CardFor = memo(function CardFor({
       accent={accent}
       selected={selected}
       isSelf={isSelf}
+      photoHref={photo ? photoUrl(photo, 'thumb') : null}
       compact={compact}
       fontFamily={fonts.family}
       fontsVersion={fonts.version}
@@ -463,6 +467,9 @@ export function TreeView() {
           role="tree"
           aria-label={t('label')}
         >
+          <defs>
+            <AvatarClip />
+          </defs>
           <g ref={layerRef}>
             <Connectors lines={layout.lines} />
             {upTo && focusCard && (

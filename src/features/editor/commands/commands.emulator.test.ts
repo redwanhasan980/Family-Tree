@@ -35,6 +35,7 @@ import {
   addSibling,
   addSpouse,
   deletePerson,
+  setPersonPhoto,
   updatePerson,
 } from './personCommands';
 import {
@@ -237,6 +238,15 @@ describe('commands against the emulator and the security rules', () => {
     await roundTrip(
       updatePerson(await context(), 'G', { nickname: undefined, names: { bn: 'আব্দুল করিম' } }),
     );
+    const photo = (suffix: string) => ({
+      publicId: `shikor/test/${TREE}/G/${suffix}`,
+      version: 2,
+      width: 1200,
+      height: 1200,
+    });
+    await roundTrip(setPersonPhoto(await context(), 'G', photo('firstPhoto1')));
+    await roundTrip(setPersonPhoto(await context(), 'G', photo('secondPhoto')));
+    await roundTrip(setPersonPhoto(await context(), 'G', null));
     await roundTrip(deletePerson(await context(), 'D1'));
     await roundTrip(deletePerson(await context(), 'S1', { withDescendants: true }));
   });

@@ -16,6 +16,17 @@ const STYLE = {
 } as const;
 
 const YEARS_SIZE = 12;
+
+/** A circle clip shared by every card's photo; the view defines it once (<AvatarClip />). */
+export const AVATAR_CLIP = 'tree-avatar-clip';
+
+export function AvatarClip() {
+  return (
+    <clipPath id={AVATAR_CLIP} clipPathUnits="objectBoundingBox">
+      <circle cx={0.5} cy={0.5} r={0.5} />
+    </clipPath>
+  );
+}
 const YEARS_LINE = 16;
 
 export interface PersonCardProps {
@@ -27,6 +38,8 @@ export interface PersonCardProps {
   selected: boolean;
   /** The user marked this person "This is me" (PER-10). */
   isSelf?: boolean;
+  /** The photo thumbnail (MED-04); initials show while it loads or if it fails. */
+  photoHref?: string | null;
   compact: boolean;
   fontFamily: string;
   /** Changes when fonts finish loading, so names are measured again. */
@@ -51,6 +64,7 @@ export const PersonCard = memo(function PersonCard({
   accent,
   selected,
   isSelf = false,
+  photoHref = null,
   compact,
   fontFamily,
   label,
@@ -100,14 +114,7 @@ export const PersonCard = memo(function PersonCard({
       {accent && (
         <rect x={5} y={12} width={4} height={card.h - 24} rx={2} fill={accent} aria-hidden />
       )}
-      <circle
-        cx={s.avatarLeft + avatarR}
-        cy={card.h / 2}
-        r={avatarR}
-        fill="var(--muted)"
-        stroke={accent ?? 'var(--border)'}
-        strokeWidth={accent ? 2 : 1}
-      />
+      <circle cx={s.avatarLeft + avatarR} cy={card.h / 2} r={avatarR} fill="var(--muted)" />
       <text
         x={s.avatarLeft + avatarR}
         y={card.h / 2}
@@ -121,6 +128,26 @@ export const PersonCard = memo(function PersonCard({
       >
         {initials(name.text, name.lang)}
       </text>
+      {photoHref && (
+        <image
+          href={photoHref}
+          x={s.avatarLeft}
+          y={card.h / 2 - avatarR}
+          width={s.avatar}
+          height={s.avatar}
+          preserveAspectRatio="xMidYMid slice"
+          clipPath={`url(#${AVATAR_CLIP})`}
+          aria-hidden
+        />
+      )}
+      <circle
+        cx={s.avatarLeft + avatarR}
+        cy={card.h / 2}
+        r={avatarR}
+        fill="none"
+        stroke={accent ?? 'var(--border)'}
+        strokeWidth={accent ? 2 : 1}
+      />
       {isSelf && (
         <g
           transform={`translate(${s.avatarLeft + s.avatar - 12}, ${card.h / 2 + avatarR - 12})`}

@@ -480,7 +480,8 @@
     "notReady": "The tree is still loading.",
     "unknown": "This change isn't possible.",
     "diedBeforeBorn": "The date of death is before the date of birth.",
-    "livingTooOld": "{years, number} years old and still living? Check the birth year, or mark them as deceased."
+    "livingTooOld": "{years, number} years old and still living? Check the birth year, or mark them as deceased.",
+    "invalidPhoto": "This photo doesn't belong to this person."
   },
   "relatives": {
     "menuTitle": "Add a relative of {name}",
@@ -551,6 +552,9 @@
     "setSpouseStatus": "changing a marriage",
     "treeSettings": "changing tree settings",
     "updatePerson": "editing details",
+    "addPhoto": "adding a photo",
+    "replacePhoto": "changing a photo",
+    "removePhoto": "removing a photo",
     "other": "the last change"
   },
   "unplaced": {
@@ -559,5 +563,31 @@
     "body": "These people aren't connected to the person the tree starts from. Connect each one to a relative.",
     "connect": "Connect",
     "show": "Show"
+  },
+  "media": {
+    "addPhoto": "Add a photo",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove photo",
+    "title": "Photo of {name}",
+    "takePhoto": "Take a photo",
+    "choosePhoto": "Choose a photo",
+    "dropHint": "or drop a photo here",
+    "formats": "JPEG, PNG, WebP or HEIC, up to 10 MB.",
+    "cropTitle": "Crop the photo",
+    "cropHint": "Drag to move, pinch or use the slider to zoom.",
+    "zoom": "Zoom",
+    "rotate": "Rotate",
+    "back": "Back",
+    "usePhoto": "Use this photo",
+    "uploading": "Uploading… {percent, number, percent}",
+    "uploadFailed": "The photo couldn't be uploaded. Check your connection and try again.",
+    "tooBig": "This photo is larger than 10 MB. Choose a smaller one.",
+    "notImage": "This file can't be opened as a photo here. Try a JPEG or PNG.",
+    "offline": "Photos need an internet connection.",
+    "unavailable": "Photos aren't available yet.",
+    "saved": "Photo saved.",
+    "removed": "Photo removed.",
+    "view": "View the photo of {name}",
+    "lightbox": "Photo of {name}"
   }
 }

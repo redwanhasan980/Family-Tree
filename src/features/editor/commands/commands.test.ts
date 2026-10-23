@@ -14,6 +14,7 @@ import {
   addSibling,
   addSpouse,
   deletePerson,
+  setPersonPhoto,
   updatePerson,
 } from './personCommands';
 import {
@@ -237,6 +238,41 @@ describe('updatePerson (PER-05)', () => {
     ]);
     expect(codes(updatePerson(ctx(), 'G', { gender: 'male' }))).toEqual(['noChanges']);
     expect(codes(updatePerson(ctx(), 'ghost', {}))).toEqual(['missingPerson']);
+  });
+});
+
+describe('setPersonPhoto (MED-05)', () => {
+  const photo = (suffix: string, personId = 'G', treeId = 't1') => ({
+    publicId: `shikor/test/${treeId}/${personId}/${suffix}`,
+    version: 3,
+    width: 800,
+    height: 800,
+  });
+
+  it('adds, replaces and removes a photo, each as its own undo step', () => {
+    const { db, ctx } = setup();
+    const added = roundTrip(db, setPersonPhoto(ctx(), 'G', photo('first0001')));
+    expect(added.labelKey).toBe('addPhoto');
+    expect(added.coalesceKey).toBeUndefined();
+    expect(db.docs.get(paths.person('t1', 'G'))!.photo).toEqual(photo('first0001'));
+    expect(roundTrip(db, setPersonPhoto(ctx(), 'G', photo('second001'))).labelKey).toBe(
+      'replacePhoto',
+    );
+    expect(roundTrip(db, setPersonPhoto(ctx(), 'G', null)).labelKey).toBe('removePhoto');
+    expect(db.docs.get(paths.person('t1', 'G'))!.photo).toBeUndefined();
+  });
+
+  it('only takes photos stored for this person in this tree', () => {
+    const { ctx } = setup();
+    expect(codes(setPersonPhoto(ctx(), 'G', photo('other0001', 'S1')))).toEqual(['invalidPhoto']);
+    expect(codes(setPersonPhoto(ctx(), 'G', photo('other0001', 'G', 't2')))).toEqual([
+      'invalidPhoto',
+    ]);
+    expect(codes(setPersonPhoto(ctx(), 'G', { ...photo('bad0001'), version: 0 }))).toEqual([
+      'invalidPhoto',
+    ]);
+    expect(codes(setPersonPhoto(ctx(), 'missing', photo('x0000001')))).toEqual(['missingPerson']);
+    expect(codes(setPersonPhoto(ctx(), 'G', null))).toEqual(['noChanges']);
   });
 });
 

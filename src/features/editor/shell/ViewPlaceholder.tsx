@@ -3,7 +3,8 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-import { compareNames, displayName, initials } from '@/lib/domain/names';
+import { Avatar, useShownPhoto } from '@/features/media/Avatar';
+import { compareNames, displayName } from '@/lib/domain/names';
 import type { Locale, Person, ViewKind } from '@/lib/domain/types';
 import { cn } from '@/lib/utils';
 import { useTree } from '@/stores/treeStore';
@@ -14,6 +15,7 @@ import { VIEW_ICONS } from './views';
 
 function PersonRow({ person, selected }: { person: Person; selected: boolean }) {
   const { name, years } = usePersonText(person);
+  const photo = useShownPhoto(person.photo);
   return (
     <li>
       <button
@@ -25,12 +27,7 @@ function PersonRow({ person, selected }: { person: Person; selected: boolean }) 
           selected && 'bg-primary/10',
         )}
       >
-        <span
-          aria-hidden
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold"
-        >
-          {initials(name.text, name.lang)}
-        </span>
+        <Avatar name={name} photo={photo} size="sm" className="bg-muted text-foreground" />
         <span lang={name.lang} className="min-w-0 flex-1 truncate font-medium">
           {name.text}
         </span>

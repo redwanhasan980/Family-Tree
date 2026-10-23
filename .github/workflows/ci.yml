@@ -75,7 +75,10 @@ jobs:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm install --frozen-lockfile
+      # A test cloud name turns photos on; the tests intercept every Cloudinary request.
       - run: pnpm build
+        env:
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: e2e-cloud
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v6

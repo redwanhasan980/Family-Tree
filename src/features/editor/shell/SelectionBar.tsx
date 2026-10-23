@@ -4,7 +4,7 @@ import { ChevronUpIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
-import { initials } from '@/lib/domain/names';
+import { Avatar, useShownPhoto } from '@/features/media/Avatar';
 import type { Person } from '@/lib/domain/types';
 import { cn } from '@/lib/utils';
 import { useTree } from '@/stores/treeStore';
@@ -18,6 +18,7 @@ function Bar({ person, actions }: { person: Person; actions?: ReactNode }) {
   const t = useTranslations('editor');
   const tr = useTranslations('relatives');
   const { name, years } = usePersonText(person);
+  const photo = useShownPhoto(person.photo);
   return (
     <div className="flex items-center gap-2 border-t bg-card px-2 py-1.5">
       <button
@@ -26,12 +27,7 @@ function Bar({ person, actions }: { person: Person; actions?: ReactNode }) {
         onClick={() => uiStore.getState().setDetailsOpen(true)}
         aria-label={`${t('openDetails')}: ${name.text}`}
       >
-        <span
-          aria-hidden
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-        >
-          {initials(name.text, name.lang)}
-        </span>
+        <Avatar name={name} photo={photo} size="sm" />
         <span className="min-w-0 flex-1">
           <span lang={name.lang} className="block truncate font-semibold">
             {name.text}

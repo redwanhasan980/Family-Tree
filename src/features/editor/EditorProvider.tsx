@@ -1,9 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
+import {
+  flushPhotoDeletions,
+  photoIdsIn,
+  queuePhotoDeletion,
+  removedPhotos,
+} from '@/features/media/photoCleanup';
 import type { ID } from '@/lib/domain/types';
 import { logger } from '@/lib/logger';
 import { commitBatch, newId } from '@/lib/repositories/writes';
@@ -41,6 +47,28 @@ export function useEditor(): Editor {
   return editor;
 }
 
+/** A photo someone in the open tree has, or an undo or redo step could bring back. */
+function photoStillNeeded(publicId: string): boolean {
+  for (const person of treeStore.getState().persons.values()) {
+    if (person.photo?.publicId === publicId) return true;
+  }
+  const { undoStack, redoStack } = historyStore.getState();
+  return [...undoStack.map((entry) => entry.command), ...redoStack].some(
+    (command) =>
+      photoIdsIn(command.forward).has(publicId) || photoIdsIn(command.inverse).has(publicId),
+  );
+}
+
+/** Only people's current photos count once the editor closes: its history goes with it. */
+function photoInTree(publicId: string): boolean {
+  for (const person of treeStore.getState().persons.values()) {
+    if (person.photo?.publicId === publicId) return true;
+  }
+  return false;
+}
+
+const CLEANUP_DELAY_MS = 5000;
+
 const NOT_READY: BuildResult = { ok: false, issues: [{ severity: 'error', code: 'notReady' }] };
 
 /** Commands, undo and redo for the open tree, as the signed-in user. */
@@ -74,13 +102,39 @@ export function EditorProvider({ actorId, children }: { actorId: ID; children: R
         });
         if (result.ok && (allowWarnings || result.warnings.length === 0)) {
           void executor.run(result.command);
+          // A replaced, removed or deleted photo waits until nothing can bring it back.
+          queuePhotoDeletion(removedPhotos(result.command.inverse, result.command.forward));
         }
         return result;
       },
-      undo: () => void executor.undo(),
-      redo: () => void executor.redo(),
+      undo: () => {
+        const command = historyStore.getState().undoStack.at(-1)?.command;
+        void executor.undo();
+        if (command) queuePhotoDeletion(removedPhotos(command.forward, command.inverse));
+      },
+      redo: () => {
+        const command = historyStore.getState().redoStack.at(-1);
+        void executor.redo();
+        if (command) queuePhotoDeletion(removedPhotos(command.inverse, command.forward));
+      },
     };
   }, [actorId, t]);
+
+  // Photos left over from earlier visits go now; others once the history lets them go
+  // (P5-06), and the rest when the editor closes.
+  useEffect(() => {
+    void flushPhotoDeletions(photoStillNeeded);
+    let timer: number | undefined;
+    const stop = historyStore.subscribe(() => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void flushPhotoDeletions(photoStillNeeded), CLEANUP_DELAY_MS);
+    });
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+      void flushPhotoDeletions(photoInTree);
+    };
+  }, []);
 
   return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
 }

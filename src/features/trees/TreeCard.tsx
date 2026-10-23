@@ -10,8 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Avatar } from '@/features/media/Avatar';
 import { Link } from '@/i18n/navigation';
-import { displayName, initials, scriptOf } from '@/lib/domain/names';
+import { displayName, scriptOf } from '@/lib/domain/names';
 import type { ID, Locale, Tree } from '@/lib/domain/types';
 
 import { useRootPerson } from './useMyTrees';
@@ -39,19 +40,16 @@ export function TreeCard({
   const role = tree.roles[uid] ?? 'viewer';
   const rootName = root ? displayName(root.names, tree.settings.nameDisplay, locale) : null;
   const treeLang = scriptOf(tree.name);
-  const cover = rootName?.text
-    ? initials(rootName.text, rootName.lang)
-    : initials(tree.name, treeLang);
+  const cover = rootName?.text ? rootName : { text: tree.name, lang: treeLang };
 
   return (
     <article className="relative flex w-full flex-col gap-4 rounded-2xl border bg-card p-4 transition-shadow focus-within:ring-[3px] focus-within:ring-ring/50 hover:shadow-md sm:p-5">
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary"
-        >
-          {cover}
-        </span>
+        <Avatar
+          name={cover}
+          photo={tree.settings.showPhotos ? root?.photo : null}
+          className="size-12 text-lg"
+        />
         <div className="min-w-0 flex-1">
           <h2 className="text-lg leading-snug font-semibold">
             <Link

@@ -8,7 +8,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import { withReturnFocus } from './returnFocus';
+import { ignoringToasts, withReturnFocus } from './returnFocus';
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -47,6 +47,7 @@ function DialogContent({
   children,
   showCloseButton = true,
   onCloseAutoFocus,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
@@ -62,6 +63,7 @@ function DialogContent({
           className,
         )}
         onCloseAutoFocus={withReturnFocus(onCloseAutoFocus)}
+        onInteractOutside={ignoringToasts(onInteractOutside)}
         {...props}
       >
         {children}

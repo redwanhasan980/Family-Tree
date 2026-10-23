@@ -47,6 +47,12 @@ export default defineConfig({
     {
       name: 'App',
       command: `pnpm start --port ${PORT}`,
+      // Test-only Cloudinary settings: the tests intercept every Cloudinary request.
+      env: {
+        CLOUDINARY_API_KEY: 'e2e-key',
+        CLOUDINARY_API_SECRET: 'e2e-secret',
+        APP_ENV: 'test',
+      },
       url: `${baseURL}/en`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

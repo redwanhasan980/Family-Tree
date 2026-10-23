@@ -41,3 +41,16 @@ export function withReturnFocus(handler?: (event: Event) => void) {
     }, 0);
   };
 }
+
+/**
+ * For `onInteractOutside`: a tap on a toast (its Undo button) is not a tap outside the
+ * dialog or sheet, so it doesn't close it.
+ */
+export function ignoringToasts<E extends Event>(handler?: (event: E) => void) {
+  return (event: E) => {
+    handler?.(event);
+    const target = event.target;
+    if (target instanceof Element && target.closest('[data-sonner-toaster]'))
+      event.preventDefault();
+  };
+}

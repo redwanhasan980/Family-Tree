@@ -831,7 +831,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 | Store | Contents | Persistence |
 | --- | --- | --- |
 | `treeStore` | `tree`, `persons`, `relationships`, `version`, `sync` (pending/offline flags) | none (Firestore cache) |
-| `uiStore` | `view`, `selectedId`, `detailsOpen` (phones), `focusId`, `addFlow` (the quick-add menu or form), `collapsed` per view, `orientation`, `revealRequest` (search → the view shows someone, VIS-04), `deletingId`, `searchOpen` | `collapsed`, `view` and `orientation` in localStorage per tree (VIS-10). `openTree(treeId, defaultView, { view, focusId, allowed })` starts from the URL, then this browser's memory, then the tree's default, skipping views whose flag is off; `closeTree()` runs when the editor unmounts |
+| `uiStore` | `view`, `selectedId`, `detailsOpen` (phones), `focusId`, `pedigreeId` (TV-06), `addFlow` (the quick-add menu or form), `collapsed` per view, `orientation`, `listMode` (LV-04), `circleRings` (CV-04), `revealRequest` (search → the view shows someone, VIS-04), `deletingId`, `searchOpen` | `collapsed`, `view`, `orientation`, `listMode` and `circleRings` in localStorage per tree (VIS-10). `openTree(treeId, defaultView, { view, focusId, allowed })` starts from the URL, then this browser's memory, then the tree's default, skipping views whose flag is off; `closeTree()` runs when the editor unmounts |
 | `historyStore` | `undo[]`, `redo[]` | none |
 | `prefsStore` | locale, theme, density (compact/comfortable) | cookie + `users/{uid}` (not yet built: language and theme live in the profile through `SessionProvider` since P1) |
 
@@ -991,6 +991,10 @@ Shortcuts (`features/editor/shortcuts.ts`) match letters by the physical key whe
 
 **Focus:** dialogs and sheets opened from code (shortcuts, a menu handing over to a form) have no trigger for Radix to return focus to, so `components/ui/returnFocus.ts` gives focus back to the last element focused outside any overlay.
 
+**Screen readers:** `role="tree"` is on the group of cards only; the toggles, the "+" and the arrows are buttons beside it, because a tree may contain nothing but tree items. Each card's name ("Karim, 1931–2004, deceased") is an invisible text inside it, with the visible initials, name lines and years `aria-hidden`: an `aria-label` would have to contain every visible word, the initials included (axe `label-content-name-mismatch`). The Circle's centre disc does the same.
+
+**Colours legend (VIS-06):** a palette button at the end of the view toolbar (Tree and Circle, `views/shared/Legend.tsx`) opens what the colours mean for the tree's *colour by* setting: each branch by the child who starts it (the eighth and later grouped as "Other branches"), the generations of the ramp, or man, woman and "not given" with their icons. Nothing shows for *no colour*.
+
 **Performance:** cull cards outside the viewport plus margin; the active and selected cards always render so keyboard focus can reach them. Cards, toggles and the connector layer are memoized, so a pan renders only the cards that came into view. The connector `<path>` is batched into one path per family. The target is 2,000 persons with at most about 400 rendered at once. The P4-13 benchmark (`docs/PERFORMANCE.md`) met NFR-PERF-03 on the 500-person fixture at 4× CPU throttle, so the **Canvas2D renderer** fallback (risk R-04) is not needed for now.
 
 ### 13.4 Circle view (CV)
@@ -1018,7 +1022,9 @@ Shortcuts (`features/editor/shortcuts.ts`) match letters by the physical key whe
 
 ### 13.6 Ancestor view (pedigree, TV-06)
 
-`buildAncestorTree` laid out with `d3.tree()`, horizontally, the person on the left and parents to the right (father above, mother below). It reuses the person card and camera. It is entered from a person's menu ("Show ancestors").
+`buildAncestorTree` (6 generations) laid out by `views/tree/pedigree.ts` (pure and tested, no `d3.tree()`): the person on the left, a column per generation to the right, father above mother; people without parents take the next row and everyone else sits midway between their parents. It returns the Tree view's layout shape with keys from the person upward (`me/father/grandfather`), so the Tree view reuses its cards, connectors, culling, camera and keyboard navigation (with the horizontal direction: → goes to the parents). Non-biological parent lines are dashed; repeated ancestors (pedigree collapse after a cousin marriage) are link cards. A card whose line goes on beyond the last column has an arrow that shows *their* ancestors.
+
+It is entered from a person's menu or the details panel (*Show ancestors*), which sets `uiStore.pedigreeId` and switches to the Tree view; a banner "Ancestors of Karim · Back to the family tree" leads back, and *Show the tree from here* (`focus`) leaves it too. In this mode the direction switch, *Expand all* and the "show parents" arrow are hidden, and "Find someone" goes back to the family tree when the person isn't among the ancestors.
 
 ### 13.7 Family card view (FC, R1)
 

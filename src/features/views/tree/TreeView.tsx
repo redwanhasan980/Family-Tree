@@ -1,9 +1,10 @@
 'use client';
 
-import { ArrowUpIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react';
+import { ArrowRightIcon, ArrowUpIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
 import { acceptsShortcuts, editorShortcut } from '@/features/editor/shortcuts';
@@ -11,7 +12,7 @@ import { useShownPhoto } from '@/features/media/Avatar';
 import { photoUrl } from '@/features/media/cloudinaryUrl';
 import { startAdd } from '@/features/person/AddRelativeFlows';
 import { useSelfPerson } from '@/features/person/useSelfPerson';
-import { branchOf, parentsOf, unplacedPersons } from '@/lib/domain/graph';
+import { branchOf, buildAncestorTree, parentsOf, unplacedPersons } from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
 import type { ID, Locale, Person } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
@@ -19,12 +20,14 @@ import { uiStore, useUi } from '@/stores/uiStore';
 
 import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
 import { createNavigator, stepFor } from './navigation';
+import { layoutPedigree } from './pedigree';
 import { AvatarClip, PersonCard } from './PersonCard';
 import { PersonMenu } from './PersonMenu';
-import { TreeControls } from './TreeControls';
+import { toolbarButton, TreeControls } from './TreeControls';
 import { UnplacedTray } from './UnplacedTray';
 import { accentColor } from '../shared/colors';
 import { FocusBanner } from '../shared/FocusBanner';
+import { LegendButton } from '../shared/Legend';
 import { useCamera } from '../shared/useCamera';
 import { useDescendantView, useRevealRequest } from '../shared/useDescendantView';
 import { useElementSize } from '../shared/useElementSize';
@@ -202,17 +205,31 @@ export function TreeView() {
     (s) => !s.fromServer.relationships && s.relationships.size === 0 && s.persons.size > 1,
   );
   const selectedId = useUi((s) => s.selectedId);
-  const orientation = useUi((s) => s.orientation);
+  const treeOrientation = useUi((s) => s.orientation);
+  const pedigreeSetting = useUi((s) => s.pedigreeId);
   const desktop = useIsDesktop();
   const metrics = desktop ? COMFORTABLE : COMPACT;
   const { selfId } = useSelfPerson();
   const view = useDescendantView('tree');
-  const { graph, start, focusId, collapsed, descTree } = view;
-  const layout = useMemo(
-    () => (descTree ? layoutTree(descTree, metrics, orientation) : null),
-    [descTree, metrics, orientation],
+  const { graph, start, collapsed, descTree } = view;
+  // TV-06: someone's ancestors instead, laid out left to right.
+  const pedigreeId = pedigreeSetting && graph.persons.has(pedigreeSetting) ? pedigreeSetting : null;
+  const pedigree = useMemo(() => {
+    const root = pedigreeId ? buildAncestorTree(graph, pedigreeId) : null;
+    return root ? layoutPedigree(root, metrics) : null;
+  }, [graph, pedigreeId, metrics]);
+  const orientation = pedigree ? 'horizontal' : treeOrientation;
+  // The card the view starts from: the focus person, or the pedigree's person.
+  const focusId = pedigreeId ?? view.focusId;
+  const familyLayout = useMemo(
+    () => (descTree && !pedigreeId ? layoutTree(descTree, metrics, treeOrientation) : null),
+    [descTree, pedigreeId, metrics, treeOrientation],
   );
-  const branches = useMemo(() => (descTree ? branchOf(descTree) : new Map()), [descTree]);
+  const layout: TreeLayout | null = pedigree ?? familyLayout;
+  const branches = useMemo(
+    () => (descTree && !pedigree ? branchOf(descTree) : new Map<string, number | null>()),
+    [descTree, pedigree],
+  );
   const navigate = useMemo(
     () => (layout ? createNavigator(layout, orientation) : null),
     [layout, orientation],
@@ -235,7 +252,7 @@ export function TreeView() {
   // Frame the tree when it opens, the focus or direction changes, or the card size does,
   // and keep framing it while it loads until the user moves or changes anything.
   const fitted = useRef<string | null>(null);
-  const fitKey = `${treeId}|${focusId}|${orientation}|${desktop}`;
+  const fitKey = `${treeId}|${focusId}|${pedigreeId !== null}|${orientation}|${desktop}`;
   useEffect(() => {
     if (!layout || size.width === 0) return;
     const fresh = fitted.current !== fitKey;
@@ -369,8 +386,10 @@ export function TreeView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [fit]);
 
-  // VIS-04: open the way to the person, then centre them once they're laid out.
+  // VIS-04: open the way to the person, then centre them once they're laid out. Someone
+  // outside the pedigree is shown in the family tree.
   useRevealRequest('tree', view, (personId) => {
+    if (pedigree && !pedigree.cardsOf.has(personId)) uiStore.getState().showAncestors(null);
     pendingReveal.current = personId;
   });
 
@@ -402,12 +421,16 @@ export function TreeView() {
     layout.cards[0]?.key ??
     null;
   const animate = visible.length <= ANIMATE_LIMIT;
+  const generations = layout.cards.reduce((most, card) => Math.max(most, card.depth + 1), 1);
   const nameOf = (id: ID) => {
     const person = graph.persons.get(id);
     return person ? displayName(person.names, settings.nameDisplay, locale).text : '';
   };
   // Show the parents' tree: the father first, as the tree's root usually is.
-  const upTo = focusParents.find((p) => p.gender === 'male') ?? focusParents[0];
+  const upTo = pedigree
+    ? undefined
+    : (focusParents.find((p) => p.gender === 'male') ?? focusParents[0]);
+  const focusName = displayName(graph.persons.get(focusId)!.names, settings.nameDisplay, locale);
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-background">
@@ -415,8 +438,6 @@ export function TreeView() {
         <svg
           ref={svgRef}
           className={`h-full w-full touch-none font-sans select-none ${animate ? 'tree-animate' : ''}`}
-          role="tree"
-          aria-label={t('label')}
         >
           <defs>
             <AvatarClip />
@@ -440,32 +461,38 @@ export function TreeView() {
                 <ArrowUpIcon x={-7} y={-7} width={14} height={14} color="var(--muted-foreground)" />
               </g>
             )}
-            {visible.map((card) => {
-              const person = graph.persons.get(card.personId);
-              if (!person) return null;
-              const accent = accentColor(settings.colorBy, {
-                branch: branches.get(card.nodeKey) ?? null,
-                generation: card.depth,
-                gender: person.gender,
-              });
-              return (
-                <CardFor
-                  key={card.key}
-                  card={card}
-                  person={person}
-                  layout={layout}
-                  accent={accent}
-                  selected={card.personId === selectedId}
-                  isSelf={card.personId === selfId}
-                  compact={!desktop}
-                  fonts={fonts}
-                  showDates={settings.showDates}
-                  tabbable={card.key === tabbableKey}
-                  onActivate={activate}
-                  onKeyDown={onCardKey}
-                />
-              );
-            })}
+            {/* Only cards inside the tree role; the buttons below sit beside it (ARIA). */}
+            <g
+              role="tree"
+              aria-label={pedigree ? t('ancestorsLabel', { name: focusName.text }) : t('label')}
+            >
+              {visible.map((card) => {
+                const person = graph.persons.get(card.personId);
+                if (!person) return null;
+                const accent = accentColor(settings.colorBy, {
+                  branch: branches.get(card.nodeKey) ?? null,
+                  generation: card.depth,
+                  gender: person.gender,
+                });
+                return (
+                  <CardFor
+                    key={card.key}
+                    card={card}
+                    person={person}
+                    layout={layout}
+                    accent={accent}
+                    selected={card.personId === selectedId}
+                    isSelf={card.personId === selfId}
+                    compact={!desktop}
+                    fonts={fonts}
+                    showDates={settings.showDates}
+                    tabbable={card.key === tabbableKey}
+                    onActivate={activate}
+                    onKeyDown={onCardKey}
+                  />
+                );
+              })}
+            </g>
             {visible.map(
               (card) =>
                 card.toggle && (
@@ -510,15 +537,65 @@ export function TreeView() {
                   </g>
                 ),
             )}
+            {pedigree &&
+              visible.map(
+                (card) =>
+                  pedigree.more.has(card.key) && (
+                    <g
+                      key={`m:${card.key}`}
+                      className="tree-toggle"
+                      role="button"
+                      tabIndex={-1}
+                      aria-label={t('moreAncestors', { name: nameOf(card.personId) })}
+                      style={{
+                        transform: `translate(${card.x + card.w + 18}px, ${card.y + card.h / 2}px)`,
+                        cursor: 'pointer',
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        uiStore.getState().showAncestors(card.personId);
+                      }}
+                    >
+                      <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+                      <circle r={12} fill="var(--background)" stroke="var(--border)" />
+                      <ArrowRightIcon
+                        x={-7}
+                        y={-7}
+                        width={14}
+                        height={14}
+                        color="var(--muted-foreground)"
+                      />
+                    </g>
+                  ),
+              )}
           </g>
         </svg>
       </PersonMenu>
 
-      <FocusBanner
-        focusId={focusId}
-        start={start}
-        className="absolute top-3 left-3 max-w-[calc(100%-1.5rem)]"
-      />
+      {pedigree ? (
+        <div className="absolute top-3 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-full border bg-background/95 py-1 pr-1 pl-3 text-sm shadow-sm">
+          <span className="truncate">
+            {t.rich('ancestorsOf', {
+              name: focusName.text,
+              person: (chunks) => <strong lang={focusName.lang}>{chunks}</strong>,
+            })}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-full"
+            onClick={() => uiStore.getState().showAncestors(null)}
+          >
+            {t('backToTree')}
+          </Button>
+        </div>
+      ) : (
+        <FocusBanner
+          focusId={focusId}
+          start={start}
+          className="absolute top-3 left-3 max-w-[calc(100%-1.5rem)]"
+        />
+      )}
 
       {loadingLinks && (
         <div
@@ -546,9 +623,18 @@ export function TreeView() {
             : undefined
         }
         onExpandAll={
-          collapsed.size > 0 ? () => uiStore.getState().setCollapsed('tree', []) : undefined
+          !pedigree && collapsed.size > 0
+            ? () => uiStore.getState().setCollapsed('tree', [])
+            : undefined
         }
-      />
+        orientation={!pedigree}
+      >
+        <LegendButton
+          heads={pedigree ? [] : (descTree?.children.map((child) => child.personId) ?? [])}
+          generations={generations}
+          className={toolbarButton}
+        />
+      </TreeControls>
     </div>
   );
 }

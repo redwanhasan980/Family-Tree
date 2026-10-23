@@ -163,7 +163,7 @@ async function main() {
   await page.waitForTimeout(1500);
   await takeLongTasks(page);
 
-  const box = (await page.locator('svg[role=tree]').boundingBox())!;
+  const box = (await page.locator('svg:has([role=tree])').boundingBox())!;
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const pan = () =>

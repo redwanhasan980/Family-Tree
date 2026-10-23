@@ -5,11 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Screen readers: the Tree view's cards now read their full name (with years and "deceased"), and the expand, add and arrow buttons are no longer inside the list of people, as accessibility checkers expect.
+
 ### Added
 
 - Phase 6 (in progress), more ways to see the family:
   - **List view:** the family as an indented outline with d'Aboville numbers (1, 1.1, 1.1.2 …, in Bangla digits in Bangla), photos, years, profession, husbands and wives, and which mother or father a child is from when a parent had more than one family. Branches open and close like the tree, and long lists stay fast (only the rows on screen are drawn). The selected row adds a relative or moves a child up or down among their brothers and sisters; on a computer, rows can also be dragged. It is fully usable with the keyboard and a screen reader (arrow keys, Home/End, Enter for details, Alt+↑/↓ to move).
   - **Circle view:** the family as rings around the person in the centre, one ring per generation, each person's slice sized by their descendants and coloured by branch, generation or gender. Names follow the arcs or run outward when there is room; the rest show when you point at or tap a person, with their husbands or wives. Double-tap someone (or *Put … in the centre*) to zoom into their part of the family, and use the breadcrumb to go back. Show 2 to 8 generations; arrow keys move in, out and around.
+  - **Ancestors:** *Show ancestors* (in a person's menu or details) turns the Tree view into that person's pedigree: parents to the right, father above mother, up to six generations, with an arrow to go further back and a way back to the family tree.
+  - **Colours legend:** a palette button in the Tree and Circle views explains the colours: which branch, which generation, or man and woman.
+  - **Moving between views** keeps the selected person and who the family is shown from.
   - **Everyone:** the List view can also show everyone in the tree at once, as a table on a computer and cards on a phone: find people by name in either script or by nickname, sort by name, year of birth or generation, and filter by living or deceased, men or women, generation and family branch.
 - Phase 5, person details and photos:
   - **Full details:** birth and death dates that can be just a year or "about", places, profession, education, up to three phone numbers, an email address, present and permanent addresses, a description, and up to 20 details of your own (such as a blood group). Fields check themselves as you type, in Bangla or English, and accept Bangla digits; the form saves only what changed, as before.

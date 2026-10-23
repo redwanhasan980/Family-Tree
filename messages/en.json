@@ -455,7 +455,12 @@
     "cardControls": "Tree controls",
     "loading": "Loading the family…",
     "selected": "Selected: {name}",
-    "you": "You"
+    "you": "You",
+    "showAncestors": "Show ancestors",
+    "ancestorsOf": "Ancestors of <person>{name}</person>",
+    "ancestorsLabel": "Ancestors of {name}",
+    "backToTree": "Back to the family tree",
+    "moreAncestors": "Show the ancestors of {name}"
   },
   "listView": {
     "label": "Family list",
@@ -505,6 +510,13 @@
     "makeCentre": "Put {name} in the centre",
     "centreHint": "Double-tap a person to put them in the centre.",
     "inCentre": "{name}, in the centre"
+  },
+  "legend": {
+    "button": "What the colours mean",
+    "title": "Colours",
+    "branchOther": "Other branches",
+    "generationsFrom": "Generation {number} and later",
+    "notGiven": "Not given"
   },
   "issues": {
     "cycle": "This can't be done: it would make someone their own ancestor.",

@@ -1,6 +1,6 @@
 'use client';
 
-import { FlagIcon, FocusIcon, PanelRightOpenIcon } from 'lucide-react';
+import { FlagIcon, FocusIcon, HistoryIcon, PanelRightOpenIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 
@@ -29,6 +29,7 @@ const ADD_KINDS: Exclude<AddKind, 'menu'>[] = ['child', 'spouse', 'parent', 'sib
  */
 export function PersonMenu({ children }: { children: ReactNode }) {
   const t = useTranslations('relatives');
+  const tv = useTranslations('treeView');
   const locale = useLocale() as Locale;
   const editor = useEditor();
   const [personId, setPersonId] = useState<ID | null>(null);
@@ -80,6 +81,9 @@ export function PersonMenu({ children }: { children: ReactNode }) {
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => uiStore.getState().focus(person.id)}>
             <FocusIcon aria-hidden /> {t('showFromHere')}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => uiStore.getState().showAncestors(person.id)}>
+            <HistoryIcon aria-hidden /> {tv('showAncestors')}
           </ContextMenuItem>
           {rootId !== person.id && (
             <ContextMenuItem

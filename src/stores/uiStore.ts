@@ -14,6 +14,8 @@ export interface UiState {
   /** Phones: whether the selected person's details sheet is open (not just the bar). */
   detailsOpen: boolean;
   focusId: ID | null;
+  /** The Tree view shows this person's ancestors instead of descendants (TV-06). */
+  pedigreeId: ID | null;
   addFlow: AddFlow | null;
   /** Collapsed path keys per view; missing until the view saves a state. */
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
@@ -42,7 +44,10 @@ export interface UiState {
   setDetailsOpen: (open: boolean) => void;
   startAdd: (flow: AddFlow) => void;
   endAdd: () => void;
+  /** Shows the tree from someone: their descendants (and leaves the pedigree). */
   focus: (personId: ID | null) => void;
+  /** Opens the Tree view's pedigree of someone, or goes back to the family tree. */
+  showAncestors: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
   /** Replaces a view's collapsed keys (expand all, show N generations, defaults). */
   setCollapsed: (view: ViewKind, keys: readonly string[]) => void;
@@ -121,6 +126,7 @@ export function createUiStore() {
     selectedId: null,
     detailsOpen: false,
     focusId: null,
+    pedigreeId: null,
     addFlow: null,
     collapsed: {},
     orientation: 'vertical',
@@ -143,6 +149,7 @@ export function createUiStore() {
         addFlow: null,
         selectedId: null,
         focusId: focusId ?? null,
+        pedigreeId: null,
         revealRequest: null,
         deletingId: null,
         searchOpen: false,
@@ -153,6 +160,7 @@ export function createUiStore() {
         treeId: null,
         selectedId: null,
         focusId: null,
+        pedigreeId: null,
         addFlow: null,
         revealRequest: null,
         deletingId: null,
@@ -166,7 +174,12 @@ export function createUiStore() {
     setDetailsOpen: (detailsOpen) => set({ detailsOpen }),
     startAdd: (addFlow) => set({ addFlow }),
     endAdd: () => set({ addFlow: null }),
-    focus: (focusId) => set({ focusId }),
+    focus: (focusId) => set({ focusId, pedigreeId: null }),
+    showAncestors: (pedigreeId) => {
+      if (pedigreeId) set({ pedigreeId, view: 'tree' });
+      else set({ pedigreeId: null });
+      save(get());
+    },
     toggleCollapsed: (key) => {
       const { view, collapsed } = get();
       const keys = new Set(collapsed[view] ?? []);

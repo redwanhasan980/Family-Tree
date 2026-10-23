@@ -45,9 +45,6 @@ export async function familyOfFour(page: Page): Promise<void> {
 
 /** Switches view with the header tabs (desktop) or the bottom bar (phones). */
 export async function openView(page: Page, name: 'Tree' | 'Family' | 'Circle' | 'List') {
-  if (isPhone(page) && (await page.getByRole('button', { name: 'Clear selection' }).isVisible())) {
-    await page.getByRole('button', { name: 'Clear selection' }).click();
-  }
   await page
     .getByRole('navigation', { name: 'Views' })
     .filter({ visible: true })

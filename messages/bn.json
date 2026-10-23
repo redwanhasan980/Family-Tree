@@ -455,7 +455,12 @@
     "cardControls": "বংশতালিকার নিয়ন্ত্রণ",
     "loading": "পরিবারের তথ্য আসছে…",
     "selected": "নির্বাচিত: {name}",
-    "you": "আপনি"
+    "you": "আপনি",
+    "showAncestors": "পূর্বপুরুষ দেখান",
+    "ancestorsOf": "পূর্বপুরুষ: <person>{name}</person>",
+    "ancestorsLabel": "পূর্বপুরুষ: {name}",
+    "backToTree": "বংশতালিকায় ফিরে যান",
+    "moreAncestors": "পূর্বপুরুষ দেখান: {name}"
   },
   "listView": {
     "label": "পরিবারের তালিকা",
@@ -505,6 +510,13 @@
     "makeCentre": "মাঝখানে আনুন: {name}",
     "centreHint": "কাউকে মাঝখানে আনতে দুবার ট্যাপ করুন।",
     "inCentre": "মাঝখানে: {name}"
+  },
+  "legend": {
+    "button": "রঙের মানে",
+    "title": "রং",
+    "branchOther": "অন্যান্য শাখা",
+    "generationsFrom": "প্রজন্ম {number} ও পরের",
+    "notGiven": "উল্লেখ নেই"
   },
   "issues": {
     "cycle": "এটি করা যাবে না: এতে কেউ নিজেরই পূর্বপুরুষ হয়ে যাবেন।",

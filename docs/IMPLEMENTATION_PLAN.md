@@ -278,10 +278,10 @@ gantt
 - [x] **P6-03** **Directory mode:** sortable, filterable table (desktop) and cards (mobile). *(LV-04)*
 - [x] **P6-04** **Circle layout** (pure): partition with leaf weighting, radii, padding, the 6 px seam gap, tint ramp per ring, label placement (tangential / radial / hidden, with flipping). Geometry tests. *(CV-01/02)*
 - [x] **P6-05** `CircleView`: arcs, centre disc with photo, tooltips with spouses, selection, **zoom to person** with breadcrumbs, depth control (2–8), legend. *(CV-03/04/05/07)*
-- [ ] **P6-06** **Ancestor (pedigree) mode** in the tree view. *(TV-06)*
-- [ ] **P6-07** Shared legend; generation labels *(TV-10, Could)*; minimap *(TV-07, Could)*.
-- [ ] **P6-08** View switching keeps selection and focus; collapse state is persisted per view.
-- [ ] **P6-09** Tests: layout snapshots; axe on the list view; E2E view switching and circle zoom.
+- [x] **P6-06** **Ancestor (pedigree) mode** in the tree view. *(TV-06)*
+- [x] **P6-07** Shared legend. Generation labels *(TV-10, Could)* and the minimap *(TV-07, Could)* are not built; they move to the P8 polish list.
+- [x] **P6-08** View switching keeps selection and focus; collapse state is persisted per view.
+- [x] **P6-09** Tests: layout snapshots; axe on the list view; E2E view switching and circle zoom.
 - [ ] **P6-10** **Family card model** (pure): `buildFamilyCard` (parents, partners with their children, siblings, trail, child counts), with unit tests for multiple spouses, unknown parents, adoptive parents and references. *(FC-01/03/05/07)*
 - [ ] **P6-11** **Family card view:** parents row, siblings strip, couple cards with the spouse switcher, children grid, and empty "+ add" slots wired to the quick-add and bulk-add flows. *(FC-01/03/04/05/07)*
 - [ ] **P6-12** **Family navigation:** focus changes through `uiStore` and `router.push` (browser Back works), breadcrumb, direction-aware transitions, sibling swipes, live-region announcements. *(FC-02/06/08)*

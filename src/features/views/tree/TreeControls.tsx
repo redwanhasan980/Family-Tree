@@ -14,7 +14,12 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { uiStore, useUi } from '@/stores/uiStore';
 
+import type { ReactNode } from 'react';
+
 /** Zoom, fit, centre, direction and expand-all buttons over the Tree view (TV-02/03). */
+/** A button in the view toolbar; extra buttons passed as children use it too. */
+export const toolbarButton = 'size-11 rounded-none first:rounded-t-xl last:rounded-b-xl lg:size-10';
+
 export function TreeControls({
   onZoomIn,
   onZoomOut,
@@ -22,6 +27,7 @@ export function TreeControls({
   onCentre,
   onExpandAll,
   orientation = true,
+  children,
   className,
 }: {
   onZoomIn: () => void;
@@ -31,11 +37,13 @@ export function TreeControls({
   onExpandAll?: () => void;
   /** The Tree view's direction switch (TV-02); other views leave it out. */
   orientation?: boolean;
+  /** Extra buttons at the end, styled by `toolbarButton`. */
+  children?: ReactNode;
   className?: string;
 }) {
   const t = useTranslations('treeView');
   const horizontal = useUi((s) => s.orientation === 'horizontal');
-  const button = 'size-11 rounded-none first:rounded-t-xl last:rounded-b-xl lg:size-10';
+  const button = toolbarButton;
   // Phones pinch to zoom (DESIGN §13.3), so +/− stay on larger screens.
   const zoomButton = `${button} hidden lg:inline-flex`;
   return (
@@ -103,6 +111,7 @@ export function TreeControls({
           <ChevronsDownUpIcon className="rotate-180" aria-hidden />
         </Button>
       )}
+      {children}
     </div>
   );
 }

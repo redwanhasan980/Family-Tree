@@ -210,8 +210,10 @@ test.describe('keyboard', () => {
     await page.keyboard.press('ArrowDown');
     const first = page.getByRole('treeitem', { selected: true });
     await expect(first).toBeFocused();
-    const firstName = (await first.getAttribute('aria-label'))!;
-    expect(['Karim', 'Rahima']).toContain(firstName);
+    const firstName = (await card(page, 'Karim').evaluate((el) => el === document.activeElement))
+      ? 'Karim'
+      : 'Rahima';
+    await expect(card(page, firstName)).toBeFocused();
     await page.keyboard.press(firstName === 'Karim' ? 'ArrowRight' : 'ArrowLeft');
     await expect(card(page, firstName === 'Karim' ? 'Rahima' : 'Karim')).toBeFocused();
     await page.keyboard.press('ArrowUp');

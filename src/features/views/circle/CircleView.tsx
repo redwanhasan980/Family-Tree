@@ -12,7 +12,7 @@ import { useShownPhoto } from '@/features/media/Avatar';
 import { photoUrl } from '@/features/media/cloudinaryUrl';
 import { useSelfPerson } from '@/features/person/useSelfPerson';
 import { AvatarClip, AVATAR_CLIP } from '@/features/views/tree/PersonCard';
-import { TreeControls } from '@/features/views/tree/TreeControls';
+import { toolbarButton, TreeControls } from '@/features/views/tree/TreeControls';
 import { UnplacedTray } from '@/features/views/tree/UnplacedTray';
 import {
   buildDescendantTree,
@@ -43,6 +43,7 @@ import {
   type ZoomWindow,
 } from './layout';
 import { accentColor } from '../shared/colors';
+import { LegendButton } from '../shared/Legend';
 import { measureText, wrapText } from '../shared/measureText';
 import { useCamera } from '../shared/useCamera';
 import { useDescendantView, useRevealRequest } from '../shared/useDescendantView';
@@ -805,7 +806,13 @@ export function CircleView() {
           onZoomIn={() => camera.zoomBy(1.25)}
           onZoomOut={() => camera.zoomBy(0.8)}
           onFit={() => frame(true)}
-        />
+        >
+          <LegendButton
+            heads={descTree?.children.map((child) => child.personId) ?? []}
+            generations={shown.rings + 1}
+            className={toolbarButton}
+          />
+        </TreeControls>
         <RingsControl />
       </div>
       <UnplacedTray ids={unplaced} className="absolute right-3 bottom-3" />

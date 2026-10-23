@@ -91,7 +91,6 @@ export const PersonCard = memo(function PersonCard({
     <g
       className="tree-card"
       role="treeitem"
-      aria-label={label}
       aria-selected={selected}
       aria-level={card.depth + 1}
       tabIndex={tabbable ? 0 : -1}
@@ -101,6 +100,11 @@ export const PersonCard = memo(function PersonCard({
       onClick={() => onActivate(card)}
       onKeyDown={(event) => onKeyDown?.(event, card)}
     >
+      {/* The card's name for screen readers, from content: an aria-label would have to
+          repeat every visible word, initials included (axe label-content-name-mismatch). */}
+      <text opacity={0} fontSize={1} className="pointer-events-none">
+        {label}
+      </text>
       <rect
         className="tree-card-frame"
         width={card.w}

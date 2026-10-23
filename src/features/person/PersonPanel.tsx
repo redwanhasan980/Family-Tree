@@ -4,6 +4,7 @@ import {
   CameraIcon,
   CheckIcon,
   FocusIcon,
+  HistoryIcon,
   PencilIcon,
   StarIcon,
   Trash2Icon,
@@ -104,6 +105,7 @@ export function PersonPanel({ person }: { person: Person }) {
   const isSelf = selfId === person.id;
   const age = useAgeText(person, now);
   const tm = useTranslations('media');
+  const tv = useTranslations('treeView');
   const [photoOpen, setPhotoOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const canAddPhotos = photosEnabled();
@@ -223,6 +225,16 @@ export function PersonPanel({ person }: { person: Person }) {
           }}
         >
           <FocusIcon aria-hidden /> {t('show')}
+        </Button>
+        <Button
+          variant="outline"
+          className="h-11 justify-start"
+          onClick={() => {
+            uiStore.getState().showAncestors(person.id);
+            uiStore.getState().setDetailsOpen(false);
+          }}
+        >
+          <HistoryIcon aria-hidden /> {tv('showAncestors')}
         </Button>
         <Button
           variant="ghost"

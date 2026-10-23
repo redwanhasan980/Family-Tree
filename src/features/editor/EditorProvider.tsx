@@ -1,0 +1,71 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { toast } from 'sonner';
+
+import type { ID } from '@/lib/domain/types';
+import { logger } from '@/lib/logger';
+import { commitBatch, newId } from '@/lib/repositories/writes';
+import { historyStore } from '@/stores/historyStore';
+import { selectGraph, treeStore } from '@/stores/treeStore';
+
+import { createExecutor } from './commands/executor';
+
+import type { BuildResult, CommandContext } from './commands';
+
+export interface Editor {
+  /**
+   * Builds a command against the open tree and runs it when it is valid (CLAUDE.md rule
+   * 4). The result comes back so the UI can show problems. Writes are not awaited.
+   */
+  run: (build: (ctx: CommandContext) => BuildResult) => BuildResult;
+  undo: () => void;
+  redo: () => void;
+}
+
+const EditorContext = createContext<Editor | null>(null);
+
+export function useEditor(): Editor {
+  const editor = useContext(EditorContext);
+  if (!editor) throw new Error('useEditor must be used inside <EditorProvider>');
+  return editor;
+}
+
+const NOT_READY: BuildResult = { ok: false, issues: [{ severity: 'error', code: 'notReady' }] };
+
+/** Commands, undo and redo for the open tree, as the signed-in user. */
+export function EditorProvider({ actorId, children }: { actorId: ID; children: ReactNode }) {
+  const t = useTranslations('editor');
+
+  const editor = useMemo<Editor>(() => {
+    const executor = createExecutor({
+      commit: (ops) => commitBatch(ops),
+      history: historyStore,
+      // Firestore has already put the screen back; say so.
+      onError: (error) => {
+        logger.error('editor.write', error);
+        toast.error(t('saveFailed'));
+      },
+    });
+    return {
+      run(build) {
+        const state = treeStore.getState();
+        if (!state.treeId || !state.tree) return NOT_READY;
+        const result = build({
+          treeId: state.treeId,
+          tree: state.tree,
+          graph: selectGraph(state),
+          actorId,
+          newId: () => newId(),
+        });
+        if (result.ok) void executor.run(result.command);
+        return result;
+      },
+      undo: () => void executor.undo(),
+      redo: () => void executor.redo(),
+    };
+  }, [actorId, t]);
+
+  return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
+}

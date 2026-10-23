@@ -15,11 +15,23 @@ export interface UiState {
   /** Collapsed path keys per view. */
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
 
-  openTree: (treeId: ID, defaultView: ViewKind) => void;
+  /**
+   * Starts a tree: the view comes from `initial.view` (the URL), then what this browser
+   * remembers, then the tree's default, skipping views not in `allowed`.
+   */
+  openTree: (treeId: ID, defaultView: ViewKind, initial?: InitialUi) => void;
+  /** The editor closed, so opening the tree again starts afresh. */
+  closeTree: () => void;
   setView: (view: ViewKind) => void;
   select: (personId: ID | null) => void;
   focus: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
+}
+
+export interface InitialUi {
+  view?: ViewKind;
+  focusId?: ID;
+  allowed?: readonly ViewKind[];
 }
 
 const storageKey = (treeId: ID) => `shikor:ui:${treeId}`;
@@ -55,16 +67,19 @@ export function createUiStore() {
     selectedId: null,
     focusId: null,
     collapsed: {},
-    openTree: (treeId, defaultView) => {
+    openTree: (treeId, defaultView, { view, focusId, allowed } = {}) => {
       const saved = load(treeId);
+      const usable = (v: ViewKind | undefined): v is ViewKind =>
+        v !== undefined && (!allowed || allowed.includes(v));
       set({
         treeId,
-        view: saved.view ?? defaultView,
+        view: [view, saved.view, defaultView].find(usable) ?? 'tree',
         collapsed: saved.collapsed ?? {},
         selectedId: null,
-        focusId: null,
+        focusId: focusId ?? null,
       });
     },
+    closeTree: () => set({ treeId: null, selectedId: null, focusId: null }),
     setView: (view) => {
       set({ view });
       save(get());

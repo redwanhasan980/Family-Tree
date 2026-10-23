@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Link } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
+import { cn } from '@/lib/utils';
 
 /** Header chip that explains guest storage and invites sign-up (AUTH-03). */
-export function GuestChip() {
+export function GuestChip({ className }: { className?: string }) {
   const t = useTranslations('guest');
 
   return (
@@ -17,7 +18,10 @@ export function GuestChip() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-highlight/60 bg-highlight/15 px-3 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className={cn(
+            'inline-flex min-h-9 items-center gap-1.5 rounded-full border border-highlight/60 bg-highlight/15 px-3 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+            className,
+          )}
         >
           <UserRoundIcon className="size-4" aria-hidden />
           {t('chip')}

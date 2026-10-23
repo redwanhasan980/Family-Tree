@@ -1,0 +1,160 @@
+'use client';
+
+import {
+  ArrowLeftIcon,
+  ChartColumnIcon,
+  EllipsisVerticalIcon,
+  LanguagesIcon,
+  Settings2Icon,
+  UserCogIcon,
+} from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { AppName } from '@/components/app/AppName';
+import { LanguageSwitch, LOCALE_LABELS, useSwitchLocale } from '@/components/app/LanguageSwitch';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { AccountMenu } from '@/features/auth/AccountMenu';
+import { GuestChip } from '@/features/auth/GuestChip';
+import { useSession } from '@/features/auth/SessionProvider';
+import { Link } from '@/i18n/navigation';
+import type { ID, Locale, Tree } from '@/lib/domain/types';
+
+import { SaveStatus } from './SaveStatus';
+import { StatisticsList } from './Statistics';
+import { TreeSwitcher } from './TreeSwitcher';
+import { ViewTabs } from './ViewNav';
+
+/** The phone menu: tree settings, statistics, language and account settings. */
+function MobileMenu({
+  onSettings,
+  onStatistics,
+}: {
+  onSettings: () => void;
+  onStatistics: () => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale() as Locale;
+  const other: Locale = locale === 'bn' ? 'en' : 'bn';
+  const { switchTo } = useSwitchLocale();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-11" aria-label={t('editor.menu')}>
+          <EllipsisVerticalIcon className="size-5" aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuItem className="min-h-11" onSelect={onSettings}>
+          <Settings2Icon aria-hidden /> {t('treeSettings.title')}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="min-h-11" onSelect={onStatistics}>
+          <ChartColumnIcon aria-hidden /> {t('statistics.title')}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="min-h-11" onSelect={() => switchTo(other)}>
+          <LanguagesIcon aria-hidden /> <span lang={other}>{LOCALE_LABELS[other]}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="min-h-11">
+          <Link href="/settings">
+            <UserCogIcon aria-hidden /> {t('nav.settings')}
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
+ * The editor's header (P3-01, DESIGN §21.6). Desktop: logo, tree switcher, view tabs,
+ * save status, statistics, settings, language and account. Phone: back, tree switcher
+ * with the save status under it, and a menu.
+ */
+export function EditorHeader({
+  tree,
+  uid,
+  onSettings,
+  onStatistics,
+}: {
+  tree: Tree;
+  uid: ID;
+  onSettings: () => void;
+  onStatistics: () => void;
+}) {
+  const t = useTranslations();
+  const { session } = useSession();
+  const guest = session.status === 'guest';
+
+  return (
+    <header className="z-40 border-b bg-background/95 backdrop-blur">
+      <div className="flex min-h-14 items-center gap-1 px-1 py-1 sm:px-2 lg:gap-2 lg:px-4">
+        <Button asChild variant="ghost" size="icon" className="size-11 shrink-0 lg:hidden">
+          <Link href="/trees" aria-label={t('editor.allTrees')}>
+            <ArrowLeftIcon className="size-5" aria-hidden />
+          </Link>
+        </Button>
+        <Link
+          href="/trees"
+          className="mr-1 hidden shrink-0 items-center gap-1.5 text-lg lg:flex"
+          aria-label={t('editor.allTrees')}
+        >
+          <span aria-hidden>🌳</span>
+          <AppName />
+        </Link>
+
+        <div className="flex min-w-0 flex-1 flex-col lg:max-w-72 lg:flex-none">
+          <TreeSwitcher tree={tree} uid={uid} className="h-9 lg:h-10" />
+          <div className="flex min-w-0 items-center gap-2 px-2 lg:hidden">
+            <SaveStatus className="text-xs" />
+            {guest && <GuestChip className="min-h-6 px-2 text-xs" />}
+          </div>
+        </div>
+
+        <ViewTabs className="hidden lg:flex" />
+
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <SaveStatus className="mr-2 hidden lg:inline-flex" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden size-10 lg:inline-flex"
+                aria-label={t('statistics.title')}
+              >
+                <ChartColumnIcon className="size-5" aria-hidden />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72">
+              <p className="mb-1 font-semibold">{t('statistics.title')}</p>
+              <StatisticsList />
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden size-10 lg:inline-flex"
+            aria-label={t('treeSettings.title')}
+            onClick={onSettings}
+          >
+            <Settings2Icon className="size-5" aria-hidden />
+          </Button>
+          <LanguageSwitch compact className="mx-1 hidden lg:inline-flex" />
+          <div className={guest ? 'hidden lg:block' : undefined}>
+            <AccountMenu />
+          </div>
+          <div className="lg:hidden">
+            <MobileMenu onSettings={onSettings} onStatistics={onStatistics} />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}

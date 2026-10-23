@@ -8,8 +8,23 @@ import { routing, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 // Each language is labelled in its own script, so the switch is readable in either locale.
-const LABELS: Record<Locale, string> = { bn: 'বাংলা', en: 'English' };
+export const LOCALE_LABELS: Record<Locale, string> = { bn: 'বাংলা', en: 'English' };
 const COMPACT_LABELS: Record<Locale, string> = { bn: 'বাংলা', en: 'EN' };
+
+/** Switches the UI language in place, keeping the path and the query (the editor's state). */
+export function useSwitchLocale(): { switchTo: (locale: Locale) => void; isPending: boolean } {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  return {
+    isPending,
+    switchTo: (locale) => {
+      // Read at click time, so static pages need no Suspense boundary for useSearchParams.
+      const href = `${pathname}${window.location.search}`;
+      startTransition(() => router.replace(href, { locale }));
+    },
+  };
+}
 
 export function LanguageSwitch({
   className,
@@ -20,9 +35,7 @@ export function LanguageSwitch({
 }) {
   const t = useTranslations('common');
   const locale = useLocale();
-  const pathname = usePathname();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const { switchTo, isPending } = useSwitchLocale();
 
   return (
     <div
@@ -38,11 +51,7 @@ export function LanguageSwitch({
           aria-pressed={value === locale}
           disabled={isPending}
           onClick={() => {
-            if (value === locale) return;
-            // Keep the query (the editor's ?view=&focus=); read at click time, so static
-            // pages need no Suspense boundary for useSearchParams.
-            const href = `${pathname}${window.location.search}`;
-            startTransition(() => router.replace(href, { locale: value }));
+            if (value !== locale) switchTo(value);
           }}
           className={cn(
             compact
@@ -57,10 +66,10 @@ export function LanguageSwitch({
           {compact ? (
             <>
               <span aria-hidden>{COMPACT_LABELS[value]}</span>
-              <span className="sr-only">{LABELS[value]}</span>
+              <span className="sr-only">{LOCALE_LABELS[value]}</span>
             </>
           ) : (
-            LABELS[value]
+            LOCALE_LABELS[value]
           )}
         </button>
       ))}

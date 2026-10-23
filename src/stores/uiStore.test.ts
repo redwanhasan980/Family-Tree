@@ -30,6 +30,26 @@ describe('uiStore', () => {
     expect(other.getState()).toMatchObject({ view: 'family', collapsed: {} });
   });
 
+  it('starts from the URL, then memory, then the default, among allowed views', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'tree');
+    store.getState().setView('album');
+    const allowed = ['tree', 'family', 'circle', 'list'] as const;
+
+    store.getState().openTree('t1', 'family', { allowed });
+    expect(store.getState().view).toBe('family');
+    store.getState().openTree('t1', 'family', { view: 'list', focusId: 'p9', allowed });
+    expect(store.getState()).toMatchObject({ view: 'list', focusId: 'p9' });
+    store.getState().openTree('t1', 'album', { view: 'timeline', allowed });
+    expect(store.getState().view).toBe('tree');
+    store.getState().openTree('t1', 'tree', { view: 'circle' });
+    expect(store.getState().view).toBe('circle');
+
+    store.getState().select('p1');
+    store.getState().closeTree();
+    expect(store.getState()).toMatchObject({ treeId: null, selectedId: null, focusId: null });
+  });
+
   it('tracks selection and focus', () => {
     const store = createUiStore();
     store.getState().select('p1');

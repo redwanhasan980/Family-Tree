@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/features/auth/FormField';
 import { useSession } from '@/features/auth/SessionProvider';
 import { useValidationText } from '@/features/auth/useMessages';
+import type { BuildResult } from '@/features/editor/commands';
 import { hasUser } from '@/lib/domain/auth/session';
 import { TreeDetailsSchema, type TreeDetailsInput } from '@/lib/domain/schemas';
 import type { Tree } from '@/lib/domain/types';
@@ -30,10 +31,13 @@ export function TreeDetailsDialog({
   tree,
   open,
   onOpenChange,
+  save,
 }: {
   tree: Tree;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The editor passes its own runner, so the change joins the undo history. */
+  save?: (details: TreeDetailsInput) => BuildResult;
 }) {
   const t = useTranslations();
   const { session } = useSession();
@@ -50,9 +54,9 @@ export function TreeDetailsDialog({
 
   const onSubmit = handleSubmit((details) => {
     if (!hasUser(session)) return;
-    const result = saveTreeDetails(session.user.uid, tree, details, () =>
-      toast.error(t('editor.saveFailed')),
-    );
+    const result = save
+      ? save(details)
+      : saveTreeDetails(session.user.uid, tree, details, () => toast.error(t('editor.saveFailed')));
     if (result.ok) toast.success(t('treeDetails.saved'));
     onOpenChange(false);
   });

@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phases 0–4 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard, moving guest trees into an existing account, account deletion, and the Tree view: build a family from the tree with quick add, several children at once, a details panel that saves itself, search, undo and redo, and keyboard shortcuts, on phones and desktops. Next: Phase 5, person details and photos.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0–5 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard, moving guest trees into an existing account, account deletion, the Tree view (quick add, several children at once, search, undo and redo, keyboard shortcuts), and full person details with photos: dates, places, phones, addresses and your own fields, "This is me", and photos you can take, crop, replace and remove, shown on the cards, the details panel and the dashboard. Next: Phase 6, the List, Circle and Family card views.* See [Project status](#project-status).
 
 ---
 
@@ -122,8 +122,8 @@ flowchart LR
 | P2 | Domain core, data layer & security rules | ✅ Done |
 | P3 | App shell, dashboard, guest merge | ✅ Done |
 | P4 | Tree view & core editing | ✅ Done |
-| P5 | Person details & photos | ⏳ Next |
-| P6 | List, Circle & Family card views | ⬜ |
+| P5 | Person details & photos | ✅ Done (the check in a real Cloudinary account waits for the owner's keys) |
+| P6 | List, Circle & Family card views | ⏳ Next |
 | P7 | Export & JSON backup | ⬜ |
 | P8 | Onboarding, polish → **v1.0** | ⬜ |
 | P9–P11 | PWA, offline, import/GEDCOM, Generation album → **v1.1** | ⬜ |
@@ -169,14 +169,14 @@ pnpm exec playwright install chromium webkit                  # once, for end-to
 pnpm build && pnpm test:e2e                                   # end-to-end tests (mobile + desktop)
 ```
 
-The end-to-end tests start the Auth and Firestore emulators themselves, or reuse the ones from `pnpm emulators` if they are already running. The build must use the emulators (`NEXT_PUBLIC_USE_EMULATORS=true`, as in `.env.example`). If your machine already has a Chromium build and no WebKit, run them with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e`; the iPhone (WebKit) project is then skipped.
+The end-to-end tests start the Auth and Firestore emulators themselves, or reuse the ones from `pnpm emulators` if they are already running. The build must use the emulators (`NEXT_PUBLIC_USE_EMULATORS=true`, as in `.env.example`) and, for the photo tests, have some `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (CI builds with `e2e-cloud`); Cloudinary itself is mocked. If your machine already has a Chromium build and no WebKit, run them with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e`; the iPhone (WebKit) project is then skipped.
 
 ### 4. Connect real services (before going live)
 
 These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATION_PLAN.md#8-before-phase-0-setup-actions-for-the-product-owner)):
 
 1. **Firebase:** the production project is **`shikor-fe44d`** (Web app registered). Its Firestore database is in **`asia-south1` (Mumbai)** in production mode (the location cannot be changed later), and **Anonymous**, **Email/Password** and **Google** sign-in are enabled. Later, generate a service-account key for the Admin SDK (never commit it). Local development keeps using the emulators.
-2. **Cloudinary:** create a free account and note the cloud name, API key and API secret. Keep *unsigned uploads* disabled.
+2. **Cloudinary:** create a free account and note the cloud name, API key and API secret. Keep *unsigned uploads* disabled: every upload is signed by the server. Photos are stored under `shikor/{APP_ENV}/{treeId}/{personId}/`, so one account can serve development (`dev`) and production (`prod`). To try photos locally, put the three values in `.env.local`; without the cloud name the app hides the photo buttons and shows initials.
 3. **Server:** follow **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** to prepare the Contabo VPS and turn on automatic deploys. Public `NEXT_PUBLIC_*` values become GitHub repository variables; server secrets go into `/opt/shikor/.env` on the server.
 
 | Variable | Where it comes from |
@@ -188,7 +188,7 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally |
 | `FIREBASE_SERVICE_ACCOUNT` | base64 of the service-account JSON (`base64 -w0 key.json`) |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary dashboard (**server only**) |
-| `APP_ENV` | `dev` or `prod` |
+| `APP_ENV` | `dev` or `prod` (the Cloudinary folder; tests use `test`) |
 | `CRON_SECRET` | any long random string (v1.1+) |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key for App Check (production). Once set, the server requires App Check tokens. |
 

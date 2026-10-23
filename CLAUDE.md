@@ -16,11 +16,11 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phases 0–4 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion, and the Tree view with quick add, bulk children, the details panel, relationship editors, search, undo/redo and keyboard shortcuts). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 5** (person details and photos). Update this line when phases complete.
+**Current status:** **Phases 0–5 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion, the Tree view with quick add, bulk children, relationship editors, search, undo/redo and keyboard shortcuts, and full person details with "This is me" and Cloudinary photos). The first deploy (P0-17), the iOS Safari redirect check (P1-05) and checking photos in a real Cloudinary account wait for the owner's server, domain and keys. **Next: Phase 6** (List, Circle and Family card views). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
-Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · ESLint 9 (not 10 until the React/import/a11y plugins support it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (server SDK only) · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
+Next.js 16 (App Router, `src/`, `src/proxy.ts` = Next 16 middleware) · React 19 · TypeScript 6.0.x strict (not 7 until typescript-eslint supports it) · ESLint 9 (not 10 until the React/import/a11y plugins support it) · Tailwind CSS 4 + shadcn/ui · motion · Zustand · Zod 4 · react-hook-form · next-intl 4 · d3-hierarchy / d3-flextree / d3-shape / d3-zoom / d3-scale · html-to-image + jsPDF · Firebase JS SDK 13 / firebase-admin 14 · Cloudinary (REST from Route Handlers, no SDK) · react-easy-crop · Serwist (R2) · Vitest · Playwright · pnpm · Node 22.
 
 ## Commands
 
@@ -104,7 +104,8 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Product name:** always **শিকড়** in Bangla script, in both locales. Use `APP_NAME` / `<AppName />` from `src/lib/brand.ts` (it adds `lang="bn"`). Never write "Shikor" in the UI; Latin `shikor` is only for technical identifiers.
 - **Bangla genitives:** never build "করিমের ছেলে" by appending suffixes to names. Use label forms such as "বাবা: করিম".
 - **Staged views** (Album, Timeline, Family book) sit behind `lib/features.ts` flags until their release.
-- **Cloudinary:** store `publicId` + `version`, never URLs. Keep the variant set small because each transformation costs credits. Photo deletion is deferred until the undo window closes.
+- **Cloudinary:** store `publicId` + `version`, never URLs. Keep the variant set small because each transformation costs credits. Never delete a photo directly: `EditorProvider` queues the photos a command, undo or redo removes (`features/media/photoCleanup.ts`, kept in localStorage) and deletes them once no person and no history step has them. The E2E build needs some `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (CI uses `e2e-cloud`; Cloudinary itself is mocked) or the photo tests find no photo buttons.
+- **Toasts over modals:** a Radix dialog or sheet turns off pointer events on `body`; `globals.css` turns them back on for toasts and `ignoringToasts` stops a toast press from closing the dialog. Keep both when adding a modal surface.
 - **Fonts:** Bangla needs `line-height ≥ 1.6` and no letter-spacing. Measure SVG text with the canvas cache, using the same font stack.
 - **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The docs for the installed version are in `node_modules/next/dist/docs/`; read them before relying on memory. `agentRules: false` stops `next dev` from writing an `AGENTS.md`. The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.
 - **Quotas (free tier):** opening a tree costs about N + M reads. Never add per-person reads or count queries; use `personCount`.

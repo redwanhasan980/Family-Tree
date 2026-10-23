@@ -135,9 +135,9 @@ Versions are the current stable releases at the time of writing (October 2026). 
 | Layout math | d3-hierarchy, **d3-flextree**, d3-shape, d3-zoom, d3-interpolate, d3-scale | 3.x / 2.x / 4.x | Tree layout with variable-width couple nodes, sunburst partition, arcs, pan/zoom, timeline year scale. |
 | Virtualization | @tanstack/react-virtual | 3.x | Long lists. |
 | Export | **html-to-image**, **jsPDF** | 1.11 / 4.x | Rasterize browser-rendered output (correct Bangla shaping) and paginate into a PDF. SVG views are serialized directly; html-to-image is used for the HTML views and Family book pages (§14). |
-| Images | react-easy-crop, browser-image-compression | 6.x / 2.x | Crop and compress before upload. |
+| Images | react-easy-crop | 6.x | Square crop with zoom and rotation; the crop is drawn to a canvas and saved as a JPEG of at most 1600 px (no compression library). |
 | Auth & DB | **Firebase JS SDK** / **firebase-admin** | 13.x / 14.x | Mandated (C-01). |
-| Media | **Cloudinary** (Node SDK on the server only) | 2.x | Decision D2. |
+| Media | **Cloudinary** (REST API from Route Handlers, no SDK) | n/a | Decision D2. Signing and Admin API deletion are a few `fetch` calls (§15), so nothing Cloudinary-specific is bundled. |
 | PWA (R2) | **Serwist** (`@serwist/next`) | 9.x | Maintained successor to next-pwa. Turbopack compatibility is verified in a spike (risk R-08). |
 | IDs | nanoid | 6.x | Random IDs for share links, invites and media. |
 | Unit tests | **Vitest** + Testing Library | 5.x | Fast, ESM-native. |
@@ -281,7 +281,7 @@ family-tree/
 │   │   │   └── timeline/                     # layout.ts, TimelineView.tsx, LifeBar, YearAxis (R3)
 │   │   ├── export/                           # ExportDialog, scene builders, svgRaster.ts, htmlRaster.ts, pdf.ts
 │   │   │   └── book/                         # Family book: model.ts, paginate.ts, pages/*, BookDialog (R3)
-│   │   ├── media/                            # PhotoPicker, Cropper, upload.ts, cloudinaryUrl.ts
+│   │   ├── media/                            # PhotoDialog, Avatar, Lightbox, cropImage.ts, upload.ts, cloudinaryUrl.ts, photoCleanup.ts
 │   │   ├── onboarding/                       # wizard, coach marks
 │   │   ├── backup/                           # json.ts (R1 export), import (R2), gedcom UI (R2)
 │   │   ├── sharing/                          # R3
@@ -650,7 +650,7 @@ sequenceDiagram
             S->>F: update ownerId=P, memberIds/roles: G→P
         else discard
             S->>F: recursiveDelete(trees/{id})
-            S->>K: delete_resources_by_prefix("shikor/{env}/{id}/")
+            S->>K: DELETE resources/image/upload?prefix=shikor/{env}/{id}/
         end
     end
     S->>F: delete users/G
@@ -704,7 +704,7 @@ sequenceDiagram
 - **Auth:** `Authorization: Bearer <Firebase ID token>`, verified with `getAuth().verifyIdToken(token, true)` (revocation checked). In production, `X-Firebase-AppCheck` is verified with `getAppCheck().verifyToken()`.
 - **Validation:** the request body is parsed with Zod. Unknown keys are rejected.
 - **Responses:** JSON. Errors look like `{ "error": { "code": "not_found", "message": "…" } }`, where `message` is for developers and the client maps `code` to a localized string.
-- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden`, `guest_not_allowed` or `reauth_required` (sign in again) · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal`. The browser calls these endpoints through `lib/repositories/api.ts` (`callApi`), which adds the ID and App Check tokens and throws `ApiError(code)`; `network` means the request never arrived.
+- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden`, `guest_not_allowed` or `reauth_required` (sign in again) · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal` · 503 `unavailable` (a feature this server isn't set up for, such as photos without Cloudinary keys). The browser calls these endpoints through `lib/repositories/api.ts` (`callApi`), which adds the ID and App Check tokens and throws `ApiError(code)`; `network` means the request never arrived.
 - **No cookies, so CSRF does not apply.** CORS is same-origin only.
 
 ```ts
@@ -736,9 +736,9 @@ export const POST = route('media.sign', async (req) => {
 | `POST /api/account/merge-ticket` | guest only | `{}` | Creates a merge ticket for the caller's guest user ID → `{ ticketId, expiresAt }` | R1 |
 | `POST /api/account/merge` | permanent | `{ ticketId, decisions: [{ treeId, action: 'move'｜'discard' }] }` | Moves or deletes the guest's trees and deletes the guest (§9.4) → `{ moved, discarded }` | R1 |
 | `POST /api/account/delete` | any (recent login) | `{ confirm: true }` | Deletes owned trees (recursively, with photos), removes the user from shared trees, then the user document, rate-limit counters, merge tickets and finally the auth user → `{ ok }`. A permanent user whose `auth_time` is over 5 minutes old gets `403 reauth_required` | R1 |
-| `DELETE /api/trees/{treeId}` | owner (guests allowed) | n/a | Deletes the tree with its people, relationships and activity (TREE-03; photos from P5). A tree the caller isn't a member of reads as `404` → `{ ok }` | R1 |
-| `POST /api/media/sign` | editor+ of tree (guests allowed) | `{ treeId, personId }` | Checks the role, applies a rate limit (60/h per user ID), returns `{ cloudName, apiKey, timestamp, signature, publicId, allowedFormats, transformation }` | R1 |
-| `POST /api/media/delete` | editor+ of tree | `{ treeId, publicIds: string[≤50] }` | Checks that each ID has the prefix `shikor/{env}/{treeId}/`, then deletes from Cloudinary → `{ deleted }` | R1 |
+| `DELETE /api/trees/{treeId}` | owner (guests allowed) | n/a | Deletes the tree with its people, relationships, activity and photos (TREE-03). A tree the caller isn't a member of reads as `404` → `{ ok }` | R1 |
+| `POST /api/media/sign` | editor+ of tree (guests allowed) | `{ treeId, personId }` | Checks the role and that the person exists, applies a rate limit (60/h per user ID), returns `{ cloudName, apiKey, timestamp, signature, publicId, assetFolder, allowedFormats, transformation }`. `503 unavailable` when Cloudinary isn't configured | R1 |
+| `POST /api/media/delete` | editor+ of tree (guests allowed) | `{ treeId, publicIds: string[≤50] }` | Checks that every ID has the prefix `shikor/{env}/{treeId}/` (else `400`), keeps any photo that is a person's current photo again, deletes the rest (60/h) → `{ deleted, inUse }` | R1 |
 | `POST /api/invites/accept` | permanent | `{ inviteId }` | Validates the invite (not expired, revoked or used up), adds the user to `memberIds`/`roles`, increments `uses` → `{ treeId, role }` | R3 |
 | `POST /api/trees/{treeId}/transfer` | owner | `{ newOwnerId }` | Transfers ownership to an existing member | R3 |
 | `GET /api/cron/cleanup` | `Authorization: Bearer ${CRON_SECRET}` | n/a | Purges stale guests, expired tickets, invites and activity, and orphaned photos (bounded batch per run) | R2 |
@@ -747,7 +747,7 @@ Public share pages (`/{locale}/s/{shareId}`, R3) are **server components**. They
 
 ### 10.3 Rate limiting
 
-`rateLimits/{route}:{uid}:{windowStart}` documents (`{ uid, count, expiresAt }`) counted in an Admin transaction by `lib/server/rateLimit.ts`, used only on endpoints that cost money (`media/sign`, 60/h) or are sensitive (`merge-ticket`, 10/h; `invites/accept`). Over the limit the endpoint answers `429 rate_limited`. They are cleaned up by the cron, and account deletion removes the user's counters.
+`rateLimits/{route}:{uid}:{windowStart}` documents (`{ uid, count, expiresAt }`) counted in an Admin transaction by `lib/server/rateLimit.ts`, used only on endpoints that cost money (`media/sign` and `media/delete`, 60/h each; the Admin API has a per-account hourly limit) or are sensitive (`merge-ticket`, 10/h; `invites/accept`). Over the limit the endpoint answers `429 rate_limited`. They are cleaned up by the cron, and account deletion removes the user's counters.
 
 ---
 
@@ -824,7 +824,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 - `reorderChildren` writes an explicit `childOrder` for every child of that parent, so both parents show the same order.
 - `createTree` writes the tree and its first person in one batch; its undo deletes both in one batch.
 
-**Delete person (PER-06):** the inverse restores the person document, all their relationship documents and `personCount`. The Cloudinary photo is deleted only when the undo window ends (on toast expiry or leaving the tree), so that undo can restore the photo.
+**Delete person (PER-06):** the inverse restores the person document, all their relationship documents and `personCount`. The Cloudinary photo is deleted only once no person and no undo or redo step has it (§15.4), so that undo can restore the photo.
 
 ### 11.4 Stores
 
@@ -986,6 +986,8 @@ Shortcuts (`features/editor/shortcuts.ts`) match letters by the physical key whe
 **Unplaced people (REL-11):** a button at the bottom right counts the people the tree can't reach from its start. Its list offers *Show* (the tree from them) and *Connect* (link them to someone already in the tree).
 
 **Editing (P4):** the quick-add menu is a popover beside the card on desktop and a sheet on phones; its buttons name the relative for this person ("Wife" for a man). Spouse, parent and sibling forms ask for a name and man or woman, or switch to *someone already in the tree* (`PersonPicker`). *Add children* takes one row per child with a son/daughter toggle, Enter for the next row and pasted lists, and adds them in one undo step. The details panel (`PersonPanel`) saves edits 800 ms after typing stops or when a field loses focus, follows changes from undo or other devices while nobody is typing in it, and lists the family with the relationship editors (REL-07..09). Destructive changes show an Undo toast (UX-02); undo and redo name the action from `history.<labelKey>`.
+
+**Details (P5):** the panel shows a read-only summary (`PersonSummary`: life span, age or age at death, places, `tel:` and `mailto:` links, addresses, custom fields, notes) with date warnings from `personDateWarnings` (died before born, a parent younger than 12 or born after a child, living past 120). *Edit* swaps in `PersonDetailsForm`, which holds the full draft (`lib/domain/personForms.ts`: partial dates with "about", up to 3 phones, both addresses, up to 20 custom fields, counters) and saves only the changed fields with the same 800 ms autosave. "This is me" is per user, not per tree, so it lives in `users/{uid}.selfPersonIds[treeId]` and draws a star on that card. Photos: §15.
 
 **Focus:** dialogs and sheets opened from code (shortcuts, a menu handing over to a form) have no trigger for Radix to return focus to, so `components/ui/returnFocus.ts` gives focus back to the last element focused outside any overlay.
 
@@ -1177,43 +1179,48 @@ sequenceDiagram
     participant K as Cloudinary
     participant F as Firestore
     U->>C: choose photo (camera / gallery / drop)
-    C->>C: decode → crop (react-easy-crop) → compress ≤1600px JPEG/WebP (browser-image-compression)
+    C->>C: decode → crop (react-easy-crop) → canvas → square JPEG ≤1600 px, quality 0.85
     C->>S: POST {treeId, personId} (Bearer token)
-    S->>S: verify token, role ≥ editor, rate limit
-    S-->>C: {signature, timestamp, apiKey, cloudName, publicId, allowedFormats, transformation}
+    S->>S: verify token, role ≥ editor, person exists, rate limit
+    S-->>C: {signature, timestamp, apiKey, cloudName, publicId, assetFolder, allowedFormats, transformation}
     C->>K: POST /image/upload (FormData, XHR for progress)
     K-->>C: {public_id, version, width, height}
-    C->>F: command: update person.photo = {publicId, version, width, height}
-    C->>S: POST /api/media/delete {old publicId} (after the undo window)
+    C->>F: command setPersonPhoto: person.photo = {publicId, version, width, height}
+    C->>S: POST /api/media/delete {publicIds} (old photo, once nothing can bring it back, §15.4)
 ```
 
-- **Signed parameters:** `public_id`, `asset_folder`, `timestamp`, `allowed_formats=jpg,jpeg,png,webp,heic,avif`, and an incoming `transformation=c_limit,w_2000,h_2000`, so the stored size is capped even if a client skips compression. The signature is computed with `cloudinary.utils.api_sign_request(params, CLOUDINARY_API_SECRET)`.
-- **Constraints:** at most 10 MB input, enforced on the client. Cloudinary's own plan limits are the backstop.
-- **Offline:** the upload button is disabled with the message "Photos need an internet connection" (MED-06).
+- **The dialog** (`features/media/PhotoDialog.tsx`) is opened from the camera badge on the details panel avatar. It offers "Take a photo" (`capture="environment"`, touch devices only), "Choose a photo" and drag-and-drop, then a square cropper with a zoom slider and quarter-turn rotation, a progress bar with Cancel, and Retry after a failure. When a photo exists it also offers Replace and Remove. Replace, remove and undo are ordinary commands (`setPersonPhoto`), so the toast's Undo works as everywhere else.
+- **Compression without a library:** `cropImage.ts` draws the rotated crop onto a canvas no larger than 1600 px and saves it with `toBlob('image/jpeg', 0.85)`. HEIC that the browser can't decode is refused as "not an image"; Safari decodes it natively.
+- **Signed parameters:** `public_id`, `asset_folder`, `timestamp`, `allowed_formats=jpg,jpeg,png,webp,heic,avif`, and an incoming `transformation=c_limit,w_2000,h_2000`, so the stored size is capped even if a client skips compression. `lib/server/cloudinary.ts` signs with Cloudinary's documented scheme: the parameters sorted by name, joined as `a=1&b=2`, the API secret appended, SHA-1 (`signParams`, tested against the example in Cloudinary's docs). No Cloudinary SDK is installed.
+- **Constraints:** at most 10 MB input and image types only, checked on the client (`MAX_PHOTO_BYTES`). Cloudinary's own plan limits are the backstop.
+- **Offline:** the upload buttons are disabled with the message "Photos need an internet connection" (MED-06).
+- **Not set up:** without `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` the build shows no photo buttons and avatars fall back to initials (`photosEnabled()`). Without the API key and secret the server answers `503 unavailable`, which the dialog shows as "Photos aren't available yet."
 
 ### 15.3 Delivery variants
 
 ```ts
 // features/media/cloudinaryUrl.ts
-const base = (cloud: string) => `https://res.cloudinary.com/${cloud}/image/upload`;
 export const VARIANTS = {
-  thumb:  'c_fill,g_face,w_96,h_96/f_auto,q_auto',     // cards (×2 for retina → w_192 when dpr ≥ 2)
-  card:   'c_fill,g_face,w_320,h_320/f_auto,q_auto',   // details header, Family card couple, Album
+  thumb:  'c_fill,g_face,w_192,h_192/f_auto,q_auto',   // cards, avatars, lists (up to 96 CSS px at 2×)
+  card:   'c_fill,g_face,w_320,h_320/f_auto,q_auto',   // Family card couple, Album (P6, R2)
   full:   'c_limit,w_1600,h_1600/f_auto,q_auto',       // lightbox, slideshow
-  export: 'c_fill,g_face,w_256,h_256/f_jpg,q_85',      // canvas-safe format for chart exports
-  print:  'c_fill,g_face,w_600,h_600/f_jpg,q_85',      // Family book only (R3), generated on demand
+  export: 'c_fill,g_face,w_256,h_256/f_jpg,q_85',      // canvas-safe format for chart exports (P7)
+  // print: 'c_fill,g_face,w_600,h_600/f_jpg,q_85'     // Family book only (R3), added with it
 } as const;
-export const photoUrl = (cloud: string, p: PhotoRef, v: keyof typeof VARIANTS) =>
-  `${base(cloud)}/${VARIANTS[v]}/v${p.version}/${p.publicId}`;
+// null when the build has no cloud name, so callers fall back to initials
+export const photoUrl = (p: PhotoRef, v: keyof typeof VARIANTS, cloud = CLOUD_NAME) =>
+  cloud ? `https://res.cloudinary.com/${cloud}/image/upload/${VARIANTS[v]}/v${p.version}/${p.publicId}` : null;
 ```
 
-The set of variants is **deliberately small**, because every unique transformation consumes credits (§28).
+The set of variants is **deliberately small**, because every unique transformation consumes credits (§28). One `thumb` size serves every density: cards are at most 96 CSS px wide. `Avatar` renders it lazily with `decoding="async"` and shows initials if it fails to load; the Tree view draws the same thumbnail as an SVG `<image>` clipped to a circle (one shared `clipPath`). The tree setting `showPhotos` (TREE-06) hides photos everywhere through `useShownPhoto`.
 
 ### 15.4 Deletion and orphans
 
-- **Person deleted:** after the undo window, `media/delete` is called for that person's photo.
-- **Tree deleted, account deleted or merge discard:** the server calls `api.delete_resources_by_prefix('shikor/{env}/{treeId}/')`.
-- **Orphan sweep (R2 cron):** list resources by prefix, page by page, and delete any whose `publicId` is not referenced by its person document and is more than 24 h old.
+Cloudinary has no undo, so a photo is deleted only once nothing can bring it back.
+
+- **Replace, remove, or delete a person:** `EditorProvider` compares the photo IDs in each command's forward and inverse writes (`photoCleanup.ts`, `removedPhotos`) and adds every photo that a run, undo or redo takes away to a queue in `localStorage["shikor:photoCleanup"]` (so a reload doesn't lose it). The queue is flushed when the editor opens, 5 s after the history changes and when the editor closes. A queued photo is sent only if no person has it and no undo or redo step mentions it; history lives for the session, so the undo window is "until the tree is closed". `POST /api/media/delete` checks the prefix, then reads the people concerned and keeps any photo that is someone's current photo again (another tab's undo) → `{ deleted, inUse }`. Both outcomes, and permanent refusals (`invalid_request`, `forbidden`, `not_found`), leave the queue; network and server failures stay for the next flush.
+- **Tree deleted, account deleted or merge discard:** `recursiveDeleteTree` calls `deleteTreePhotos`, which sends Admin API `DELETE resources/image/upload?prefix=shikor/{env}/{treeId}/` and repeats while Cloudinary answers `partial` (1,000 per call). A failure is logged, not thrown, because the data is already gone; the orphan sweep retries.
+- **Orphan sweep (R2 cron):** list resources by prefix, page by page, and delete any whose `publicId` is not referenced by its person document and is more than 24 h old. It also catches uploads whose command never reached Firestore and queues lost with cleared browser storage.
 
 ### 15.5 Privacy note
 
@@ -1371,7 +1378,7 @@ When the signature has no entry, compose a possessive chain from the step terms.
 | --- | --- | --- |
 | Build assets (JS/CSS/fonts) | **Precache** (Serwist manifest) | versioned; updates prompt "Reload" (PWA-04) |
 | App routes (navigations) | **NetworkFirst** (3 s timeout) → cached shell → `/~offline` fallback | the editor route shell is cached |
-| Cloudinary thumbnails (`/c_fill,g_face,w_96…`) | **CacheFirst**, max 600 entries, 30 days | PWA-05 |
+| Cloudinary thumbnails (`/c_fill,g_face,w_192…`) | **CacheFirst**, max 600 entries, 30 days | PWA-05 |
 | Cloudinary full/card variants | **StaleWhileRevalidate**, max 100 entries | |
 | Firestore / Auth traffic | **Not intercepted** | Firestore has its own IndexedDB cache and offline queue |
 | `/api/*` | NetworkOnly | |
@@ -1704,7 +1711,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 
 - **Error boundaries** per feature area (views, panel, dashboard) show a friendly bilingual fallback with Retry. The rest of the app keeps working.
 - **Firestore errors** are mapped by code: `permission-denied` → "You no longer have access to this tree" (and the user is redirected); `resource-exhausted` → "The service is busy, please try again later" (quota) and the error is logged; `unavailable` → handled silently as offline.
-- **Toasts** (sonner) report outcomes, and destructive actions carry Undo (UX-02).
+- **Toasts** (sonner) report outcomes, and destructive actions carry Undo (UX-02). A modal dialog or sheet sets `pointer-events: none` on `body`, so `globals.css` turns pointer events back on for toasts, and `DialogContent`/`DrawerContent` ignore outside presses on a toast (`ignoringToasts`): Undo stays tappable over the details sheet.
 - **Logging:** a small `logger` wrapper. In production, errors go to **Sentry** (optional) with `beforeSend` scrubbing that removes names, phones, emails and addresses, and the user ID is hashed. No request bodies are logged.
 - **No Google Analytics:** the Firebase project has Analytics linked, but the app never loads `firebase/analytics` (NFR-PRIV-04); ESLint blocks the import.
 - **Web Vitals** go to optional self-hosted, cookieless analytics. A free uptime monitor watches `/api/health`.

@@ -136,11 +136,12 @@ API tests: a `route.emulator.test.ts` (or `<area>.emulator.test.ts`) next to the
 
 ## 7. Recipe: photos (Cloudinary)
 
-- The client never holds the API secret. Flow: pick → crop → compress → `POST /api/media/sign` → upload directly to Cloudinary (XHR with progress) → command updates `person.photo = { publicId, version, width, height }`.
-- Build URLs only with `features/media/cloudinaryUrl.ts` (variants `thumb`, `card`, `full`, `export`). **Don't add variants casually**, because each one consumes transformation credits.
-- `publicId` has the form `shikor/{env}/{treeId}/{personId}/{random}`, and both the rules and `/api/media/delete` check that prefix.
-- Delete the old photo **after** the undo window. Tree, account and merge-discard deletions use prefix deletion on the server.
-- In tests, mock Cloudinary with Playwright `page.route('https://api.cloudinary.com/**', …)`.
+- The client never holds the API secret. Flow (`features/media/PhotoDialog.tsx`, `upload.ts`): pick → crop (`react-easy-crop`) → `cropToBlob` (canvas, square JPEG ≤ 1600 px) → `POST /api/media/sign` → upload directly to Cloudinary (XHR with progress and abort) → the `setPersonPhoto` command sets `person.photo = { publicId, version, width, height }` (or `null` to remove).
+- Server side, `lib/server/cloudinary.ts` signs and deletes with `fetch` against Cloudinary's REST API (no SDK); `lib/server/media.ts` checks the role (owner or editor) and rate limits. Without the keys the routes answer `503 unavailable`.
+- Build URLs only with `features/media/cloudinaryUrl.ts` (variants `thumb`, `card`, `full`, `export`). **Don't add variants casually**, because each one consumes transformation credits. Show photos with `Avatar` and respect the tree's `showPhotos` setting through `useShownPhoto`; without `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `photosEnabled()` is false and the UI hides photo buttons.
+- `publicId` has the form `shikor/{env}/{treeId}/{personId}/{random}` (`lib/domain/media.ts`: `photoId`, `parsePhotoId`), and the rules, the command and `/api/media/delete` all check it.
+- Never delete a photo directly. `EditorProvider` queues every photo a command, undo or redo takes away (`features/media/photoCleanup.ts`) and deletes it once no person and no history step has it; the server keeps photos that are in use again. Tree, account and merge-discard deletions call `deleteTreePhotos` (prefix deletion) from `recursiveDeleteTree`.
+- In tests: Route Handlers stub `fetch` for `api.cloudinary.com` (`app/api/media/media.emulator.test.ts`); E2E mocks the upload and `res.cloudinary.com` with `page.route` (`e2e/photos.spec.ts`). The E2E build needs some `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (CI uses `e2e-cloud`; set it yourself for `pnpm build`), and the Playwright web server passes test keys with `APP_ENV=test`.
 
 ## 8. Verification
 

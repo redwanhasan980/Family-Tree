@@ -248,15 +248,24 @@ gantt
 
 **Goal:** rich profiles and photos that show up everywhere.
 
-- [ ] **P5-01** Full `PersonForm`: every PER-02 field, a partial-date input (year / month / day plus "approximately"), a phones list, present and permanent addresses, custom fields, character counters, bilingual validation. *(PER-02/03)*
-- [ ] **P5-02** Details view mode: formatted values, `tel:` and `mailto:` links, life span, age (PER-09), "This is me" toggle (PER-10), date plausibility warnings.
-- [ ] **P5-03** Server: `lib/server/cloudinary.ts`, `POST /api/media/sign` (role check, rate limit, signed parameters per DESIGN §15.2), `POST /api/media/delete` (prefix check). *(MED-07)*
-- [ ] **P5-04** `PhotoPicker` (camera, gallery, drag-and-drop), `Cropper` (square, zoom, rotate), compression, XHR upload with progress, cancel and retry; disabled offline. *(MED-01/02/03/06)*
-- [ ] **P5-05** `cloudinaryUrl` variants, an `Avatar` component (thumbnail with initials fallback, lazy decoding), lightbox. *(MED-04)*
-- [ ] **P5-06** Replace and remove a photo, with deferred deletion after the undo window. Wire the prefix deletion into tree deletion, account deletion and merge discard. *(MED-05/07)*
-- [ ] **P5-07** Tests: API (role, prefix, rate limit, signature parameters); component (form validation in bn/en); E2E photo flow with Cloudinary mocked through Playwright route interception.
+- [x] **P5-01** Full `PersonForm`: every PER-02 field, a partial-date input (year / month / day plus "approximately"), a phones list, present and permanent addresses, custom fields, character counters, bilingual validation. *(PER-02/03)*
+- [x] **P5-02** Details view mode: formatted values, `tel:` and `mailto:` links, life span, age (PER-09), "This is me" toggle (PER-10), date plausibility warnings.
+- [x] **P5-03** Server: `lib/server/cloudinary.ts`, `POST /api/media/sign` (role check, rate limit, signed parameters per DESIGN §15.2), `POST /api/media/delete` (prefix check). *(MED-07)*
+- [x] **P5-04** `PhotoPicker` (camera, gallery, drag-and-drop), `Cropper` (square, zoom, rotate), compression, XHR upload with progress, cancel and retry; disabled offline. *(MED-01/02/03/06)*
+- [x] **P5-05** `cloudinaryUrl` variants, an `Avatar` component (thumbnail with initials fallback, lazy decoding), lightbox. *(MED-04)*
+- [x] **P5-06** Replace and remove a photo, with deferred deletion after the undo window. Wire the prefix deletion into tree deletion, account deletion and merge discard. *(MED-05/07)*
+- [x] **P5-07** Tests: API (role, prefix, rate limit, signature parameters); component (form validation in bn/en); E2E photo flow with Cloudinary mocked through Playwright route interception.
 
 **Exit criteria:** a photo uploaded on mobile appears as a thumbnail in the tree, panel and dashboard cover; deleting the person removes the Cloudinary asset (verified in the dev account).
+
+**Status (2026-10-23):** done, except the check in a real Cloudinary dev account, which waits for the owner's keys. On a phone and on desktop, the E2E photo flow uploads a photo (Cloudinary mocked with Playwright route interception, `e2e/photos.spec.ts`) and sees the thumbnail on the tree card, in the details panel, in the lightbox and on the dashboard cover; removing it and undoing the removal bring the same photo back. The signing scheme is tested against the example in Cloudinary's docs, and the deletion calls against a mocked Admin API (`src/app/api/media/media.emulator.test.ts`). 372 unit and component tests, 97 rules and Route Handler tests and 43 E2E tests per browser pass. Notes:
+
+- **No Cloudinary SDK and no compression library:** signing and Admin API deletion are a few `fetch` calls in `lib/server/cloudinary.ts`, and the cropper's canvas saves a JPEG of at most 1600 px at quality 0.85 (DESIGN §15.2). `react-easy-crop` is the only new dependency.
+- **The undo window** for photos is "until nothing can bring it back": a replaced or removed photo waits in a queue in this browser and is deleted once no person and no undo or redo step has it, and the server keeps any photo that is in use again (DESIGN §15.4). The person-delete photo cleanup is the same queue.
+- **One thumbnail size** (`w_192`) serves cards and avatars at every screen density, so a photo costs at most four derived images (thumb, card, full, export).
+- **"This is me"** is personal, so it is stored on the user (`users/{uid}.selfPersonIds`), not in the shared tree; a star marks that card.
+- **Fixed on the way:** the Undo toast couldn't be tapped while the details sheet was open on phones (a modal turns off pointer events on the page; DESIGN §23).
+- **Still open:** the orphan sweep (R2 cron) and the `print` variant for the Family book (R3).
 
 ---
 

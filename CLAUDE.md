@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phases 0–3 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 4** (the Tree view and core editing). Update this line when phases complete.
+**Current status:** **Phases 0–4 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion, and the Tree view with quick add, bulk children, the details panel, relationship editors, search, undo/redo and keyboard shortcuts). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 5** (person details and photos). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
@@ -39,6 +39,7 @@ pnpm test:coverage  # vitest with the domain coverage gate (CI)
 pnpm test:rules     # rules tests + *.emulator.test.ts integration tests (runs firebase emulators:exec)
 pnpm test:e2e       # playwright (mobile + desktop); starts the emulators itself; run pnpm build first
 pnpm i18n:check     # en/bn message key parity
+pnpm bench:tree     # Tree view benchmark (needs emulators, seed, pnpm build && pnpm start --port 3100)
 pnpm build          # production build
 ```
 
@@ -95,8 +96,9 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Firestore rules** allow at most 20 *distinct* document reads per batch (repeated reads of one tree count once, so a 450-write batch inside one tree passes). Graph integrity (cycles, a single biological father) is enforced in the domain layer, not in the rules. Creates and updates check the role with `getAfter(tree)`, deletes and reads with `get(tree)`. A missing tree reads as `permission-denied`, the same as no access.
 - **Commands are pure builders** returning `WriteOp`s (`lib/domain/writes.ts`: `SERVER_TIME`, `increment`, `DELETE_FIELD`). Test a new one with `MemoryDb` round-trips in `commands.test.ts` and add it to `commands.emulator.test.ts` so the rules check its writes.
 - **Sibling order:** an explicit `childOrder` and the birth-date rank share one number space (`graph/order.ts`). New children get `nextSiblingKey()`; never compare `childOrder` values on their own.
-- **Writes are not awaited for UI updates.** Latency compensation updates the listeners instantly; `await` blocks forever while offline. Use snapshot metadata for save status.
+- **Writes are not awaited for UI updates.** Latency compensation updates the listeners instantly; `await` blocks forever while offline. Use snapshot metadata for save status. A tree created a moment ago can be refused by the server until its own write arrives; `useTreeSession` listens again while that write is pending (DESIGN §11.2). E2E tests wait for "Saved" before a reload.
 - **Cousin marriages** make a person appear twice. The first occurrence is primary and later ones are `isRef` nodes. Collapse keys are *path keys*, not person IDs.
+- **Editor keys and dialogs:** shortcuts live in `features/editor/shortcuts.ts`; any new window key handler must check `acceptsShortcuts(event.target)` so typing and dialogs aren't hijacked. Dialogs, sheets and the delete confirmation are opened through `uiStore` (`addFlow`, `deletingId`, `searchOpen`, `revealRequest`), and `components/ui/returnFocus.ts` gives focus back when they close. The Tree view animates cards with CSS transitions, not `motion`.
 - **Two kinds of views (ADR-013):** Tree, Circle and Timeline are SVG canvas views (camera, no `foreignObject`). Family card, List and Album are HTML card views. Exports follow the same split: serialize SVG directly, or use html-to-image for HTML (render twice on Safari).
 - **Exports:** Cloudinary images must be inlined as data URLs (`export` variant, `f_jpg`; the Family book uses `print`). Clamp the canvas size for iOS (≤ 16.7 MP) and tile PDFs. The Family book renders page by page with one canvas alive at a time.
 - **Product name:** always **শিকড়** in Bangla script, in both locales. Use `APP_NAME` / `<AppName />` from `src/lib/brand.ts` (it adds `lang="bn"`). Never write "Shikor" in the UI; Latin `shikor` is only for technical identifiers.
@@ -108,7 +110,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Quotas (free tier):** opening a tree costs about N + M reads. Never add per-person reads or count queries; use `personCount`.
 - **Firebase projects:** production is `shikor-fe44d`; development and tests use the emulators. The web config is public, but keep the API key out of the repository (GitHub's secret scanner flags it); deploys take it from GitHub variables. Never import `firebase/analytics` (ESLint blocks it).
 - **Emulators:** project `demo-shikor`, bound to `127.0.0.1` (some machines resolve `localhost` to IPv6, where the emulators don't listen). The browser uses `NEXT_PUBLIC_EMULATOR_HOST` (default `127.0.0.1`). `pnpm seed` always targets the emulators.
-- **Playwright:** E2E runs against the production build, so run `pnpm build` first. On machines with a preinstalled Chromium and no WebKit, set `PLAYWRIGHT_CHROMIUM_PATH`; the iPhone project is then skipped (CI runs it).
+- **Playwright:** E2E runs against the production build, so run `pnpm build` first. A local Firestore emulator that has run for hours (benchmarks, hundreds of test trees) gets slow enough to time tests out; restart it before blaming the code. On machines with a preinstalled Chromium and no WebKit, set `PLAYWRIGHT_CHROMIUM_PATH`; the iPhone project is then skipped (CI runs it).
 - **Design tokens:** shadcn names are kept: `--accent` is the hover surface, the brand marigold is `--highlight`. The contrast test fails CI if a text/background pair drops below WCAG AA.
 - **Hosting is a self-managed VPS** (D7, DESIGN §27.4): Docker Compose with Next.js (standalone, only when `BUILD_STANDALONE=1`) behind Caddy, deployed by `.github/workflows/deploy.yml`. Never ask for or accept server passwords; deploys use the key in GitHub secrets. `NEXT_PUBLIC_*` values are build-time, so changing one needs a redeploy. There is no Vercel.
 - **pnpm build scripts:** pnpm 10 blocks dependency install scripts; allowed ones are listed in `package.json` → `pnpm.onlyBuiltDependencies`.

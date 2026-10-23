@@ -11,6 +11,7 @@ import { historyStore } from '@/stores/historyStore';
 import { selectGraph, treeStore } from '@/stores/treeStore';
 
 import { createExecutor } from './commands/executor';
+import { createTreeToucher } from './commands/touch';
 
 import type { BuildResult, CommandContext } from './commands';
 
@@ -47,8 +48,12 @@ export function EditorProvider({ actorId, children }: { actorId: ID; children: R
   const t = useTranslations('editor');
 
   const editor = useMemo<Editor>(() => {
+    const touch = createTreeToucher();
     const executor = createExecutor({
-      commit: (ops) => commitBatch(ops),
+      commit: (ops) => {
+        const { treeId } = treeStore.getState();
+        return commitBatch(treeId ? touch(ops, { treeId, actorId }) : ops);
+      },
       history: historyStore,
       // Firestore has already put the screen back; say so.
       onError: (error) => {

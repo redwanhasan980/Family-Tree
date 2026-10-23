@@ -131,7 +131,8 @@ API tests: a `route.emulator.test.ts` (or `<area>.emulator.test.ts`) next to the
 - **Interactions:** each one needs a desktop **and** a mobile path (DESIGN §13.3 table). Long-press or right-click menus must have a button alternative.
 - **Read-only mode:** respect `editable={false}` (viewers and share links).
 - **Export mode:** the view must render with `mode="export"` (full bounds or fixed page frames, no buttons or empty "+ add" slots, header and legend slots). If you add a visual element, make sure the export still looks right.
-- **Performance:** check against the 500-person fixture at 4× CPU throttle. Animations switch off above 300 cards and with reduced motion.
+- **Search and keys:** honour `uiStore.revealRequest` (open the way to the person, centre, select, then `revealDone()`), keep a roving tabindex on cards, and route any new window key handler through `acceptsShortcuts` and `editorShortcut` (`features/editor/shortcuts.ts`) so typing, dialogs and Bangla layouts keep working. Dialogs opened from code get focus back through `components/ui/returnFocus.ts`; open them through the store rather than managing focus by hand.
+- **Performance:** check against the 500-person fixture at 4× CPU throttle with `pnpm bench:tree` (method and baseline in `docs/PERFORMANCE.md`). Animations switch off above 300 cards and with reduced motion. Memoize per-item components and anything that isn't culled (the Tree's connector layer), and create `Intl` formatters once, not per item.
 
 ## 7. Recipe: photos (Cloudinary)
 

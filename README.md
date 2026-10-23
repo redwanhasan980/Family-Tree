@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phases 0–3 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard (create, rename and delete trees), the editor frame, moving guest trees into an existing account, and account deletion. Next: Phase 4, the Tree view and core editing.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0–4 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard, moving guest trees into an existing account, account deletion, and the Tree view: build a family from the tree with quick add, several children at once, a details panel that saves itself, search, undo and redo, and keyboard shortcuts, on phones and desktops. Next: Phase 5, person details and photos.* See [Project status](#project-status).
 
 ---
 
@@ -107,6 +107,7 @@ flowchart LR
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phased plan with task IDs, estimates, exit criteria, Definition of Done |
 | [CLAUDE.md](CLAUDE.md) | Conventions and rules for AI-assisted (and human) development |
 | [.claude/skills/family-tree-dev/SKILL.md](.claude/skills/family-tree-dev/SKILL.md) | Step-by-step development workflows and recipes |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured performance (the Tree view benchmark) and the decisions it led to |
 | [CHANGELOG.md](CHANGELOG.md) | Notable changes per release |
 
 ---
@@ -120,8 +121,8 @@ flowchart LR
 | P1 | Authentication & guest session | ✅ Done (the iOS Safari redirect check waits for the domain) |
 | P2 | Domain core, data layer & security rules | ✅ Done |
 | P3 | App shell, dashboard, guest merge | ✅ Done |
-| P4 | Tree view & core editing | ⏳ Next |
-| P5 | Person details & photos | ⬜ |
+| P4 | Tree view & core editing | ✅ Done |
+| P5 | Person details & photos | ⏳ Next |
 | P6 | List, Circle & Family card views | ⬜ |
 | P7 | Export & JSON backup | ⬜ |
 | P8 | Onboarding, polish → **v1.0** | ⬜ |
@@ -217,6 +218,7 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
 | `pnpm test:rules` | Firestore security rules tests, plus integration tests (`*.emulator.test.ts`: every editing command under the rules, server tree admin) on the emulator |
 | `pnpm test:e2e` | End-to-end tests (Playwright, mobile and desktop; run `pnpm build` first) |
 | `pnpm i18n:check` | Verify Bangla and English messages have the same keys and ICU arguments |
+| `pnpm bench:tree [tree] [phone\|desktop] [throttle]` | Tree view benchmark on the demo trees: render time and pan/zoom frame rate (needs the emulators, `pnpm seed`, and `pnpm build && pnpm start --port 3100`; see [docs/PERFORMANCE.md](docs/PERFORMANCE.md)) |
 
 ---
 

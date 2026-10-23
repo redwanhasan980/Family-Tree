@@ -7,6 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Phase 4, the Tree view and building a family:
+  - **Tree view:** a tidy family tree with husbands and wives side by side (two wives on either side), children under the right mother, dashed lines for divorce or separation, and cousin marriages shown once with a link to the other card. Pan and zoom, fit and centre, top-to-bottom or left-to-right, expand and collapse with "+N" counts (big trees open three generations deep), "show the tree from here" with a way back, and colours by branch, generation or gender. Cards wrap Bangla names correctly.
+  - **Adding relatives in two taps:** the "+" on the selected person (in the bottom bar on phones) or a right-click or long-press menu offers a son or daughter, a husband or wife, a father or mother, a brother or sister, or someone already in the tree. *Add children* takes several names at once, each a son or daughter, in birth order, as one undo step; pasted lists become one row per name. Likely duplicates and unlikely dates ask first.
+  - **Details panel:** names in Bangla and English, nickname, gender, living or not, and birth and death dates that save themselves as you type. The family section changes how a parent is related, a marriage's status and the children's order, removes a relationship, or moves someone with everyone below them under other parents. Deleting someone (alone or with their descendants) shows an Undo toast.
+  - **Undo and redo** in the header, naming what they will change, and **Find someone** (Ctrl/⌘+K or "/"), which opens the branches on the way and centres the person.
+  - **Keyboard:** arrow keys move between parents, children and the people beside them; Enter opens details; C, S and P add a child, spouse or parent; Del deletes; F fits. They work with a Bangla keyboard layout too.
+  - **"Not yet in the tree":** people the tree can't reach from where it starts are listed with *Show* and *Connect*.
+  - **Performance:** a benchmark (`pnpm bench:tree`) shows the 500-person tree rendering in under 0.2 s and panning at 53–60 fps at 4× CPU throttle; results in `docs/PERFORMANCE.md`.
+  - Detail edits now move the tree's "last change" on the dashboard (at most once a minute).
 - Phase 3, managing trees and accounts:
   - **Dashboard:** your trees, live, with the root person's initials, the number of people, the last change and your role. Create a tree with the oldest person you remember, rename it or add a description, and delete it (trees with more than ten people need their name typed).
   - **Editor frame:** each tree opens with a header (tree switcher, save status, statistics, tree settings, language and account), view tabs on desktop and a bottom bar with "More" on phones. The view and focus live in the link. Details open in a side panel on desktop and a drawer on phones. An empty tree offers "Add the first person"; until the views arrive, each view lists everyone in the tree.

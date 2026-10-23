@@ -215,22 +215,32 @@ gantt
 
 **Goal:** the heart of the product. Build a family quickly and see it as a beautiful, interactive tree on phone and desktop.
 
-- [ ] **P4-01** `views/shared`: imperative d3-zoom camera hook, viewport culling, `measureText` cache (bn/en fonts), colour resolver (branch, gender, generation, none; DESIGN §21.3), collapse-state persistence. *(VIS-02/06/10)*
-- [ ] **P4-02** Tree layout (pure): family units, d3-flextree, connectors (marriage line, drop lines, bus), orientation swap. Snapshot tests on fixtures. *(TV-01/02)*
-- [ ] **P4-03** `PersonCard` (SVG): photo or initials, name wrapping, years, deceased style, me, reference, bloodline-spouse badges, `+N` pill, states. *(VIS-05, VIS-08/09)*
-- [ ] **P4-04** `TreeView`: render, select, expand/collapse, fit and centre, zoom buttons, focus/re-root with breadcrumb, `motion` transitions with thresholds. *(TV-03/05, VIS-03)*
-- [ ] **P4-05** Quick-add: "+" on the selected card (desktop), floating button and action sheet (mobile), context menu (right-click and long-press). *(TV-04, REL-02, UX-07)*
-- [ ] **P4-06** Minimal person form (names, gender) for add spouse/parent/sibling. `PersonPicker` for "link an existing person" with search. *(PER-01, REL-05/06/12)*
-- [ ] **P4-07** **Bulk add children** sheet: rows with a son/daughter toggle, Enter for a new row, multi-line paste, other-parent selector, duplicate warnings, single undo. *(REL-03/04, PER-07)*
-- [ ] **P4-08** Basic `PersonPanel`: view and edit of core fields with autosave and validation. *(PER-04/05)*
-- [ ] **P4-09** Delete flows (only this person, or with N descendants) with an Undo toast. Relationship editors: kind/status, change the other parent, **move branch** (picker), remove relationship, reorder children (up/down). *(PER-06, REL-07/08/09, UX-02)*
-- [ ] **P4-10** Undo/redo toolbar and shortcuts. Command palette (`⌘/Ctrl+K`) with person search → expand path → centre → highlight. *(UX-01/03, VIS-04)*
-- [ ] **P4-11** Keyboard navigation and shortcuts. *(TV-09)*
-- [ ] **P4-12** "Unplaced people" tray with a Connect action. *(REL-11)*
-- [ ] **P4-13** **Performance benchmark** on the 500- and 2,000-person fixtures at 4× CPU throttle. Record FPS and render time, and decide whether the Canvas2D fallback (R-04) is needed.
-- [ ] **P4-14** Tests: E2E AC REL-04 and REL-10, undo/redo across reload boundaries, the mobile flow (tap → FAB → bulk add), the desktop flow (keyboard).
+- [x] **P4-01** `views/shared`: imperative d3-zoom camera hook, viewport culling, `measureText` cache (bn/en fonts), colour resolver (branch, gender, generation, none; DESIGN §21.3), collapse-state persistence. *(VIS-02/06/10)*
+- [x] **P4-02** Tree layout (pure): family units, d3-flextree, connectors (marriage line, drop lines, bus), orientation swap. Snapshot tests on fixtures. *(TV-01/02)*
+- [x] **P4-03** `PersonCard` (SVG): photo or initials, name wrapping, years, deceased style, me, reference, bloodline-spouse badges, `+N` pill, states. *(VIS-05, VIS-08/09)*
+- [x] **P4-04** `TreeView`: render, select, expand/collapse, fit and centre, zoom buttons, focus/re-root with breadcrumb, `motion` transitions with thresholds. *(TV-03/05, VIS-03)*
+- [x] **P4-05** Quick-add: "+" on the selected card (desktop), floating button and action sheet (mobile), context menu (right-click and long-press). *(TV-04, REL-02, UX-07)*
+- [x] **P4-06** Minimal person form (names, gender) for add spouse/parent/sibling. `PersonPicker` for "link an existing person" with search. *(PER-01, REL-05/06/12)*
+- [x] **P4-07** **Bulk add children** sheet: rows with a son/daughter toggle, Enter for a new row, multi-line paste, other-parent selector, duplicate warnings, single undo. *(REL-03/04, PER-07)*
+- [x] **P4-08** Basic `PersonPanel`: view and edit of core fields with autosave and validation. *(PER-04/05)*
+- [x] **P4-09** Delete flows (only this person, or with N descendants) with an Undo toast. Relationship editors: kind/status, change the other parent, **move branch** (picker), remove relationship, reorder children (up/down). *(PER-06, REL-07/08/09, UX-02)*
+- [x] **P4-10** Undo/redo toolbar and shortcuts. Command palette (`⌘/Ctrl+K`) with person search → expand path → centre → highlight. *(UX-01/03, VIS-04)*
+- [x] **P4-11** Keyboard navigation and shortcuts. *(TV-09)*
+- [x] **P4-12** "Unplaced people" tray with a Connect action. *(REL-11)*
+- [x] **P4-13** **Performance benchmark** on the 500- and 2,000-person fixtures at 4× CPU throttle. Record FPS and render time, and decide whether the Canvas2D fallback (R-04) is needed.
+- [x] **P4-14** Tests: E2E AC REL-04 and REL-10, undo/redo across reload boundaries, the mobile flow (tap → FAB → bulk add), the desktop flow (keyboard).
 
 **Exit criteria:** a 3-generation, 10-person tree can be built on a phone in under 3 minutes (internal dry run); NFR-PERF-03 is met on the 500-person fixture.
+
+**Status (2026-10-23):** done. NFR-PERF-03 is met on the 500-person fixture (render 112–194 ms, pan and zoom 53–60 fps at 4× CPU throttle; `docs/PERFORMANCE.md`), so the Canvas2D fallback is not needed. AC REL-04 and AC REL-10 pass end to end on phone and desktop. The 3-minute phone dry run is for the owner: the E2E phone flow builds a small family in a few taps, but a real person on a real phone is the test. 338 unit tests and 42 E2E tests per browser pass. Notes:
+
+- **Animation** uses CSS transitions on the cards' transforms instead of `motion` (no extra library; still off above 300 cards and with reduced motion). **d3-flextree** brings its own hierarchy; `d3-hierarchy` arrives with the Circle view.
+- **Quick add on phones** is the "+" in the selection bar above the bottom navigation rather than a separate floating button: the same thumb zone, without covering the tree.
+- **Phones** keep the tree name readable next to search and undo by moving the account avatar into the ⋮ menu, which gains Log out and Redo.
+- **Keyboard:** arrows move on screen (they follow the tree's direction); shortcuts work with a Bangla keyboard layout; dialogs opened from shortcuts return focus to where it was.
+- **Fixed on the way:** a tree opened right after it was created could show "This tree isn't available" when its listeners reached the server before its write (DESIGN §11.2). Reloading within a moment of an edit, before "Saved", can still lose that edit if the browser hadn't stored it yet; the E2E tests wait for "Saved". A leave-page warning while saving is a product decision for later.
+- **The tree "touch"** from P2/P3 is done: edits that don't write the tree document add a stamps-only tree update at most once a minute per tree (`commands/touch.ts`), so the dashboard's "last change" follows them.
+- **Still open:** photos on cards (P5), and the minimap and the "me" badge (later polish).
 
 ---
 

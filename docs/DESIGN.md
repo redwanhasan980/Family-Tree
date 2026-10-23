@@ -270,7 +270,7 @@ family-tree/
 │   │   ├── settings/                         # SettingsForm, DeleteAccountSection (AUTH-10/12)
 │   │   ├── editor/                           # useTreeSession, EditorProvider (useEditor().run); commands/ (builders, executor, coalesce)
 │   │   │   └── shell/                        # EditorShell, EditorHeader, TreeSwitcher, ViewNav, SaveStatus, DetailsContainer, TreeSettingsDialog, Statistics, urlState
-│   │   ├── person/                           # GenderChoice, AddPersonDialog (P3); PersonPanel, QuickAdd, BulkAddChildren, PersonPicker (P4)
+│   │   ├── person/                           # GenderChoice, AddPersonDialog (P3); AddRelativeFlows (quick add), AddRelativeDialog, BulkAddChildren, PersonPicker, PersonPanel, PersonDetailsForm, PersonFamily, DeletePersonDialog (P4)
 │   │   ├── views/
 │   │   │   ├── shared/                       # camera, collapse state, colors, card model, text measure
 │   │   │   ├── tree/                         # layout.ts, TreeView.tsx, PersonCard.tsx, Connectors.tsx
@@ -777,6 +777,7 @@ flowchart TB
 4. Each view derives its view model (layout) from the graph plus the UI state (focus, collapsed set, settings).
 5. **Save status:** `hasPendingWrites` from snapshot metadata plus the online state gives `saving | saved | offline` (TREE-07, PWA-03).
 6. **Gone or no access:** the rules deny reading a missing tree, so a deleted tree and lost access both reach the listeners as `permission-denied`. The editor shows one message for both.
+7. **A tree created a moment ago** can reach its listeners before its own write reaches the server, which then refuses them the same way. While the tree's write is still pending on this device, `useTreeSession` stops the listeners and starts them again after 0.5, 1, 2 and 4 s, and only then reports the tree as unavailable (found by the P4 E2E tests under load).
 
 ### 11.3 Mutations through commands
 
@@ -816,7 +817,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 
 **Behaviour decided while building the commands (P2-08):**
 
-- Commands that add or remove people update the tree document (`personCount` and stamps). Other edits leave it alone; the debounced "touch" (§7.3) arrives with the editor in P3/P4.
+- Commands that add or remove people update the tree document (`personCount` and stamps). For other edits, `EditorProvider` adds a stamps-only tree update to the batch at most once a minute per tree (`commands/touch.ts`, §7.3).
 - `addParent` on the tree's root makes the new parent the root, so the tree keeps starting from the oldest known ancestor. When the child already has exactly one biological parent, the new parent is also recorded as that parent's spouse.
 - `deletePerson` of the root without descendants passes the root to their first child; with descendants, the root is cleared.
 - `moveBranch` replaces all of a person's parent links (their descendants follow); `changeOtherParent` replaces one, keeping its kind.
@@ -830,7 +831,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 | Store | Contents | Persistence |
 | --- | --- | --- |
 | `treeStore` | `tree`, `persons`, `relationships`, `version`, `sync` (pending/offline flags) | none (Firestore cache) |
-| `uiStore` | `view`, `selectedId`, `focusId`, `panel` (open/size), `collapsed` per view, `search` | `collapsed` and `view` in localStorage per tree (VIS-10). `openTree(treeId, defaultView, { view, focusId, allowed })` starts from the URL, then this browser's memory, then the tree's default, skipping views whose flag is off; `closeTree()` runs when the editor unmounts |
+| `uiStore` | `view`, `selectedId`, `detailsOpen` (phones), `focusId`, `addFlow` (the quick-add menu or form), `collapsed` per view, `orientation`, `revealRequest` (search → the view shows someone, VIS-04), `deletingId`, `searchOpen` | `collapsed`, `view` and `orientation` in localStorage per tree (VIS-10). `openTree(treeId, defaultView, { view, focusId, allowed })` starts from the URL, then this browser's memory, then the tree's default, skipping views whose flag is off; `closeTree()` runs when the editor unmounts |
 | `historyStore` | `undo[]`, `redo[]` | none |
 | `prefsStore` | locale, theme, density (compact/comfortable) | cookie + `users/{uid}` (not yet built: language and theme live in the profile through `SessionProvider` since P1) |
 
@@ -930,7 +931,7 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 - **Camera:** `d3-zoom` on the `<svg>`. The transform is applied **imperatively** to the root `<g>` through a ref, so React does not re-render on every frame. React state updates only on zoom *end*, to recompute culling (viewport plus a 200 px margin).
 - **Selection & focus** come from `uiStore`. All views react to them, and switching views keeps them (VIS-01).
 - **Collapse state** is a `Set<pathKey>` per view, persisted per tree. Default: expand 3 generations, and auto-collapse deeper levels if more than 150 cards would show.
-- **Animation:** `motion` transitions for card positions, enter and exit (about 250 ms, spring). They are disabled with `prefers-reduced-motion` or when more than 300 cards are visible (TV-05).
+- **Animation:** CSS transitions on the cards' `transform` (250 ms) and a short fade-in for new cards (`.tree-animate` in `globals.css`). SVG cards are positioned with CSS transforms, so no animation library is needed. They are disabled with `prefers-reduced-motion` or when more than 300 cards are visible (TV-05).
 - **Theme tokens** come from CSS variables, so light and dark mode apply to SVG fills and strokes as well.
 - **Read-only mode** (`editable={false}`) hides every add/edit affordance (VIS-07).
 
@@ -953,7 +954,7 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 **Layout** (`features/views/tree/layout.ts`, a pure function):
 
 1. Input: a `DescNode` tree. Each node becomes a **family unit** whose width is `cardW × (1 + partners) + spouseGap × partners`. With one partner the order is `[person][partner]`; with two, `[partner1][person][partner2]`; with more, the person comes first and the partners follow to the right.
-2. `d3-flextree` with `nodeSize = [unitWidth, cardH + levelGap]` and `spacing(a, b) = a.parent === b.parent ? 24 : 48`, which gives tidy subtrees with variable-width units.
+2. `d3-flextree` (its own `hierarchy()`, so the Tree view needs no `d3-hierarchy`; types in `src/types/d3-flextree.d.ts`) with `nodeSize = [unitWidth, cardH + levelGap]` and `spacing(a, b) = a.parent === b.parent ? 24 : 48`, which gives tidy subtrees with variable-width units.
 3. Output: absolute positions for every card and **connector paths**:
    - a **marriage line** between partners (solid for married, dashed for divorced or separated, with a small ring icon at its midpoint);
    - a **drop line** from the marriage-line midpoint (or from the person when the partner is unknown) down to a horizontal bus at `levelGap / 2`, then down to each child's top centre;
@@ -965,16 +966,30 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 | Action | Desktop | Mobile |
 | --- | --- | --- |
 | Select person | click | tap |
-| Open details | click (the panel opens beside the canvas) | tap selects; the details sheet peeks at the bottom |
-| Quick add (REL-02) | "+" button on the selected card, or the `C`/`S`/`P` keys | "+" floating action button (bottom right) for the selected person |
-| Context menu | right-click | long-press (500 ms, haptic feedback if available) |
-| Expand/collapse | click the chevron or `+N` pill | tap the pill |
-| Pan | drag the background, or the arrow keys when nothing is selected | one-finger drag |
-| Zoom | wheel or trackpad pinch, `+`/`−` | pinch |
-| Fit / centre | `F` / button | button |
-| Make focus | context menu → "Show tree from here" | long-press menu |
+| Open details | click (the panel opens beside the canvas) or `Enter` | tap selects and shows the selection bar; tapping the bar opens the details sheet |
+| Quick add (REL-02) | "+" button on the selected card, or `C`/`S`/`P` for a child, spouse or parent | "+" in the selection bar (thumb zone), which opens the add sheet |
+| Context menu | right-click | long-press |
+| Expand/collapse | click the `−` or `+N` pill | tap the pill |
+| Move between people (TV-09) | arrow keys on a focused card: towards the parents, the nearest child, or the next card in the generation (husbands and wives included); they follow the tree's direction | — |
+| Pan | drag the background | one-finger drag |
+| Zoom | wheel or trackpad pinch, `+`/`−` buttons | pinch |
+| Fit / centre | `F` / buttons | buttons |
+| Find someone (VIS-04, UX-03) | `Ctrl/⌘+K`, `/` or the header search | header search |
+| Undo / redo (UX-01) | `Ctrl/⌘+Z`, `Ctrl/⌘+Shift+Z` or `Ctrl+Y`, header buttons | header undo; redo in the ⋮ menu |
+| Delete | `Del` (or Backspace), then confirm | details sheet |
+| Make focus | context menu → "Show the tree from here" | long-press menu |
 
-**Performance:** cull cards outside the viewport plus margin. Memoize cards by `(personId, version, theme)`. The connector `<path>` is batched into one path per family. The target is 2,000 persons with at most about 400 rendered at once. If benchmarks fail on low-end phones, a **Canvas2D renderer** behind the same view model is the fallback (risk R-04).
+Shortcuts (`features/editor/shortcuts.ts`) match letters by the physical key when a Bangla keyboard layout is active, and stay out of the way while someone types or works in a dialog or menu. Keys act on the focused card, else the selected person.
+
+**Find someone:** picking a result selects the person and asks the current view to show them (`uiStore.reveal`). The Tree view keeps the focus when it reaches them, else goes back to the tree's start, else shows the tree from them (an unplaced person); it opens the collapsed branches on the way (`keysToReveal`), then centres the card and moves keyboard focus to it.
+
+**Unplaced people (REL-11):** a button at the bottom right counts the people the tree can't reach from its start. Its list offers *Show* (the tree from them) and *Connect* (link them to someone already in the tree).
+
+**Editing (P4):** the quick-add menu is a popover beside the card on desktop and a sheet on phones; its buttons name the relative for this person ("Wife" for a man). Spouse, parent and sibling forms ask for a name and man or woman, or switch to *someone already in the tree* (`PersonPicker`). *Add children* takes one row per child with a son/daughter toggle, Enter for the next row and pasted lists, and adds them in one undo step. The details panel (`PersonPanel`) saves edits 800 ms after typing stops or when a field loses focus, follows changes from undo or other devices while nobody is typing in it, and lists the family with the relationship editors (REL-07..09). Destructive changes show an Undo toast (UX-02); undo and redo name the action from `history.<labelKey>`.
+
+**Focus:** dialogs and sheets opened from code (shortcuts, a menu handing over to a form) have no trigger for Radix to return focus to, so `components/ui/returnFocus.ts` gives focus back to the last element focused outside any overlay.
+
+**Performance:** cull cards outside the viewport plus margin; the active and selected cards always render so keyboard focus can reach them. Cards, toggles and the connector layer are memoized, so a pan renders only the cards that came into view. The connector `<path>` is batched into one path per family. The target is 2,000 persons with at most about 400 rendered at once. The P4-13 benchmark (`docs/PERFORMANCE.md`) met NFR-PERF-03 on the 500-person fixture at 4× CPU throttle, so the **Canvas2D renderer** fallback (risk R-04) is not needed for now.
 
 ### 13.4 Circle view (CV)
 
@@ -1676,7 +1691,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 ## 22. Accessibility
 
 - **Keyboard:** everything is reachable; skip link; visible focus ring (`--ring`, 2 px plus offset); roving tabindex in the list, tree and canvas views (TV-09).
-- **Screen readers:** the list view uses the full ARIA `tree` pattern. The Family card view is built from plain headings, sections and lists, so it is the simplest screen-reader experience (FC-08). Canvas views expose `role="application"` with an `aria-label` and a live region that announces the selection ("আব্দুল করিম, প্রজন্ম ১, ৪ সন্তান"). Every icon button has an `aria-label`.
+- **Screen readers:** the list view uses the full ARIA `tree` pattern. The Family card view is built from plain headings, sections and lists, so it is the simplest screen-reader experience (FC-08). The Tree view is an SVG `role="tree"` of `treeitem` cards (name, years, deceased) with a roving tabindex, and a live region announces the selection ("নির্বাচিত: আব্দুল করিম"). The other canvas views follow the same pattern. Every icon button has an `aria-label`.
 - **Contrast:** tokens are verified (§21.2). Data colours always have labels (§21.3).
 - **Motion:** honours `prefers-reduced-motion`. Confetti and fly-to animations are turned off.
 - **Touch:** targets are at least 44 × 44 px. Gestures always have a button alternative (zoom buttons, menu instead of long-press).

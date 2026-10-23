@@ -46,6 +46,7 @@ import {
   setParentKind,
   setSpouseStatus,
 } from './relationshipCommands';
+import { createTreeToucher } from './touch';
 import { createTree, setRoot, updateTreeDetails, updateTreeSettings } from './treeCommands';
 
 import type { BuildResult, CommandContext } from './types';
@@ -272,6 +273,42 @@ describe('commands against the emulator and the security rules', () => {
     const ctx = await context();
     expect(parentsOf(ctx.graph, 'X')).toEqual(['S2']);
     expect(ctx.tree.rootPersonId).toBe('S1');
+  });
+
+  it('touches the tree for detail edits, as an editor too (DESIGN §7.3)', async () => {
+    await seedFamily();
+    const EDITOR = 'u2';
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const admin = ctx.firestore() as unknown as Firestore;
+      await setDoc(
+        doc(admin, paths.tree(TREE)),
+        { memberIds: [UID, EDITOR], roles: { [UID]: 'owner', [EDITOR]: 'editor' } },
+        { merge: true },
+      );
+    });
+    const editorDb = env
+      .authenticatedContext(EDITOR, {
+        email: 'u2@example.com',
+        email_verified: true,
+        firebase: { sign_in_provider: 'password' },
+      })
+      .firestore() as unknown as Firestore;
+    const before = (await getDoc(doc(db, paths.tree(TREE)))).data()!;
+
+    const result = updatePerson({ ...(await context()), actorId: EDITOR }, 'S1', {
+      nickname: 'Babu',
+    });
+    if (!result.ok) throw new Error('updatePerson failed');
+    const ops = createTreeToucher()(result.command.forward, { treeId: TREE, actorId: EDITOR });
+    expect(ops).toHaveLength(result.command.forward.length + 1);
+    await commitBatch(ops, editorDb);
+
+    const after = (await getDoc(doc(db, paths.tree(TREE)))).data()!;
+    expect(after.updatedBy).toBe(EDITOR);
+    expect((after.updatedAt as Timestamp).toMillis()).toBeGreaterThan(
+      (before.updatedAt as Timestamp).toMillis(),
+    );
+    expect(after.personCount).toBe(before.personCount);
   });
 
   it('runs commands through the executor and the listeners see each step', async () => {

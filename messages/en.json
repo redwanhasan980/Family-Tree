@@ -466,6 +466,7 @@
     "add": "Add",
     "childName": "Name of child {number}",
     "anotherChild": "Another child (Enter)",
+    "childRole": "Son or daughter: child {number}",
     "removeChild": "Remove child {number}",
     "pasteHint": "Tip: paste a list of names, one per line.",
     "otherParent": "Other parent",

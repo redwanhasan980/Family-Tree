@@ -76,6 +76,44 @@ describe('useTreeSession', () => {
     unmount();
   });
 
+  it('listens again to a tree just created here that the server has yet to get', () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { result, unmount } = renderHook(() => useTreeSession('t1'));
+    const pending = { fromCache: true, hasPendingWrites: true };
+    act(() => repo.tree!({ id: 't1', name: 'T' }, pending));
+    act(() => repo.error!({ code: 'permission-denied' }));
+    // The first listeners stopped; the tree stays on screen.
+    expect(result.current.status).toBe('ready');
+    expect(repo.stops.slice(0, 3).every((stop) => stop.mock.calls.length === 1)).toBe(true);
+    act(() => vi.advanceTimersByTime(500));
+    expect(repo.stops).toHaveLength(6);
+    act(() => repo.tree!({ id: 't1', name: 'T' }, { fromCache: false, hasPendingWrites: false }));
+    expect(result.current.status).toBe('ready');
+
+    // Once the server has it, a refusal is real.
+    act(() => repo.error!({ code: 'permission-denied' }));
+    expect(result.current).toEqual({ status: 'error', errorCode: 'permission-denied' });
+    unmount();
+    vi.useRealTimers();
+  });
+
+  it('gives up after a few tries', () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { result, unmount } = renderHook(() => useTreeSession('t1'));
+    for (const delay of [500, 1000, 2000, 4000]) {
+      act(() => repo.tree!({ id: 't1', name: 'T' }, { fromCache: true, hasPendingWrites: true }));
+      act(() => repo.error!({ code: 'permission-denied' }));
+      expect(result.current.status).toBe('ready');
+      act(() => vi.advanceTimersByTime(delay));
+    }
+    act(() => repo.error!({ code: 'permission-denied' }));
+    expect(result.current.status).toBe('error');
+    unmount();
+    vi.useRealTimers();
+  });
+
   it('reports listener errors with their code', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { result, unmount } = renderHook(() => useTreeSession('t1'));

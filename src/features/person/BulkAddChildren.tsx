@@ -55,7 +55,7 @@ function SonOrDaughter({
   return (
     <div
       role="radiogroup"
-      aria-label={t('childName', { number })}
+      aria-label={t('childRole', { number })}
       className="grid shrink-0 grid-cols-2 overflow-hidden rounded-md border"
     >
       {(['male', 'female'] as const).map((gender) => (

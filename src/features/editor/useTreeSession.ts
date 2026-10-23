@@ -20,6 +20,9 @@ import {
   type TreeStatus,
 } from '@/stores/treeStore';
 
+/** Waits before listening again to a tree the server doesn't have yet (about 7 s in all). */
+const RETRY_DELAYS_MS = [500, 1000, 2000, 4000];
+
 /**
  * Opens a tree for editing (DESIGN §11.2): shows the device's cached copy at once, then
  * keeps people, relationships and the tree document in sync with three listeners. Undo
@@ -38,26 +41,54 @@ export function useTreeSession(treeId: ID): { status: TreeStatus; errorCode: str
       })
       .catch(() => undefined);
 
+    let stops: (() => void)[] = [];
+    let attempt = 0;
+    let retry: number | undefined;
     const onError = (error: unknown) => {
-      logger.warn('tree.listen', { code: errorCode(error) });
-      if (active) treeStore.getState().fail(errorCode(error));
+      if (!active) return;
+      const code = errorCode(error);
+      // The server refuses to listen to a tree it doesn't have yet. A tree created on this
+      // device a moment ago can be in that state (its write still on the way), so listen
+      // again shortly instead of calling it unavailable.
+      const { tree, pending } = treeStore.getState();
+      const unsent = tree !== null && (pending.tree || pending.persons);
+      if (code === 'permission-denied' && unsent && attempt < RETRY_DELAYS_MS.length) {
+        if (retry === undefined) {
+          stopAll();
+          retry = window.setTimeout(() => {
+            retry = undefined;
+            listen();
+          }, RETRY_DELAYS_MS[attempt++]);
+        }
+        return;
+      }
+      logger.warn('tree.listen', { code });
+      treeStore.getState().fail(code);
     };
-    const stops = [
-      subscribeTree(treeId, (tree, meta) => treeStore.getState().applyTree(tree, meta), onError),
-      subscribePersons(
-        treeId,
-        (changes, meta) => treeStore.getState().applyPersons(changes, meta),
-        onError,
-      ),
-      subscribeRelationships(
-        treeId,
-        (changes, meta) => treeStore.getState().applyRelationships(changes, meta),
-        onError,
-      ),
-    ];
+    const listen = () => {
+      stops = [
+        subscribeTree(treeId, (tree, meta) => treeStore.getState().applyTree(tree, meta), onError),
+        subscribePersons(
+          treeId,
+          (changes, meta) => treeStore.getState().applyPersons(changes, meta),
+          onError,
+        ),
+        subscribeRelationships(
+          treeId,
+          (changes, meta) => treeStore.getState().applyRelationships(changes, meta),
+          onError,
+        ),
+      ];
+    };
+    const stopAll = () => {
+      for (const stop of stops) stop();
+      stops = [];
+    };
+    listen();
     return () => {
       active = false;
-      for (const stop of stops) stop();
+      window.clearTimeout(retry);
+      stopAll();
       treeStore.getState().close();
     };
   }, [treeId]);

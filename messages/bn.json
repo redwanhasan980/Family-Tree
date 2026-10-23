@@ -466,6 +466,7 @@
     "add": "যোগ করুন",
     "childName": "{number} নম্বর সন্তানের নাম",
     "anotherChild": "আরেকজন (Enter)",
+    "childRole": "ছেলে না মেয়ে: {number} নম্বর সন্তান",
     "removeChild": "{number} নম্বর সন্তান বাদ দিন",
     "pasteHint": "সুবিধা: নামের তালিকা পেস্ট করুন, প্রতি লাইনে একটি নাম।",
     "otherParent": "অন্য অভিভাবক",

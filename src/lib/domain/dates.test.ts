@@ -15,6 +15,10 @@ describe('formatting (DESIGN §16.2)', () => {
     expect(formatPartialDate({ year: 1931, approximate: true }, 'bn')).toBe('১৯৩১');
     expect(formatPartialDate({ year: 2004, month: 3 }, 'bn')).toBe('মার্চ ২০০৪');
     expect(formatPartialDate({ year: 2004, month: 3, day: 12 }, 'bn')).toMatch(/^১২ মার্চ,? ২০০৪$/);
+    // Full month names, never clipped ones such as "এপ্রি".
+    expect(formatPartialDate({ year: 1930, month: 4, day: 19 }, 'bn')).toMatch(
+      /^১৯ এপ্রিল,? ১৯৩০$/,
+    );
   });
 
   it('formats them in English', () => {

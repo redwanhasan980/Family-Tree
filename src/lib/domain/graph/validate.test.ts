@@ -10,6 +10,7 @@ import {
   validateParentLink,
   validateSpouseLink,
   wouldCreateCycle,
+  personDateWarnings,
 } from './validate';
 import { makeParentLink, makePerson, makeSpouseLink } from '../fixtures/factories';
 import { testFamily } from '../fixtures/testFamily';
@@ -130,5 +131,50 @@ describe('duplicates (PER-07)', () => {
     expect(findDuplicates(family, { bn: 'সালাম' }, ['kid1', 'kid2', 'ghost'])).toEqual(['kid2']);
     expect(findDuplicates(family, { en: 'Salam' }, ['kid1', 'kid2'])).toEqual([]);
     expect(findDuplicates(family, {}, ['kid1'])).toEqual([]);
+  });
+});
+
+describe('personDateWarnings (P5-02)', () => {
+  const now = new Date(Date.UTC(2026, 5, 1));
+  const person = (id: string, year: number | undefined, extra = {}) =>
+    makePerson(id, { ...(year && { birth: { date: { year } } }), ...extra });
+
+  it('warns about a death before the birth and a living person over 120', () => {
+    const g = buildGraph(
+      [
+        person('a', 1950, { isLiving: false, death: { date: { year: 1940 } } }),
+        person('b', 1890),
+        person('c', 1890, { isLiving: false }),
+      ],
+      [],
+    );
+    expect(personDateWarnings(g, 'a', now).map((i) => i.code)).toEqual(['diedBeforeBorn']);
+    expect(personDateWarnings(g, 'b', now)).toEqual([
+      { severity: 'warning', code: 'livingTooOld', params: { years: 136 } },
+    ]);
+    expect(personDateWarnings(g, 'c', now)).toEqual([]);
+    expect(personDateWarnings(g, 'missing', now)).toEqual([]);
+  });
+
+  it('names the parent or child whose dates look wrong', () => {
+    const g = buildGraph(
+      [person('p', 1960), person('k', 1965), person('q', 1990)],
+      [makeParentLink('p', 'k'), makeParentLink('k', 'q')],
+    );
+    expect(personDateWarnings(g, 'k', now)).toEqual([
+      {
+        severity: 'warning',
+        code: 'parentTooYoung',
+        params: { years: 5, personId: 'p', relation: 'parent' },
+      },
+    ]);
+    expect(personDateWarnings(g, 'p', now)).toEqual([
+      {
+        severity: 'warning',
+        code: 'parentTooYoung',
+        params: { years: 5, personId: 'k', relation: 'child' },
+      },
+    ]);
+    expect(personDateWarnings(g, 'q', now)).toEqual([]);
   });
 });

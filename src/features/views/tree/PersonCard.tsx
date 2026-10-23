@@ -1,6 +1,6 @@
 'use client';
 
-import { Link2Icon } from 'lucide-react';
+import { Link2Icon, StarIcon } from 'lucide-react';
 import { memo, type KeyboardEvent } from 'react';
 
 import { initials, type ShownName } from '@/lib/domain/names';
@@ -25,6 +25,8 @@ export interface PersonCardProps {
   deceased: boolean;
   accent: string | null;
   selected: boolean;
+  /** The user marked this person "This is me" (PER-10). */
+  isSelf?: boolean;
   compact: boolean;
   fontFamily: string;
   /** Changes when fonts finish loading, so names are measured again. */
@@ -48,6 +50,7 @@ export const PersonCard = memo(function PersonCard({
   deceased,
   accent,
   selected,
+  isSelf = false,
   compact,
   fontFamily,
   label,
@@ -118,6 +121,15 @@ export const PersonCard = memo(function PersonCard({
       >
         {initials(name.text, name.lang)}
       </text>
+      {isSelf && (
+        <g
+          transform={`translate(${s.avatarLeft + s.avatar - 12}, ${card.h / 2 + avatarR - 12})`}
+          aria-hidden
+        >
+          <circle cx={8} cy={8} r={9} fill="var(--card)" />
+          <StarIcon width={16} height={16} fill="var(--highlight)" color="var(--highlight)" />
+        </g>
+      )}
       <text
         lang={name.lang}
         fontSize={s.name}

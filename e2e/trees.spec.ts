@@ -118,6 +118,7 @@ test.describe('editor shell', () => {
       'true',
     );
     if (isPhone(page)) await page.getByRole('button', { name: /^Details: রহিমা বেগম/ }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.getByLabel('Name in Bangla')).toHaveValue('রহিমা বেগম');
   });
 

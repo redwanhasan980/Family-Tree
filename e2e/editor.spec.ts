@@ -97,6 +97,7 @@ test.describe('adding relatives', () => {
     expect(karim!.y).toBeGreaterThan(couple.y);
 
     await openDetails(page, 'Rahima');
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.getByRole('radio', { name: 'Woman' })).toBeChecked();
     await expect(page.getByRole('button', { name: 'Fatema Begum', exact: true })).toBeVisible();
     if (isPhone(page)) await page.keyboard.press('Escape');

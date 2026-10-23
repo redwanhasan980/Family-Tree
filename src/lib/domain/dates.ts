@@ -32,7 +32,8 @@ function formatter(locale: Locale, parts: 'y' | 'my' | 'dmy'): Intl.DateTimeForm
     f = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
       timeZone: 'UTC',
       year: 'numeric',
-      ...(parts !== 'y' && { month: 'short' }),
+      // Bangla short month names are clipped ("এপ্রি"); people write them in full.
+      ...(parts !== 'y' && { month: locale === 'bn' ? 'long' : 'short' }),
       ...(parts === 'dmy' && { day: 'numeric' }),
     });
     formatters.set(key, f);
@@ -41,7 +42,7 @@ function formatter(locale: Locale, parts: 'y' | 'my' | 'dmy'): Intl.DateTimeForm
 }
 
 /**
- * "১৯৩১", "মার্চ ২০০৪", "১২ মার্চ, ২০০৪" / "1931", "Mar 2004", "12 Mar 2004".
+ * "১৯৩১", "এপ্রিল ২০০৪", "১২ এপ্রিল, ২০০৪" / "1931", "Apr 2004", "12 Apr 2004".
  * The "approximately" marker is added by the UI from messages, because it is text.
  */
 export function formatPartialDate(date: PartialDate, locale: Locale): string {

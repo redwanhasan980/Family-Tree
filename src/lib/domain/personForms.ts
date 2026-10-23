@@ -34,7 +34,14 @@ export interface DateDraft {
   year: string;
 }
 
-/** The person details form (P4-08, PER-04/05) as text fields. */
+/** An extra label/value field as typed (PER-03). */
+export interface CustomFieldDraft {
+  id: string;
+  label: string;
+  value: string;
+}
+
+/** The person details form (PER-02/03/04) as text fields. */
 export interface DetailsDraft {
   nameEn: string;
   nameBn: string;
@@ -42,7 +49,20 @@ export interface DetailsDraft {
   gender: Gender;
   isLiving: boolean;
   birth: DateDraft;
+  birthApprox: boolean;
+  birthPlace: string;
   death: DateDraft;
+  deathApprox: boolean;
+  deathPlace: string;
+  profession: string;
+  education: string;
+  presentAddress: string;
+  permanentAddress: string;
+  /** Up to three rows; empty rows are dropped when saving. */
+  phones: string[];
+  email: string;
+  description: string;
+  customFields: CustomFieldDraft[];
 }
 
 const dateDraft = (date: PartialDate | undefined): DateDraft => ({
@@ -59,7 +79,19 @@ export function draftFromPerson(person: Person): DetailsDraft {
     gender: person.gender,
     isLiving: person.isLiving,
     birth: dateDraft(person.birth?.date),
+    birthApprox: Boolean(person.birth?.date?.approximate),
+    birthPlace: person.birth?.place ?? '',
     death: dateDraft(person.death?.date),
+    deathApprox: Boolean(person.death?.date?.approximate),
+    deathPlace: person.death?.place ?? '',
+    profession: person.profession ?? '',
+    education: person.education ?? '',
+    presentAddress: person.addresses?.present ?? '',
+    permanentAddress: person.addresses?.permanent ?? '',
+    phones: person.phones?.length ? [...person.phones] : [''],
+    email: person.email ?? '',
+    description: person.description ?? '',
+    customFields: (person.customFields ?? []).map((field) => ({ ...field })),
   };
 }
 
@@ -85,25 +117,89 @@ export function dateFromDraft(draft: DateDraft, approximate?: boolean): PartialD
   };
 }
 
-function event(current: LifeEvent | undefined, date: PartialDate | undefined) {
-  const next = { ...current, date };
-  if (!date) delete next.date;
-  return next.date || next.place ? next : undefined;
+const text = (value: string): string | undefined => (value.trim() ? value : undefined);
+
+function lifeEvent(date: PartialDate | undefined, place: string): LifeEvent | undefined {
+  const event: LifeEvent = {
+    ...(date && { date }),
+    ...(text(place) && { place }),
+  };
+  return event.date || event.place ? event : undefined;
 }
 
-/** The details to save from the form, keeping fields the form doesn't show (places). */
-export function patchFromDraft(person: Person, draft: DetailsDraft): Partial<PersonDetails> {
+/** Phone rows that are saved, in order (blank rows are dropped). Digits become ASCII. */
+export function keptPhones(draft: Pick<DetailsDraft, 'phones'>): { row: number; phone: string }[] {
+  return draft.phones.flatMap((phone, row) => {
+    const clean = toAsciiDigits(phone).trim();
+    return clean ? [{ row, phone: clean }] : [];
+  });
+}
+
+/** Extra fields that are saved, in order (rows with neither label nor value are dropped). */
+export function keptCustomFields(draft: Pick<DetailsDraft, 'customFields'>): CustomFieldDraft[] {
+  return draft.customFields.filter((field) => field.label.trim() || field.value.trim());
+}
+
+/** The details to save from the form. */
+export function patchFromDraft(draft: DetailsDraft): Partial<PersonDetails> {
+  const present = text(draft.presentAddress);
+  const permanent = text(draft.permanentAddress);
+  const phones = keptPhones(draft).map((kept) => kept.phone);
+  const customFields = keptCustomFields(draft);
   return {
     names: {
       ...(draft.nameEn.trim() && { en: draft.nameEn }),
       ...(draft.nameBn.trim() && { bn: draft.nameBn }),
     },
-    nickname: draft.nickname.trim() ? draft.nickname : undefined,
+    nickname: text(draft.nickname),
     gender: draft.gender,
     isLiving: draft.isLiving,
-    birth: event(person.birth, dateFromDraft(draft.birth, person.birth?.date?.approximate)),
+    birth: lifeEvent(dateFromDraft(draft.birth, draft.birthApprox), draft.birthPlace),
     death: draft.isLiving
-      ? event(person.death, undefined)
-      : event(person.death, dateFromDraft(draft.death, person.death?.date?.approximate)),
+      ? undefined
+      : lifeEvent(dateFromDraft(draft.death, draft.deathApprox), draft.deathPlace),
+    profession: text(draft.profession),
+    education: text(draft.education),
+    addresses:
+      present || permanent
+        ? { ...(present && { present }), ...(permanent && { permanent }) }
+        : undefined,
+    phones: phones.length > 0 ? phones : undefined,
+    email: text(draft.email)?.trim(),
+    description: text(draft.description),
+    customFields: customFields.length > 0 ? customFields : undefined,
   };
+}
+
+/**
+ * Which form field a validation issue path (`params.field`) belongs to, using the same
+ * rows as `patchFromDraft`: "phone:0" for the first phone row, "custom:{id}:label".
+ */
+export function draftFieldOf(path: string, draft: DetailsDraft): string | null {
+  const [head, index, part] = path.split('.');
+  switch (head) {
+    case 'names':
+      return index === 'bn' ? 'nameBn' : 'nameEn';
+    case 'birth':
+    case 'death':
+      return index === 'place' ? `${head}Place` : head;
+    case 'addresses':
+      return index === 'permanent' ? 'permanentAddress' : 'presentAddress';
+    case 'phones': {
+      const kept = index === undefined ? undefined : keptPhones(draft)[Number(index)];
+      return kept ? `phone:${kept.row}` : 'phones';
+    }
+    case 'customFields': {
+      const kept = index === undefined ? undefined : keptCustomFields(draft)[Number(index)];
+      return kept ? `custom:${kept.id}:${part === 'value' ? 'value' : 'label'}` : 'customFields';
+    }
+    case 'nickname':
+    case 'profession':
+    case 'education':
+    case 'email':
+    case 'description':
+      return head;
+    default:
+      return null;
+  }
 }

@@ -9,6 +9,7 @@ import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
 import { acceptsShortcuts, editorShortcut } from '@/features/editor/shortcuts';
 import { startAdd } from '@/features/person/AddRelativeFlows';
+import { useSelfPerson } from '@/features/person/useSelfPerson';
 import {
   branchOf,
   buildDescendantTree,
@@ -60,6 +61,7 @@ const CardFor = memo(function CardFor({
   layout,
   accent,
   selected,
+  isSelf,
   compact,
   fonts,
   showDates,
@@ -72,6 +74,7 @@ const CardFor = memo(function CardFor({
   layout: TreeLayout;
   accent: string | null;
   selected: boolean;
+  isSelf: boolean;
   compact: boolean;
   fonts: { family: string; version: number };
   showDates: boolean;
@@ -83,7 +86,9 @@ const CardFor = memo(function CardFor({
   const { name, years } = usePersonText(person);
   const shownYears = showDates ? years : '';
   const deceased = !person.isLiving;
-  const label = [name.text, shownYears, deceased && t('deceased')].filter(Boolean).join(', ');
+  const label = [name.text, shownYears, deceased && t('deceased'), isSelf && t('you')]
+    .filter(Boolean)
+    .join(', ');
   const isRepeated = card.isRef || (layout.cardsOf.get(person.id)?.length ?? 0) > 1;
   const linkLabel = card.isRef
     ? t('reference', { name: name.text })
@@ -98,6 +103,7 @@ const CardFor = memo(function CardFor({
       deceased={deceased}
       accent={accent}
       selected={selected}
+      isSelf={isSelf}
       compact={compact}
       fontFamily={fonts.family}
       fontsVersion={fonts.version}
@@ -216,6 +222,7 @@ export function TreeView() {
   const revealRequest = useUi((s) => s.revealRequest);
   const desktop = useIsDesktop();
   const metrics = desktop ? COMFORTABLE : COMPACT;
+  const { selfId } = useSelfPerson();
 
   const start = startingPerson(graph, rootId);
   const focusId = focusSetting && graph.persons.has(focusSetting) ? focusSetting : start;
@@ -491,6 +498,7 @@ export function TreeView() {
                   layout={layout}
                   accent={accent}
                   selected={card.personId === selectedId}
+                  isSelf={card.personId === selfId}
                   compact={!desktop}
                   fonts={fonts}
                   showDates={settings.showDates}

@@ -5,6 +5,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   serverTimestamp,
@@ -147,6 +148,17 @@ describe('users/{uid} — update', () => {
     const db = memberDb(env, 'u1', 'a@b.co');
     await assertSucceeds(
       updateDoc(doc(db, 'users/u1'), { displayName: 'Rahim', locale: 'en', theme: 'dark' }),
+    );
+  });
+
+  it('lets a user mark and clear who they are in a tree (PER-10)', async () => {
+    await seed('g1', { isGuest: true });
+    const db = guestDb(env, 'g1');
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/g1'), { 'selfPersonIds.t1': 'p1', isGuest: true }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/g1'), { 'selfPersonIds.t1': deleteField(), isGuest: true }),
     );
   });
 

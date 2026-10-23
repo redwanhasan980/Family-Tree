@@ -1,3 +1,4 @@
+import { ageAt, partialDateKey, today } from '../dates';
 import { normalizeSearchText } from '../search';
 import { ancestorIds } from './ancestors';
 import { parentLinksOf, spouseLinksOf, type FamilyGraph } from './build';
@@ -44,6 +45,43 @@ export function dateWarnings(g: FamilyGraph, parentId: ID, childId: ID): Issue[]
   if (gap < 0) return [warning('parentBornAfterChild')];
   if (gap < 12) return [warning('parentTooYoung', { years: gap })];
   return [];
+}
+
+/** Older than this and still marked living is probably a mistake. */
+export const LIVING_AGE_LIMIT = 120;
+
+/**
+ * Unlikely dates around one person, for their details (P5-02): a death before the
+ * birth, a "living" person over 120, and parents born after or less than 12 years
+ * before them, or children born before or soon after them. Warnings about relatives
+ * carry `personId` and `relation` ("parent" or "child").
+ */
+export function personDateWarnings(g: FamilyGraph, personId: ID, now: Date = new Date()): Issue[] {
+  const person = g.persons.get(personId);
+  if (!person) return [];
+  const issues: Issue[] = [];
+  const born = person.birth?.date;
+  const died = person.death?.date;
+  if (born && died && !person.isLiving && partialDateKey(died) < partialDateKey(born)) {
+    issues.push(warning('diedBeforeBorn'));
+  }
+  const age = born && person.isLiving ? ageAt(born, today(now)) : null;
+  if (age && age.years > LIVING_AGE_LIMIT)
+    issues.push(warning('livingTooOld', { years: age.years }));
+  for (const link of parentLinksOf(g, personId)) {
+    for (const issue of dateWarnings(g, link.parentId, personId)) {
+      issues.push({
+        ...issue,
+        params: { ...issue.params, personId: link.parentId, relation: 'parent' },
+      });
+    }
+  }
+  for (const childId of childrenOf(g, personId)) {
+    for (const issue of dateWarnings(g, personId, childId)) {
+      issues.push({ ...issue, params: { ...issue.params, personId: childId, relation: 'child' } });
+    }
+  }
+  return issues;
 }
 
 export interface ParentLinkCheck {

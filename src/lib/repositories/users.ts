@@ -1,4 +1,5 @@
 import {
+  deleteField,
   doc,
   onSnapshot,
   serverTimestamp,
@@ -7,7 +8,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 
-import type { Locale, ThemePreference, UserProfile } from '@/lib/domain/types';
+import type { ID, Locale, ThemePreference, UserProfile } from '@/lib/domain/types';
 import { getFirebaseClient } from '@/lib/firebase/client';
 import { userFromSnapshot } from '@/lib/firebase/converters';
 
@@ -95,4 +96,17 @@ export function updateSettings(
   settings: { displayName?: string; locale?: Locale; theme?: ThemePreference },
 ): Promise<void> {
   return updateDoc(userRef(uid), { ...definedOnly(settings), isGuest });
+}
+
+/** Marks who the user is in a tree, or clears it with null (PER-10): one person per tree. */
+export function setSelfPerson(
+  uid: string,
+  isGuest: boolean,
+  treeId: ID,
+  personId: ID | null,
+): Promise<void> {
+  return updateDoc(userRef(uid), {
+    [`selfPersonIds.${treeId}`]: personId ?? deleteField(),
+    isGuest,
+  });
 }

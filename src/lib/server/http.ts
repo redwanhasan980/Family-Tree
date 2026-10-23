@@ -13,6 +13,8 @@ export const ERROR_STATUS = {
   unauthenticated: 401,
   forbidden: 403,
   guest_not_allowed: 403,
+  /** The action needs a fresh sign-in (account deletion, DESIGN §9.6). */
+  reauth_required: 403,
   not_found: 404,
   conflict: 409,
   expired: 410,

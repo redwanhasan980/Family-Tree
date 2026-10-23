@@ -3,7 +3,13 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_TREE_SETTINGS } from '@/lib/domain/schemas';
 import { getAdminDb } from '@/lib/firebase/admin';
 
-import { listOwnedTrees, recursiveDeleteTree, transferTrees } from './treeAdmin';
+import {
+  leaveSharedTrees,
+  listOwnedTrees,
+  readTree,
+  recursiveDeleteTree,
+  transferTrees,
+} from './treeAdmin';
 
 const db = () => getAdminDb();
 
@@ -81,5 +87,21 @@ describe('treeAdmin', () => {
     expect((await db().collection('trees/t1/persons').get()).empty).toBe(true);
     expect((await db().collection('trees/t1/relationships').get()).empty).toBe(true);
     expect((await db().doc('trees/t2/persons/p1').get()).exists).toBe(true);
+  });
+
+  it('reads one tree', async () => {
+    await seedTree('t1', 'guest');
+    expect(await readTree('t1')).toMatchObject({ id: 't1', ownerId: 'guest', personCount: 1 });
+    expect(await readTree('missing')).toBe(null);
+  });
+
+  it('removes a user from trees others own, but not from their own', async () => {
+    await seedTree('t1', 'user', { other: 'editor' });
+    await seedTree('t2', 'other', { user: 'viewer', third: 'editor' });
+    expect(await leaveSharedTrees('user')).toEqual(['t2']);
+    const t2 = (await db().doc('trees/t2').get()).data()!;
+    expect(t2.memberIds).toEqual(['other', 'third']);
+    expect(t2.roles).toEqual({ other: 'owner', third: 'editor' });
+    expect((await db().doc('trees/t1').get()).data()!.roles).toHaveProperty('user', 'owner');
   });
 });

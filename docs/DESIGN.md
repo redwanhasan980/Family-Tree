@@ -284,6 +284,7 @@ family-tree/
 │   ├── lib/
 │   │   ├── domain/                           # PURE TS — no React/Firebase imports
 │   │   │   ├── types.ts · schemas.ts (zod) · ids.ts
+│   │   │   ├── account.ts                    # API request schemas and responses, pending merge
 │   │   │   ├── documents.ts · writes.ts      # stored docs <-> domain; writes as plain data (WriteOp)
 │   │   │   ├── graph/                        # build, order, families, descendants, ancestors, generations, numbering, validate (familyCard: P6)
 │   │   │   ├── search.ts                     # normalization and ranked person search
@@ -299,11 +300,15 @@ family-tree/
 │   │   ├── repositories/                     # the ONLY client code that touches Firebase (auth.ts = Auth flows)
 │   │   │   ├── trees.ts                      # tree, people and relationship listeners; cache read; dashboard query
 │   │   │   ├── writes.ts                     # WriteOp → Firestore batch (≤ 450), chunked imports, newId()
+│   │   │   ├── api.ts                        # callApi(): our Route Handlers with ID + App Check tokens
 │   │   │   ├── users.ts · auth.ts
 │   │   ├── server/                           # server-only helpers
 │   │   │   ├── auth.ts                       # verifyRequest(): ID token + App Check
 │   │   │   ├── http.ts                       # json/error helpers, error codes
-│   │   │   ├── cloudinary.ts · rateLimit.ts · treeAdmin.ts (recursive delete, transfer)
+│   │   │   ├── merge.ts · account.ts         # merge tickets (§9.4); deleteUserData (AUTH-10/12)
+│   │   │   ├── rateLimit.ts · treeAdmin.ts   # counters (§10.3); read, transfer, leave, recursive delete
+│   │   │   ├── testing/authEmulator.ts       # Auth emulator users and tokens for API tests
+│   │   │   ├── cloudinary.ts                 # P5
 │   │   ├── features.ts                       # feature flags for staged views (ADR-014)
 │   │   ├── brand.ts                          # APP_NAME = 'শিকড়' + <AppName /> (always Bangla, I18N-10)
 │   │   └── utils/
@@ -651,7 +656,8 @@ sequenceDiagram
 
 **Properties:**
 
-- **Idempotent.** A used ticket returns the previous result. Trees already owned by P are skipped. A missing guest user counts as already merged.
+- **Idempotent.** The first `/merge` call *claims* the ticket for P inside a transaction and stores the guest's tree IDs and the decisions. A retry by P (after a lost response or a crash) reuses them and finishes the work; a finished ticket returns its stored result. Trees already owned by P are skipped, and trees without a decision are moved. A missing guest user counts as already merged.
+- **Never deletes an account.** If the guest has since been linked to an email or Google sign-in, the merge is refused with `409 conflict`.
 - **Resumable.** If the tab closes after sign-in, `shikor:pendingMerge` is detected on the next load and the dialog reappears (until the ticket expires after 24 h).
 - **Safe.** Tickets can only be created by an anonymous token for its own user ID, redeemed only by a non-anonymous user, are single-use, and expire after 24 h.
 - **Guest with no trees:** no ticket is needed. The orphaned anonymous user is removed by the cleanup cron (R2).
@@ -691,7 +697,7 @@ sequenceDiagram
 - **Auth:** `Authorization: Bearer <Firebase ID token>`, verified with `getAuth().verifyIdToken(token, true)` (revocation checked). In production, `X-Firebase-AppCheck` is verified with `getAppCheck().verifyToken()`.
 - **Validation:** the request body is parsed with Zod. Unknown keys are rejected.
 - **Responses:** JSON. Errors look like `{ "error": { "code": "not_found", "message": "…" } }`, where `message` is for developers and the client maps `code` to a localized string.
-- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden` or `guest_not_allowed` · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal`.
+- **Status codes:** 200/201 success · 400 `invalid_request` · 401 `unauthenticated` · 403 `forbidden`, `guest_not_allowed` or `reauth_required` (sign in again) · 404 `not_found` · 409 `conflict` · 410 `expired` · 429 `rate_limited` · 500 `internal`. The browser calls these endpoints through `lib/repositories/api.ts` (`callApi`), which adds the ID and App Check tokens and throws `ApiError(code)`; `network` means the request never arrived.
 - **No cookies, so CSRF does not apply.** CORS is same-origin only.
 
 ```ts
@@ -722,7 +728,8 @@ export const POST = route('media.sign', async (req) => {
 | --- | --- | --- | --- | --- |
 | `POST /api/account/merge-ticket` | guest only | `{}` | Creates a merge ticket for the caller's guest user ID → `{ ticketId, expiresAt }` | R1 |
 | `POST /api/account/merge` | permanent | `{ ticketId, decisions: [{ treeId, action: 'move'｜'discard' }] }` | Moves or deletes the guest's trees and deletes the guest (§9.4) → `{ moved, discarded }` | R1 |
-| `POST /api/account/delete` | any (recent login) | `{ confirm: true }` | Deletes owned trees (recursively, with photos), removes the user from shared trees, then the user document and auth user → `{ ok }` | R1 |
+| `POST /api/account/delete` | any (recent login) | `{ confirm: true }` | Deletes owned trees (recursively, with photos), removes the user from shared trees, then the user document, rate-limit counters, merge tickets and finally the auth user → `{ ok }`. A permanent user whose `auth_time` is over 5 minutes old gets `403 reauth_required` | R1 |
+| `DELETE /api/trees/{treeId}` | owner (guests allowed) | n/a | Deletes the tree with its people, relationships and activity (TREE-03; photos from P5). A tree the caller isn't a member of reads as `404` → `{ ok }` | R1 |
 | `POST /api/media/sign` | editor+ of tree (guests allowed) | `{ treeId, personId }` | Checks the role, applies a rate limit (60/h per user ID), returns `{ cloudName, apiKey, timestamp, signature, publicId, allowedFormats, transformation }` | R1 |
 | `POST /api/media/delete` | editor+ of tree | `{ treeId, publicIds: string[≤50] }` | Checks that each ID has the prefix `shikor/{env}/{treeId}/`, then deletes from Cloudinary → `{ deleted }` | R1 |
 | `POST /api/invites/accept` | permanent | `{ inviteId }` | Validates the invite (not expired, revoked or used up), adds the user to `memberIds`/`roles`, increments `uses` → `{ treeId, role }` | R3 |
@@ -733,7 +740,7 @@ Public share pages (`/{locale}/s/{shareId}`, R3) are **server components**. They
 
 ### 10.3 Rate limiting
 
-`rateLimits/{route}:{uid}:{windowStart}` documents with `increment(1)` in an Admin transaction, used only on endpoints that cost money (`media/sign`) or are sensitive (`merge-ticket`, `invites/accept`). They are cleaned up by the cron.
+`rateLimits/{route}:{uid}:{windowStart}` documents (`{ uid, count, expiresAt }`) counted in an Admin transaction by `lib/server/rateLimit.ts`, used only on endpoints that cost money (`media/sign`, 60/h) or are sensitive (`merge-ticket`, 10/h; `invites/accept`). Over the limit the endpoint answers `429 rate_limited`. They are cleaned up by the cron, and account deletion removes the user's counters.
 
 ---
 
@@ -1727,7 +1734,7 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 | Security rules | @firebase/rules-unit-testing + emulator | the §8 checklist (every allow/deny path) | 100% of rules paths |
 | Commands | Vitest + `MemoryDb` (in-memory Firestore semantics) | every command: validation branches, do → undo (exact restore) → redo | every command |
 | Data integration | Vitest + emulator (`*.emulator.test.ts`, run by `pnpm test:rules`) | every command through the real batch writer under the rules; executor + listeners; `treeAdmin` | every command |
-| API routes | Vitest + emulator (Auth/Firestore) + mocked Cloudinary | merge-ticket/merge (idempotency, expiry), media sign/delete (role, prefix), account delete | all endpoints |
+| API routes | Vitest + emulator (Auth/Firestore, `*.emulator.test.ts` calling the handlers with real emulator ID tokens) + mocked Cloudinary | merge-ticket/merge (idempotency, interrupted merges, expiry, reuse by another account, linked guests), tree delete (owner only), account delete (recent login, nothing left behind), rate limits; media sign/delete (role, prefix) in P5 | all endpoints |
 | E2E | Playwright: projects `mobile-chrome` (Pixel 7), `mobile-safari` (iPhone 14), `desktop-chrome`; both locales | guest start → wizard → reload persists; bulk add; edit with photo (mocked upload); switch views; export PNG/PDF (file produced, non-empty); sign-up linking; existing-account merge; undo/redo; offline edit then reconnect; Family card navigation and Back; album lazy loading; timeline overlap selection; family book page references | critical journeys |
 | Accessibility | @axe-core/playwright | landing, dashboard, editor (each view), person panel, export dialog, in `bn` and `en` | 0 serious violations |
 | Visual | Playwright screenshots | person card (bn/en, light/dark, photo/initials/deceased), circle labels | review on change |

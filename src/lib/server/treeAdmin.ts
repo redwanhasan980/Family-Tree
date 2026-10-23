@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore';
 
 import { treeFromDoc } from '@/lib/domain/documents';
 import type { ID, Tree } from '@/lib/domain/types';
@@ -20,6 +20,13 @@ function plain(data: DocumentData): Record<string, unknown> {
       value instanceof Timestamp ? value.toDate() : value,
     ]),
   );
+}
+
+/** One tree, or null when it doesn't exist. */
+export async function readTree(treeId: ID): Promise<Tree | null> {
+  const snapshot = await getAdminDb().doc(paths.tree(treeId)).get();
+  const data = snapshot.data();
+  return data ? treeFromDoc(snapshot.id, plain(data), new Date()) : null;
 }
 
 /** Trees the user owns (not ones shared with them). */
@@ -62,8 +69,28 @@ export async function transferTrees(fromUid: ID, toUid: ID, treeIds: readonly ID
   return moved;
 }
 
+/**
+ * Removes the user from trees someone else owns (account deletion). Returns their IDs.
+ * Trees the user owns are left alone: deleting the account deletes those.
+ */
+export async function leaveSharedTrees(uid: ID): Promise<ID[]> {
+  const db = getAdminDb();
+  const snapshot = await db.collection('trees').where('memberIds', 'array-contains', uid).get();
+  const shared = snapshot.docs.filter((doc) => doc.get('ownerId') !== uid);
+  for (const doc of shared) {
+    await doc.ref.update(
+      'memberIds',
+      FieldValue.arrayRemove(uid),
+      new FieldPath('roles', uid),
+      FieldValue.delete(),
+    );
+  }
+  return shared.map((doc) => doc.id);
+}
+
 /** Deletes a tree with all its people, relationships and activity (TREE-03, account deletion). */
 export async function recursiveDeleteTree(treeId: ID): Promise<void> {
   const db = getAdminDb();
   await db.recursiveDelete(db.doc(paths.tree(treeId)));
+  // P5: also delete the tree's photos (Cloudinary prefix shikor/{env}/{treeId}/).
 }

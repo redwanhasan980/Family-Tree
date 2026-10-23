@@ -102,7 +102,7 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Staged views** (Album, Timeline, Family book) sit behind `lib/features.ts` flags until their release.
 - **Cloudinary:** store `publicId` + `version`, never URLs. Keep the variant set small because each transformation costs credits. Photo deletion is deferred until the undo window closes.
 - **Fonts:** Bangla needs `line-height ≥ 1.6` and no letter-spacing. Measure SVG text with the canvas cache, using the same font stack.
-- **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.
+- **Next.js 16:** middleware is `src/proxy.ts`, and `next lint` is gone (call ESLint directly). The docs for the installed version are in `node_modules/next/dist/docs/`; read them before relying on memory. `agentRules: false` stops `next dev` from writing an `AGENTS.md`. The `proxy` matcher must exclude `api`, `_next`, `__/` and static files.
 - **Quotas (free tier):** opening a tree costs about N + M reads. Never add per-person reads or count queries; use `personCount`.
 - **Firebase projects:** production is `shikor-fe44d`; development and tests use the emulators. The web config is public, but keep the API key out of the repository (GitHub's secret scanner flags it); deploys take it from GitHub variables. Never import `firebase/analytics` (ESLint blocks it).
 - **Emulators:** project `demo-shikor`, bound to `127.0.0.1` (some machines resolve `localhost` to IPv6, where the emulators don't listen). The browser uses `NEXT_PUBLIC_EMULATOR_HOST` (default `127.0.0.1`). `pnpm seed` always targets the emulators.

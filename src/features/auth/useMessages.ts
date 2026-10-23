@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import { authErrorKey } from '@/lib/domain/auth/errors';
+import { ApiError } from '@/lib/repositories/api';
 
 /** Turns Zod issue keys (validation namespace) into translated text. */
 export function useValidationText(): (key: string | undefined) => string | undefined {
@@ -17,4 +18,13 @@ export function useValidationText(): (key: string | undefined) => string | undef
 export function useAuthErrorText(): (error: unknown) => string {
   const t = useTranslations('authErrors');
   return (error) => t(authErrorKey(error));
+}
+
+/** Turns a failed call to our API (`ApiError`) into translated text. */
+export function useApiErrorText(): (error: unknown) => string {
+  const t = useTranslations('apiErrors');
+  return (error) => {
+    const code = error instanceof ApiError ? error.code : '';
+    return t.has(code as never) ? t(code as never) : t('unknown');
+  };
 }

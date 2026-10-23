@@ -18,6 +18,9 @@ const noChanges = (): BuildResult => ({
   issues: [{ severity: 'warning', code: 'noChanges' }],
 });
 
+/** Tree-level commands also run from the dashboard, where no people are loaded. */
+type TreeContext = Pick<CommandContext, 'treeId' | 'tree' | 'actorId'>;
+
 export interface CreateTreeInput extends TreeDetailsInput {
   /** The first person, usually the oldest ancestor the user remembers (ONB). */
   root?: NewPersonInput;
@@ -91,10 +94,7 @@ export function setRoot(ctx: CommandContext, personId: ID): BuildResult {
 }
 
 /** Renames a tree or changes its description (TREE-03). Owners and editors may. */
-export function updateTreeDetails(
-  ctx: CommandContext,
-  patch: Partial<TreeDetailsInput>,
-): BuildResult {
+export function updateTreeDetails(ctx: TreeContext, patch: Partial<TreeDetailsInput>): BuildResult {
   const current = { name: ctx.tree.name, description: ctx.tree.description };
   const parsed = TreeDetailsSchema.safeParse({ ...current, ...patch });
   if (!parsed.success) return failWith(zodIssues(parsed.error));
@@ -120,7 +120,7 @@ export function updateTreeDetails(
 }
 
 /** Changes how the tree is shown: names, colours, photos, dates, default view (TREE-06). */
-export function updateTreeSettings(ctx: CommandContext, patch: Partial<TreeSettings>): BuildResult {
+export function updateTreeSettings(ctx: TreeContext, patch: Partial<TreeSettings>): BuildResult {
   const current = ctx.tree.settings;
   const parsed = TreeSettingsSchema.safeParse({ ...current, ...patch });
   if (!parsed.success) return failWith(zodIssues(parsed.error));

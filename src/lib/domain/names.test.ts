@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compareNames, displayName, initials } from './names';
+import { compareNames, displayName, initials, nameFromText, scriptOf } from './names';
 
 const both = { en: 'Abdul Karim', bn: 'আব্দুল করিম' };
 
@@ -57,5 +57,16 @@ describe('compareNames', () => {
     ]);
     expect(compareNames('Karim', 'karim', 'en')).toBe(0);
     expect(['মা', 'কা', 'আ'].sort((a, b) => compareNames(a, b, 'bn'))).toEqual(['আ', 'কা', 'মা']);
+  });
+});
+
+describe('nameFromText', () => {
+  it('stores a typed name under the language of its script', () => {
+    expect(scriptOf('আব্দুল করিম')).toBe('bn');
+    expect(scriptOf('Abdul Karim')).toBe('en');
+    expect(scriptOf('Karim মিয়া')).toBe('bn');
+    expect(nameFromText('  আব্দুল করিম ')).toEqual({ bn: 'আব্দুল করিম' });
+    expect(nameFromText('Abdul Karim')).toEqual({ en: 'Abdul Karim' });
+    expect(nameFromText('   ')).toEqual({});
   });
 });

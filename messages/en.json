@@ -9,7 +9,11 @@
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "Same as device"
+    "themeSystem": "Same as device",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Try again"
   },
   "landing": {
     "tagline": "Your family's story, in one place",
@@ -112,7 +116,24 @@
   },
   "trees": {
     "title": "My family trees",
-    "empty": "Creating family trees arrives in the next update. Meanwhile you can create your account and choose your settings."
+    "newTree": "New tree",
+    "emptyTitle": "Start your family tree",
+    "emptyBody": "Begin with the oldest person you remember, such as a grandfather. You can add everyone else from there.",
+    "emptyCta": "Create a family tree",
+    "people": "{count, plural, =0 {No one added yet} one {# person} other {# people}}",
+    "startsWith": "Starts with <person>{name}</person>",
+    "updated": "Updated {time}",
+    "role": "Your role: {role}",
+    "roles": {
+      "owner": "Owner",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "options": "Options for {name}",
+    "details": "Name and description",
+    "delete": "Delete tree",
+    "loadError": "Couldn't load your trees.",
+    "limitReached": "You can have up to {max} trees. Delete one to make room for a new one."
   },
   "authErrors": {
     "emailInUse": "This email already has an account. Please log in instead.",
@@ -153,6 +174,126 @@
     "dayInvalid": "That day doesn't exist in this month.",
     "dayWithoutMonth": "Choose the month as well.",
     "treeNameRequired": "Give the family tree a name.",
-    "treeNameTooLong": "Keep the name under 80 characters."
+    "treeNameTooLong": "Keep the name under 80 characters.",
+    "genderRequired": "Choose man or woman.",
+    "confirmMismatch": "The name doesn't match."
+  },
+  "createTree": {
+    "title": "Create a family tree",
+    "description": "Give it a name. You can change it later.",
+    "nameLabel": "Tree name",
+    "namePlaceholder": "For example: The Karim family",
+    "rootLabel": "Oldest person you remember (optional)",
+    "rootPlaceholder": "For example: Abdul Karim",
+    "rootHint": "Such as a grandfather. You can add everyone else from there.",
+    "submit": "Create tree"
+  },
+  "treeDetails": {
+    "title": "Name and description",
+    "descriptionLabel": "Description (optional)",
+    "descriptionPlaceholder": "For example: My father's side of the family",
+    "saved": "Saved."
+  },
+  "deleteTree": {
+    "title": "Delete “<tree>{name}</tree>”?",
+    "body": "{count, plural, =0 {This tree will be deleted for good.} one {This tree and the # person in it will be deleted for good.} other {This tree and all # people in it will be deleted for good.}} This can't be undone.",
+    "confirmLabel": "Type the tree's name to confirm",
+    "submit": "Delete for good",
+    "deleting": "Deleting…",
+    "done": "“{name}” was deleted."
+  },
+  "apiErrors": {
+    "network": "No internet connection. Check your connection and try again.",
+    "unauthenticated": "Your sign-in has expired. Please reload the page.",
+    "forbidden": "You don't have permission to do this.",
+    "guest_not_allowed": "This needs an account. Create a free account first.",
+    "reauth_required": "For your safety, please confirm it's you.",
+    "not_found": "This no longer exists.",
+    "conflict": "This can't be done right now.",
+    "expired": "This has expired.",
+    "rate_limited": "Too many tries. Please wait a while and try again.",
+    "unknown": "Something went wrong. Please try again."
+  },
+  "editor": {
+    "saveFailed": "Couldn't save the change. Please try again.",
+    "title": "Family tree",
+    "allTrees": "All my trees",
+    "switchTree": "Switch tree, current: {name}",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "offline": "Offline: changes will sync",
+    "more": "More",
+    "menu": "Tree menu",
+    "loading": "Opening the tree…",
+    "missingTitle": "This tree isn't available",
+    "missingBody": "It may have been deleted, or you may no longer have access to it.",
+    "errorTitle": "Couldn't open this tree",
+    "errorBody": "Check your connection and try again.",
+    "emptyTitle": "Who's the oldest ancestor you remember?",
+    "emptyBody": "Add them first. Then add their children, grandchildren and everyone else.",
+    "addFirst": "Add the first person",
+    "soonTitle": "{view} is coming soon",
+    "soonBody": "Your family is saved. This view arrives in an update soon. Meanwhile, here is everyone in the tree.",
+    "details": "Details",
+    "detailsSoon": "More details, photos and adding relatives arrive in the next update."
+  },
+  "person": {
+    "genderLabel": "Man or woman?",
+    "male": "Man",
+    "female": "Woman",
+    "nameLabel": "Name",
+    "namePlaceholder": "For example: Abdul Karim",
+    "nameHint": "In Bangla or English. You can add the other later.",
+    "addTitle": "Add a person",
+    "add": "Add"
+  },
+  "views": {
+    "label": "Views",
+    "short": {
+      "tree": "Tree",
+      "family": "Family",
+      "circle": "Circle",
+      "list": "List",
+      "album": "Album",
+      "timeline": "Timeline"
+    },
+    "name": {
+      "tree": "Tree view",
+      "family": "Family card",
+      "circle": "Circle view",
+      "list": "List view",
+      "album": "Generation album",
+      "timeline": "Timeline"
+    }
+  },
+  "treeSettings": {
+    "title": "Tree settings",
+    "description": "These apply to everyone who opens this tree.",
+    "nameDisplay": "Names",
+    "nameDisplayOptions": {
+      "auto": "In the app's language",
+      "en": "English names",
+      "bn": "Bangla names",
+      "both": "Both languages"
+    },
+    "colorBy": "Colour cards by",
+    "colorByOptions": {
+      "branch": "Family branch",
+      "gender": "Man or woman",
+      "generation": "Generation",
+      "none": "No colour"
+    },
+    "showPhotos": "Show photos",
+    "showDates": "Show years of birth and death",
+    "defaultView": "Open with"
+  },
+  "statistics": {
+    "title": "Statistics",
+    "people": "People",
+    "generations": "Generations",
+    "living": "Living",
+    "deceased": "Deceased",
+    "earliest": "Earliest birth year",
+    "notRecorded": "Not recorded"
   }
 }

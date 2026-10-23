@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocFromCache,
   getDocsFromCache,
   onSnapshot,
@@ -128,6 +129,27 @@ export async function readTreeFromCache(
     };
   } catch {
     return null; // not cached
+  }
+}
+
+/**
+ * One person, from this device's cache when it has them, otherwise from the server. Null
+ * when missing or unreadable. The dashboard uses it for each tree's root person.
+ */
+export async function readPerson(
+  treeId: ID,
+  personId: ID,
+  db: Firestore = defaultDb(),
+): Promise<Person | null> {
+  const ref = doc(db, paths.person(treeId, personId));
+  try {
+    return personFromSnapshot(await getDocFromCache(ref));
+  } catch {
+    try {
+      return personFromSnapshot(await getDoc(ref));
+    } catch {
+      return null;
+    }
   }
 }
 

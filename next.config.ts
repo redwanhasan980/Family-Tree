@@ -61,6 +61,8 @@ const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
   reactStrictMode: true,
   poweredByHeader: false,
+  // CLAUDE.md is the agent guide; don't let `next dev` add an AGENTS.md to the repo.
+  agentRules: false,
   async headers() {
     // /__/ is Firebase's helper, which is framed by the SDK; it keeps Firebase's own headers.
     return [{ source: '/((?!__/).*)', headers: securityHeaders }];

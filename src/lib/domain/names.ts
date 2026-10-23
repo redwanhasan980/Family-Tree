@@ -47,6 +47,22 @@ export function initials(name: string, lang: Locale = 'bn'): string {
     .toLocaleUpperCase(lang === 'bn' ? 'bn' : 'en');
 }
 
+const BANGLA = /[\u0980-\u09FF]/u;
+
+/** The script a name is typed in: any Bangla letter makes it Bangla. */
+export function scriptOf(text: string): Locale {
+  return BANGLA.test(text) ? 'bn' : 'en';
+}
+
+/**
+ * A name typed into a single box, stored under the language it was written in, so quick
+ * forms need only one name field (PER-01). Empty text gives an empty name.
+ */
+export function nameFromText(text: string): LocalizedName {
+  const name = text.trim();
+  return name ? { [scriptOf(name)]: name } : {};
+}
+
 const collators = new Map<Locale, Intl.Collator>();
 
 /** Locale-aware name comparison, used as the last tie-breaker when sorting people. */

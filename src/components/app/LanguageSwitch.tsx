@@ -39,7 +39,10 @@ export function LanguageSwitch({
           disabled={isPending}
           onClick={() => {
             if (value === locale) return;
-            startTransition(() => router.replace(pathname, { locale: value }));
+            // Keep the query (the editor's ?view=&focus=); read at click time, so static
+            // pages need no Suspense boundary for useSearchParams.
+            const href = `${pathname}${window.location.search}`;
+            startTransition(() => router.replace(href, { locale: value }));
           }}
           className={cn(
             compact

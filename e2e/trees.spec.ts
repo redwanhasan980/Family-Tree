@@ -118,7 +118,7 @@ test.describe('editor shell', () => {
       'true',
     );
     if (isPhone(page)) await page.getByRole('button', { name: /^Details: রহিমা বেগম/ }).click();
-    await expect(page.getByText('More details, photos and adding relatives')).toBeVisible();
+    await expect(page.getByLabel('Name in Bangla')).toHaveValue('রহিমা বেগম');
   });
 
   test('views live in the URL and survive a reload (VIS-01)', async ({ page }) => {

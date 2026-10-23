@@ -26,3 +26,8 @@ export function truncateGraphemes(text: string, max: number, locale = 'bn'): str
   if (parts.length <= max) return text;
   return `${parts.slice(0, Math.max(1, max - 1)).join('')}…`;
 }
+
+/** Bangla digits (০–৯) to ASCII, so "১৯৫২" can be typed into number fields (I18N-02). */
+export function toAsciiDigits(text: string): string {
+  return text.replace(/[০-৯]/g, (digit) => String(digit.charCodeAt(0) - 0x09e6));
+}

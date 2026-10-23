@@ -12,8 +12,10 @@ export interface UiState {
   view: ViewKind;
   selectedId: ID | null;
   focusId: ID | null;
-  /** Collapsed path keys per view. */
+  /** Collapsed path keys per view; missing until the view saves a state. */
   collapsed: Partial<Record<ViewKind, readonly string[]>>;
+  /** Tree view direction (TV-02). */
+  orientation: 'vertical' | 'horizontal';
 
   /**
    * Starts a tree: the view comes from `initial.view` (the URL), then what this browser
@@ -26,6 +28,9 @@ export interface UiState {
   select: (personId: ID | null) => void;
   focus: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
+  /** Replaces a view's collapsed keys (expand all, show N generations, defaults). */
+  setCollapsed: (view: ViewKind, keys: readonly string[]) => void;
+  setOrientation: (orientation: UiState['orientation']) => void;
 }
 
 export interface InitialUi {
@@ -39,6 +44,7 @@ const storageKey = (treeId: ID) => `shikor:ui:${treeId}`;
 interface Saved {
   view?: ViewKind;
   collapsed?: UiState['collapsed'];
+  orientation?: UiState['orientation'];
 }
 
 // Per-browser convenience only: storage may be blocked or full.
@@ -53,7 +59,11 @@ function load(treeId: ID): Saved {
 function save(state: UiState): void {
   if (!state.treeId) return;
   try {
-    const saved: Saved = { view: state.view, collapsed: state.collapsed };
+    const saved: Saved = {
+      view: state.view,
+      collapsed: state.collapsed,
+      orientation: state.orientation,
+    };
     window.localStorage.setItem(storageKey(state.treeId), JSON.stringify(saved));
   } catch {
     // Not remembered this time.
@@ -67,6 +77,7 @@ export function createUiStore() {
     selectedId: null,
     focusId: null,
     collapsed: {},
+    orientation: 'vertical',
     openTree: (treeId, defaultView, { view, focusId, allowed } = {}) => {
       const saved = load(treeId);
       const usable = (v: ViewKind | undefined): v is ViewKind =>
@@ -75,6 +86,7 @@ export function createUiStore() {
         treeId,
         view: [view, saved.view, defaultView].find(usable) ?? 'tree',
         collapsed: saved.collapsed ?? {},
+        orientation: saved.orientation ?? 'vertical',
         selectedId: null,
         focusId: focusId ?? null,
       });
@@ -92,6 +104,14 @@ export function createUiStore() {
       if (keys.has(key)) keys.delete(key);
       else keys.add(key);
       set({ collapsed: { ...collapsed, [view]: [...keys] } });
+      save(get());
+    },
+    setCollapsed: (view, keys) => {
+      set({ collapsed: { ...get().collapsed, [view]: [...keys] } });
+      save(get());
+    },
+    setOrientation: (orientation) => {
+      set({ orientation });
       save(get());
     },
   }));

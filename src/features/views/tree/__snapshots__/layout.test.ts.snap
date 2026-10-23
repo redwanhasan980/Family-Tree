@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`layoutTree (TV-01) > is stable for the test family 1`] = `
+[
+  "G+W1@-292,0",
+  "G@-88,0",
+  "G+W2@116,0",
+  "G/S1@-718,140",
+  "G/S1+SW@-514,140",
+  "G/D1@-290,140",
+  "G/D1+H@-86,140",
+  "G/S2@138,140",
+  "G/X@338,140",
+  "G/X+P@542,140",
+  "G/S1/SS@-718,280",
+  "G/S1/SS+DD@-514,280",
+  "G/D1/DD@-290,280",
+  "G/D1/DD+SS@-86,280",
+  "G/S2/A@138,280",
+  "G/X/Y@440,280",
+  "G/S1/SS/K@-616,420",
+  "G/D1/DD/K@-188,420",
+]
+`;

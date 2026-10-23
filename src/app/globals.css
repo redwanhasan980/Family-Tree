@@ -36,6 +36,29 @@
   --input: #e6dfd3;
   --ring: #0f6b4f;
   --connector: #c9bfae;
+
+  /*
+   * Data colours (DESIGN §21.3): branches in a fixed order, never cycled (9+ use the
+   * neutral), and one blue ramp for generations. Only for accents, never for text.
+   */
+  --branch-1: #2a78d6;
+  --branch-2: #eb6834;
+  --branch-3: #1baf7a;
+  --branch-4: #eda100;
+  --branch-5: #e87ba4;
+  --branch-6: #008300;
+  --branch-7: #6250d6;
+  --branch-8: #e34948;
+  --data-neutral: #898781;
+  --gen-1: #104281;
+  --gen-2: #184f95;
+  --gen-3: #1c5cab;
+  --gen-4: #256abf;
+  --gen-5: #2a78d6;
+  --gen-6: #3987e5;
+  --gen-7: #5598e7;
+  --gen-8: #6da7ec;
+  --gen-9: #86b6ef;
 }
 
 .dark {
@@ -64,6 +87,24 @@
   --input: #2e3843;
   --ring: #34b98a;
   --connector: #4a5664;
+
+  --branch-1: #3987e5;
+  --branch-2: #d95926;
+  --branch-3: #199e70;
+  --branch-4: #c98500;
+  --branch-5: #d55181;
+  --branch-6: #008300;
+  --branch-7: #9085e9;
+  --branch-8: #e66767;
+  --gen-1: #86b6ef;
+  --gen-2: #6da7ec;
+  --gen-3: #5598e7;
+  --gen-4: #3987e5;
+  --gen-5: #2a78d6;
+  --gen-6: #256abf;
+  --gen-7: #1c5cab;
+  --gen-8: #184f95;
+  --gen-9: #184f95;
 }
 
 @theme inline {

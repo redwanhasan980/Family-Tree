@@ -7,6 +7,8 @@ import type { ID, Tree } from '@/lib/domain/types';
 import { paths } from '@/lib/domain/writes';
 import { getAdminDb } from '@/lib/firebase/admin';
 
+import { deleteTreePhotos } from './cloudinary';
+
 /**
  * Privileged tree operations for the guest merge and account deletion (P2-09). They run
  * with the Admin SDK, so the security rules don't apply: every caller must check the
@@ -88,9 +90,12 @@ export async function leaveSharedTrees(uid: ID): Promise<ID[]> {
   return shared.map((doc) => doc.id);
 }
 
-/** Deletes a tree with all its people, relationships and activity (TREE-03, account deletion). */
+/**
+ * Deletes a tree with all its people, relationships, activity and photos (TREE-03,
+ * account deletion, merge discard).
+ */
 export async function recursiveDeleteTree(treeId: ID): Promise<void> {
   const db = getAdminDb();
   await db.recursiveDelete(db.doc(paths.tree(treeId)));
-  // P5: also delete the tree's photos (Cloudinary prefix shikor/{env}/{treeId}/).
+  await deleteTreePhotos(treeId);
 }

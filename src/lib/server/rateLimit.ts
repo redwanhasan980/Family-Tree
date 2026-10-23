@@ -17,6 +17,10 @@ const HOUR = 60 * 60 * 1000;
 /** Only endpoints that cost money or are sensitive are limited (DESIGN §10.3). */
 export const RATE_LIMITS = {
   mergeTicket: { limit: 10, windowMs: HOUR },
+  /** Each signature allows one upload, which costs Cloudinary credits. */
+  mediaSign: { limit: 60, windowMs: HOUR },
+  /** Admin API calls are limited per Cloudinary account. */
+  mediaDelete: { limit: 60, windowMs: HOUR },
 } as const satisfies Record<string, RateLimit>;
 
 /**

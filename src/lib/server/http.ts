@@ -20,6 +20,8 @@ export const ERROR_STATUS = {
   expired: 410,
   rate_limited: 429,
   internal: 500,
+  /** A service this server isn't set up for (photos without Cloudinary keys). */
+  unavailable: 503,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_STATUS;

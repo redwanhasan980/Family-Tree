@@ -212,6 +212,7 @@
     "conflict": "This can't be done right now.",
     "expired": "This has expired.",
     "rate_limited": "Too many tries. Please wait a while and try again.",
+    "unavailable": "This isn't available yet. Please try again later.",
     "unknown": "Something went wrong. Please try again."
   },
   "editor": {

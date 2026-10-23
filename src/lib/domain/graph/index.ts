@@ -7,3 +7,4 @@ export * from './generations';
 export * from './numbering';
 export * from './order';
 export * from './validate';
+export * from './statistics';

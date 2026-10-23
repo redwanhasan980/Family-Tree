@@ -2,15 +2,21 @@ import {
   DEFAULT_TREE_SETTINGS,
   NewPersonSchema,
   TreeDetailsSchema,
+  TreeSettingsSchema,
   type NewPersonInput,
   type TreeDetailsInput,
 } from '@/lib/domain/schemas';
-import type { ID } from '@/lib/domain/types';
+import type { ID, TreeSettings } from '@/lib/domain/types';
 import { DELETE_FIELD, paths, SERVER_TIME, type WriteOp } from '@/lib/domain/writes';
 
 import { commandId, createPerson, fail, failWith, ok, remove, touchTree, zodIssues } from './build';
 
 import type { BuildResult, CommandContext } from './types';
+
+const noChanges = (): BuildResult => ({
+  ok: false,
+  issues: [{ severity: 'warning', code: 'noChanges' }],
+});
 
 export interface CreateTreeInput extends TreeDetailsInput {
   /** The first person, usually the oldest ancestor the user remembers (ONB). */
@@ -80,6 +86,58 @@ export function setRoot(ctx: CommandContext, personId: ID): BuildResult {
     labelKey: 'setRoot',
     forward: [touchTree(ctx, 0, { rootPersonId: personId })],
     inverse: [touchTree(ctx, 0, { rootPersonId: previous ?? DELETE_FIELD })],
+    touched: [paths.tree(ctx.treeId)],
+  });
+}
+
+/** Renames a tree or changes its description (TREE-03). Owners and editors may. */
+export function updateTreeDetails(
+  ctx: CommandContext,
+  patch: Partial<TreeDetailsInput>,
+): BuildResult {
+  const current = { name: ctx.tree.name, description: ctx.tree.description };
+  const parsed = TreeDetailsSchema.safeParse({ ...current, ...patch });
+  if (!parsed.success) return failWith(zodIssues(parsed.error));
+  const next = parsed.data;
+  const forward: Record<string, unknown> = {};
+  const inverse: Record<string, unknown> = {};
+  if (next.name !== current.name) {
+    forward.name = next.name;
+    inverse.name = current.name;
+  }
+  if (next.description !== current.description) {
+    forward.description = next.description ?? DELETE_FIELD;
+    inverse.description = current.description ?? DELETE_FIELD;
+  }
+  if (Object.keys(forward).length === 0) return noChanges();
+  return ok({
+    id: commandId(),
+    labelKey: 'renameTree',
+    forward: [touchTree(ctx, 0, forward)],
+    inverse: [touchTree(ctx, 0, inverse)],
+    touched: [paths.tree(ctx.treeId)],
+  });
+}
+
+/** Changes how the tree is shown: names, colours, photos, dates, default view (TREE-06). */
+export function updateTreeSettings(ctx: CommandContext, patch: Partial<TreeSettings>): BuildResult {
+  const current = ctx.tree.settings;
+  const parsed = TreeSettingsSchema.safeParse({ ...current, ...patch });
+  if (!parsed.success) return failWith(zodIssues(parsed.error));
+  const forward: Record<string, unknown> = {};
+  const inverse: Record<string, unknown> = {};
+  for (const key of Object.keys(parsed.data) as (keyof TreeSettings)[]) {
+    if (parsed.data[key] !== current[key]) {
+      forward[`settings.${key}`] = parsed.data[key];
+      inverse[`settings.${key}`] = current[key];
+    }
+  }
+  if (Object.keys(forward).length === 0) return noChanges();
+  return ok({
+    id: commandId(),
+    labelKey: 'treeSettings',
+    forward: [touchTree(ctx, 0, forward)],
+    inverse: [touchTree(ctx, 0, inverse)],
     touched: [paths.tree(ctx.treeId)],
   });
 }

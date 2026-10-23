@@ -46,7 +46,7 @@ import {
   setParentKind,
   setSpouseStatus,
 } from './relationshipCommands';
-import { createTree, setRoot } from './treeCommands';
+import { createTree, setRoot, updateTreeDetails, updateTreeSettings } from './treeCommands';
 
 import type { BuildResult, CommandContext } from './types';
 
@@ -265,6 +265,10 @@ describe('commands against the emulator and the security rules', () => {
     await roundTrip(reorderChildren(await context(), 'G', ['D1', 'S1']));
     await roundTrip(removeRelationship(await context(), 's_DD_SS'));
     await roundTrip(setRoot(await context(), 'S1'));
+    await roundTrip(updateTreeDetails(await context(), { name: 'নতুন নাম', description: 'বিবরণ' }));
+    await roundTrip(
+      updateTreeSettings(await context(), { colorBy: 'generation', showPhotos: false }),
+    );
     const ctx = await context();
     expect(parentsOf(ctx.graph, 'X')).toEqual(['S2']);
     expect(ctx.tree.rootPersonId).toBe('S1');

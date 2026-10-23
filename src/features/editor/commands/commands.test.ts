@@ -25,7 +25,7 @@ import {
   setParentKind,
   setSpouseStatus,
 } from './relationshipCommands';
-import { createTree, setRoot } from './treeCommands';
+import { createTree, setRoot, updateTreeDetails, updateTreeSettings } from './treeCommands';
 
 import type { BuildResult, Command, CommandContext } from './types';
 
@@ -409,6 +409,40 @@ describe('tree commands', () => {
     const empty = setup({ root: '' });
     roundTrip(empty.db, setRoot(empty.ctx(), 'G'));
     expect(root(empty.db)).toBe('G');
+  });
+
+  it('renames a tree and edits its description (TREE-03)', () => {
+    const { db, ctx } = setup();
+    roundTrip(
+      db,
+      updateTreeDetails(ctx(), { name: ' করিম পরিবার ', description: 'আমাদের পরিবার' }),
+    );
+    expect(ctx().tree).toMatchObject({ name: 'করিম পরিবার', description: 'আমাদের পরিবার' });
+    roundTrip(db, updateTreeDetails(ctx(), { description: '' }));
+    expect(ctx().tree).not.toHaveProperty('description');
+    expect(codes(updateTreeDetails(ctx(), { name: 'করিম পরিবার' }))).toEqual(['noChanges']);
+    expect(codes(updateTreeDetails(ctx(), { name: '' }))).toEqual(['treeNameRequired']);
+  });
+
+  it('changes display settings field by field (TREE-06)', () => {
+    const { db, ctx } = setup();
+    const command = roundTrip(
+      db,
+      updateTreeSettings(ctx(), { colorBy: 'gender', showDates: false }),
+    );
+    const data = command.forward[0]!.op === 'update' ? command.forward[0]!.data : {};
+    expect(
+      Object.keys(data)
+        .filter((k) => k.startsWith('settings.'))
+        .sort(),
+    ).toEqual(['settings.colorBy', 'settings.showDates']);
+    expect(ctx().tree.settings).toMatchObject({
+      colorBy: 'gender',
+      showDates: false,
+      nameDisplay: 'auto',
+    });
+    expect(codes(updateTreeSettings(ctx(), { colorBy: 'gender' }))).toEqual(['noChanges']);
+    expect(updateTreeSettings(ctx(), { colorBy: 'rainbow' as never }).ok).toBe(false);
   });
 
   it('creates a tree with its first person in one batch (TREE-01)', () => {

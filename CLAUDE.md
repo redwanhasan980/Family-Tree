@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phases 0–2 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 3** (app shell, dashboard, tree management and guest merge). Update this line when phases complete.
+**Current status:** **Phases 0–3 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion). The first deploy (P0-17) and the iOS Safari redirect check (P1-05) wait for the owner's server and domain. **Next: Phase 4** (the Tree view and core editing). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 
@@ -88,7 +88,9 @@ firebase/                   firestore.rules, indexes, rules tests
 
 ## Gotchas (read before touching these areas)
 
-- **Guest merge:** linking keeps the user ID (nothing to move). Only an *existing* account needs the merge-ticket flow (DESIGN §9.4). Capture guest tree summaries **before** signing in, because afterwards they are unreadable.
+- **Guest merge:** linking keeps the user ID (nothing to move). Only an *existing* account needs the merge-ticket flow (DESIGN §9.4). Capture guest tree summaries **before** signing in, because afterwards they are unreadable: every sign-in into an existing account passes `beforeSwitch: prepareGuestMerge` (`features/auth/guestMerge.ts`), and `MergeDialog` in the `(session)` layout finishes the merge.
+- **Editor:** `/trees/[treeId]` lives in the `(app)/(editor)` route group with its own header; the dashboard and settings are in `(app)/(pages)`. UI code runs commands through `useEditor().run(ctx => command(ctx, …))` (`EditorProvider`), which supplies the open tree, graph, user and IDs. The dashboard commits tree commands directly (`features/trees/treeActions.ts`), without history.
+- **Route Handler tests** are `*.emulator.test.ts` files that call the handler with real Auth emulator tokens (`lib/server/testing/authEmulator.ts`). `pnpm test:rules` starts its own emulators, so stop `pnpm emulators` first or the ports clash.
 - **Google sign-in:** use popup first and fall back to redirect. Redirects need the `/__/auth/*` rewrite and an app-domain `authDomain` (DESIGN §9.5). In-app browsers (Messenger and similar) block Google OAuth, so show the "open in browser" guide.
 - **Firestore rules** allow at most 20 *distinct* document reads per batch (repeated reads of one tree count once, so a 450-write batch inside one tree passes). Graph integrity (cycles, a single biological father) is enforced in the domain layer, not in the rules. Creates and updates check the role with `getAfter(tree)`, deletes and reads with `get(tree)`. A missing tree reads as `permission-denied`, the same as no access.
 - **Commands are pure builders** returning `WriteOp`s (`lib/domain/writes.ts`: `SERVER_TIME`, `increment`, `DELETE_FIELD`). Test a new one with `MemoryDb` round-trips in `commands.test.ts` and add it to `commands.emulator.test.ts` so the rules check its writes.

@@ -65,7 +65,7 @@ export function addSpouse(ctx: CommandContext, personId: ID, input: NewPersonInp
 }
 ```
 
-The UI shows `warnings` (dates, possible duplicates) for confirmation, then calls `executor.run(command)` without awaiting it.
+The UI shows `warnings` (dates, possible duplicates) for confirmation. In the editor it runs commands with `useEditor().run((ctx) => addSpouse(ctx, personId, input))` (`features/editor/EditorProvider.tsx`): that builds the context from the open tree, runs a valid command through the executor without awaiting it, and returns the `BuildResult` for the UI.
 
 Checklist:
 
@@ -113,7 +113,11 @@ export const POST = route('trees.example', async (req) => {
 
 `HttpError(code, message?)` takes its status from the code (`ERROR_STATUS` in `lib/server/http.ts`). Messages are for developers: never put user data in them.
 
-Checklist: idempotent (safe to retry); bounded work per request (batch through lists); a rate limit for endpoints that cost money (`lib/server/rateLimit.ts`); no PII in logs; add the endpoint to the DESIGN §10.2 table; API tests against the emulator.
+Checklist: idempotent (safe to retry); bounded work per request (batch through lists); a rate limit for endpoints that cost money or are sensitive (`enforceRateLimit` in `lib/server/rateLimit.ts`); no PII in logs; add the endpoint to the DESIGN §10.2 table; API tests against the emulator.
+
+Shared request schemas and response types live in `src/lib/domain` (for example `account.ts`), so the browser and the handler agree. The browser calls the endpoint with `callApi()` from `lib/repositories/api.ts`, which adds the ID and App Check tokens and throws `ApiError(code)`; `useApiErrorText()` turns it into a message.
+
+API tests: a `route.emulator.test.ts` (or `<area>.emulator.test.ts`) next to the handler calls the exported `POST`/`DELETE` directly with `apiRequest(path, { user, body })` and users from `lib/server/testing/authEmulator.ts` (`createGuestUser`, `createEmailUser`, `linkEmail`, `clearAuthEmulator`), which are real Auth emulator tokens. Check the response *and* what the Admin SDK sees in Firestore and Auth afterwards. Run with `pnpm test:rules`.
 
 ## 6. Recipe: view work (Tree, Family card, Circle, List, Album, Timeline)
 

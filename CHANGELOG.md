@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Phase 3, managing trees and accounts:
+  - **Dashboard:** your trees, live, with the root person's initials, the number of people, the last change and your role. Create a tree with the oldest person you remember, rename it or add a description, and delete it (trees with more than ten people need their name typed).
+  - **Editor frame:** each tree opens with a header (tree switcher, save status, statistics, tree settings, language and account), view tabs on desktop and a bottom bar with "More" on phones. The view and focus live in the link. Details open in a side panel on desktop and a drawer on phones. An empty tree offers "Add the first person"; until the views arrive, each view lists everyone in the tree.
+  - **Tree settings** (names, card colours, photos, dates, the view a tree opens with) apply at once and can be undone. **Statistics** show people, generations, living and deceased, and the earliest birth year.
+  - **Guest merge:** a guest who logs in to an existing account (email or Google) chooses, tree by tree, to move their trees into it or discard them. The choice survives a closed tab, and the guest account is removed afterwards.
+  - **Deleting data:** registered users can delete their account and everything they own after confirming their email and password (or Google); guests can delete their guest data and start afresh.
+  - **Server API:** merge tickets, the merge, account deletion and tree deletion, with rate limiting and tests that use real emulator sign-ins.
 - Phase 2, the family data model underneath the editor:
   - **People and relationships:** types and schemas with the SRS field limits, partial dates in Bangla and English, display names in either language, and search across both scripts and nicknames.
   - **The graph engine:** families grouped by the other parent, descendant and ancestor trees that handle cousin marriages and adoption, and generations, numbering and "unplaced people". Validation stops loops (nobody can become their own ancestor) and more than one biological father or mother, and warns about unlikely dates and possible duplicates.

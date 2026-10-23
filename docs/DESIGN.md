@@ -231,15 +231,16 @@ family-tree/
 │   │   ├── [locale]/
 │   │   │   ├── layout.tsx                    # html lang, fonts, providers
 │   │   │   ├── page.tsx                      # landing (static)
-│   │   │   ├── (session)/                    # layout.tsx: one <SessionProvider> for both groups
+│   │   │   ├── (session)/                    # layout.tsx: one <SessionProvider> + <MergeDialog> for all groups
 │   │   │   │   ├── (auth)/login/page.tsx     # registered users are sent to /trees
 │   │   │   │   ├── (auth)/signup/page.tsx
 │   │   │   │   ├── (auth)/reset-password/page.tsx
-│   │   │   │   ├── (app)/layout.tsx          # <AuthGate> ensures a (guest) session
-│   │   │   │   ├── (app)/start/page.tsx      # onboarding wizard
-│   │   │   │   ├── (app)/trees/page.tsx      # dashboard
-│   │   │   │   ├── (app)/trees/[treeId]/page.tsx # editor (?view=tree|circle|list&focus=…)
-│   │   │   │   └── (app)/settings/page.tsx
+│   │   │   │   ├── (app)/(pages)/layout.tsx  # AppHeader + <AuthGate> (a guest session at least)
+│   │   │   │   ├── (app)/(pages)/start/page.tsx  # onboarding wizard (P8)
+│   │   │   │   ├── (app)/(pages)/trees/page.tsx  # dashboard
+│   │   │   │   ├── (app)/(pages)/settings/page.tsx
+│   │   │   │   ├── (app)/(editor)/layout.tsx # <AuthGate> only: the editor has its own header
+│   │   │   │   └── (app)/(editor)/trees/[treeId]/page.tsx # editor (?view=tree|family|circle|list&focus=…)
 │   │   │   ├── s/[shareId]/page.tsx          # public share (R3, SSR)
 │   │   │   ├── invite/[inviteId]/page.tsx    # invite acceptance (R3)
 │   │   │   ├── help/page.tsx
@@ -248,6 +249,7 @@ family-tree/
 │   │   │   ├── account/merge-ticket/route.ts
 │   │   │   ├── account/merge/route.ts
 │   │   │   ├── account/delete/route.ts
+│   │   │   ├── trees/[treeId]/route.ts       # DELETE: the owner deletes a tree (TREE-03)
 │   │   │   ├── media/sign/route.ts
 │   │   │   ├── media/delete/route.ts
 │   │   │   ├── invites/accept/route.ts       # R3
@@ -260,12 +262,15 @@ family-tree/
 │   ├── i18n/                                 # routing.ts, request.ts, navigation.ts
 │   ├── components/
 │   │   ├── ui/                               # shadcn primitives (owned code)
-│   │   └── app/                              # AppHeader, LanguageSwitch, SaveStatus, Avatar…
+│   │   └── app/                              # AppName, LanguageSwitch (+ useSwitchLocale), ThemeToggle, Providers
 │   ├── features/
-│   │   ├── auth/                             # SessionProvider, guest bootstrap, link/merge flows
-│   │   ├── trees/                            # dashboard, create/rename/delete, settings
-│   │   ├── editor/                           # useTreeSession; commands/ (builders, executor, coalesce); EditorShell (P4)
-│   │   ├── person/                           # PersonPanel, PersonForm, QuickAdd, BulkAddChildren, PersonPicker
+│   │   ├── auth/                             # SessionProvider, AuthGate, forms, guestMerge.ts + MergeDialog (§9.4)
+│   │   ├── shell/                            # AppHeader for the dashboard and account pages
+│   │   ├── trees/                            # TreesHome, TreeCard, create/details/delete dialogs, treeActions, useMyTrees
+│   │   ├── settings/                         # SettingsForm, DeleteAccountSection (AUTH-10/12)
+│   │   ├── editor/                           # useTreeSession, EditorProvider (useEditor().run); commands/ (builders, executor, coalesce)
+│   │   │   └── shell/                        # EditorShell, EditorHeader, TreeSwitcher, ViewNav, SaveStatus, DetailsContainer, TreeSettingsDialog, Statistics, urlState
+│   │   ├── person/                           # GenderChoice, AddPersonDialog (P3); PersonPanel, QuickAdd, BulkAddChildren, PersonPicker (P4)
 │   │   ├── views/
 │   │   │   ├── shared/                       # camera, collapse state, colors, card model, text measure
 │   │   │   ├── tree/                         # layout.ts, TreeView.tsx, PersonCard.tsx, Connectors.tsx
@@ -662,6 +667,8 @@ sequenceDiagram
 - **Safe.** Tickets can only be created by an anonymous token for its own user ID, redeemed only by a non-anonymous user, are single-use, and expire after 24 h.
 - **Guest with no trees:** no ticket is needed. The orphaned anonymous user is removed by the cleanup cron (R2).
 
+**In the browser (P3):** every sign-in that replaces a guest with an existing account (email log-in, Google `credential-already-in-use` by popup or after a redirect) passes `beforeSwitch: prepareGuestMerge` to `lib/repositories/auth.ts`. It reads the guest's own trees while the guest can still read them, makes a ticket (or reuses one made earlier for the same guest, so mistyped passwords don't use up the limit), and stores `{ ticketId, expiresAt, guestUid, trees }` in `localStorage["shikor:pendingMerge"]`. If that fails, the sign-in is not attempted and the form says so. `MergeDialog` lives in the `(session)` layout, so it appears on whichever page the user lands: each tree has Move (default) or Discard; "Not now" hides it until the next visit; `expired`, `not_found` and `conflict` answers clear it. A registered user whose ID equals the stored guest (sign-up linked the guest) needs no merge, and the record is dropped.
+
 ### 9.5 Google sign-in specifics
 
 - **Popup first** (`linkWithPopup` or `signInWithPopup`), triggered directly by a click, which works on modern mobile browsers. On `auth/popup-blocked`, fall back to **redirect**.
@@ -684,7 +691,7 @@ sequenceDiagram
 
 - **Password reset:** `sendPasswordResetEmail`, with the action URL set to the app's locale route.
 - **Sign out (registered users only):** signs out, and the next app visit creates a fresh guest (empty).
-- **Delete guest data / delete account:** `POST /api/account/delete` (§10). Re-authentication is required if `auth_time` is older than 5 minutes (permanent users).
+- **Delete guest data / delete account:** `POST /api/account/delete` (§10). Re-authentication is required if `auth_time` is older than 5 minutes (permanent users). The settings page always re-authenticates first (typed email, then the password or a Google popup), so the server check only catches stale tokens. While the server deletes, `SessionProvider.markClosing(uid)` stops the profile listener from recreating `users/{uid}`. A deleted account goes to the landing page; a guest who deleted their data stays and gets a fresh, empty guest.
 - **Activity stamp:** on app load, if `users/{uid}.lastActiveAt` is older than 24 h, update it. This drives guest retention (AUTH-14).
 
 ---
@@ -795,7 +802,7 @@ export type BuildResult =
   | { ok: false; issues: Issue[] };                     // errors block
 ```
 
-Builders live in `person/relationship/treeCommands.ts`; `repositories/writes.ts` turns `WriteOp`s into a Firestore batch, and `executor.ts` runs them and keeps the history (`stores/historyStore.ts`, 100 steps).
+Builders live in `person/relationship/treeCommands.ts`; `repositories/writes.ts` turns `WriteOp`s into a Firestore batch, and `executor.ts` runs them and keeps the history (`stores/historyStore.ts`, 100 steps). In the editor, UI code calls `useEditor().run((ctx) => addPerson(ctx, input))`: `EditorProvider` builds the context from the open tree (`treeStore`, the memoized graph, the signed-in user, device-made IDs), runs valid commands through the executor and returns the `BuildResult` so the UI can show issues. A refused batch shows the "couldn't save" toast. The dashboard has no history, so `features/trees/treeActions.ts` commits tree commands (create, rename) directly.
 
 Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 
@@ -823,7 +830,7 @@ Flow for `addChildren(parentId, inputs, otherParentId)` (REL-03/04):
 | Store | Contents | Persistence |
 | --- | --- | --- |
 | `treeStore` | `tree`, `persons`, `relationships`, `version`, `sync` (pending/offline flags) | none (Firestore cache) |
-| `uiStore` | `view`, `selectedId`, `focusId`, `panel` (open/size), `collapsed` per view, `search` | `collapsed` and `view` in localStorage per tree (VIS-10) |
+| `uiStore` | `view`, `selectedId`, `focusId`, `panel` (open/size), `collapsed` per view, `search` | `collapsed` and `view` in localStorage per tree (VIS-10). `openTree(treeId, defaultView, { view, focusId, allowed })` starts from the URL, then this browser's memory, then the tree's default, skipping views whose flag is off; `closeTree()` runs when the editor unmounts |
 | `historyStore` | `undo[]`, `redo[]` | none |
 | `prefsStore` | locale, theme, density (compact/comfortable) | cookie + `users/{uid}` (not yet built: language and theme live in the profile through `SessionProvider` since P1) |
 
@@ -1067,7 +1074,8 @@ ageAt(range, year): number | null                // "age 23 in 1971" (TL-06)
 | --- | --- |
 | Desktop (≥ 1024 px) | Tabs: **Tree · Family · Circle · List · Album · Timeline**. The Family book lives in the **Download** menu, because it is an output rather than a view. |
 | Mobile | Bottom navigation: **ট্রি · পরিবার · বৃত্ত · তালিকা · আরও**. "আরও" (More) opens a sheet with Album, Timeline, Ancestors (TV-06) and Family book. |
-| Both | The view is in the URL (`?view=`) and remembered per tree. Views that are not yet released are hidden by feature flags (ADR-014). |
+| Both | The view is in the URL (`?view=`, with `&focus=` for the focus person) and remembered per tree. The URL is updated with `history.replaceState`, so switching views adds no history entries. Views that are not yet released are hidden by feature flags (ADR-014). |
+| Built in P3 | `features/editor/shell/ViewNav.tsx`: `ViewTabs` (desktop, `aria-current`) and `BottomNav` (below 1024 px). Until a view is built, `ViewPlaceholder` shows "coming soon" and lists everyone in the tree. |
 
 ---
 
@@ -1651,6 +1659,8 @@ Tip: pasting a multi-line list creates one row per line. Gender is guessed from 
 **Quick-add menu (REL-02):** a sheet or popover with large icon buttons: *ছেলে/মেয়ে*, *স্বামী/স্ত্রী*, *বাবা/মা*, *ভাই/বোন*, and *বিদ্যমান কাউকে যুক্ত করুন* (link an existing person).
 
 **Dashboard:** a grid of tree cards (cover avatar collage, name, "৫৭ জন · ৪ প্রজন্ম", updated time, role badge), a "＋ New tree" card and an "Import" button (R2). It becomes a single column on mobile.
+
+*As built in P3:* the cover is the root person's initials (their photo from P5), read once per tree from the device cache when possible; generations are in the editor's statistics, not on the card, because they need the whole tree. "New tree" is a header button, and an empty dashboard shows one large "Create a family tree" button. The create dialog asks for the tree name and, optionally, the oldest person remembered; man or woman appears once a name is typed. A name typed in one box is stored under the language of its script (`nameFromText`).
 
 **Landing:** the hero ("আপনার পরিবারের গল্প, এক জায়গায়" / "Your family's story, in one place"), a primary CTA "শুরু করুন — সাইন-আপ লাগবে না" ("Get started, no sign-up needed"), an animated sample tree, three feature tiles (easy to build, Bangla and English, download and share), and the privacy promise.
 

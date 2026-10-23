@@ -189,16 +189,25 @@ gantt
 
 **Goal:** users can manage trees, the editor frame exists, and guests can merge into existing accounts.
 
-- [ ] **P3-01** App header (desktop) and compact header (mobile): tree switcher, save status, language switch, account menu, guest chip. *(TREE-07, PWA-03)*
-- [ ] **P3-02** Dashboard: realtime tree list, create (dialog), rename, delete (typed confirmation if > 10 people), tree cards (cover, counts, updated, role). *(TREE-01..03)*
-- [ ] **P3-03** Editor shell `/trees/[treeId]`: view tabs (desktop) and bottom nav with a "More" sheet (mobile), feature flags for staged views (`lib/features.ts`, ADR-014), URL state (`?view=&focus=`), details container (side panel ≥ 1024 px, vaul drawer below), empty-tree state with "Add the first person". *(VIS-01)*
-- [ ] **P3-04** Tree settings dialog (name display, colour by, photos, dates, default view). *(TREE-06)*
-- [ ] **P3-05** Statistics popover (people, generations, living/deceased, earliest year). *(TREE-08, Could)*
-- [ ] **P3-06** **Guest merge:** `POST /api/account/merge-ticket`, `POST /api/account/merge` (transaction, idempotent), `MergeDialog` (move/discard per tree), resume through `shikor:pendingMerge`. *(AUTH-06/07, DESIGN §9.4)*
-- [ ] **P3-07** **Account and guest-data deletion:** `POST /api/account/delete` (recent-login check, recursive delete, membership removal; Cloudinary prefix deletion stubbed until P5). *(AUTH-10/12)*
-- [ ] **P3-08** Tests: API (merge idempotency, ticket expiry and reuse, a non-anonymous ticket creator is rejected). E2E: AC AUTH-07; dashboard CRUD; deletion.
+- [x] **P3-01** App header (desktop) and compact header (mobile): tree switcher, save status, language switch, account menu, guest chip. *(TREE-07, PWA-03)*
+- [x] **P3-02** Dashboard: realtime tree list, create (dialog), rename, delete (typed confirmation if > 10 people), tree cards (cover, counts, updated, role). *(TREE-01..03)*
+- [x] **P3-03** Editor shell `/trees/[treeId]`: view tabs (desktop) and bottom nav with a "More" sheet (mobile), feature flags for staged views (`lib/features.ts`, ADR-014), URL state (`?view=&focus=`), details container (side panel ≥ 1024 px, vaul drawer below), empty-tree state with "Add the first person". *(VIS-01)*
+- [x] **P3-04** Tree settings dialog (name display, colour by, photos, dates, default view). *(TREE-06)*
+- [x] **P3-05** Statistics popover (people, generations, living/deceased, earliest year). *(TREE-08, Could)*
+- [x] **P3-06** **Guest merge:** `POST /api/account/merge-ticket`, `POST /api/account/merge` (transaction, idempotent), `MergeDialog` (move/discard per tree), resume through `shikor:pendingMerge`. *(AUTH-06/07, DESIGN §9.4)*
+- [x] **P3-07** **Account and guest-data deletion:** `POST /api/account/delete` (recent-login check, recursive delete, membership removal; Cloudinary prefix deletion stubbed until P5). *(AUTH-10/12)*
+- [x] **P3-08** Tests: API (merge idempotency, ticket expiry and reuse, a non-anonymous ticket creator is rejected). E2E: AC AUTH-07; dashboard CRUD; deletion.
 
 **Exit criteria:** AC AUTH-07 passes; a deleted account leaves no documents behind (verified in the emulator).
+
+**Status (2026-10-23):** done. AC AUTH-07 passes end to end (email log-in path; the Google path runs the same code after `auth/credential-already-in-use`), and the API tests show a deleted account or guest leaves no documents or auth user behind. 87 emulator tests, 293 unit tests and 38 E2E tests per browser pass. Notes for later phases:
+
+- **Interim views:** until P4 (Tree) and P6 (the others), every view shows a "coming soon" card and lists everyone in the tree, so people can be selected and the details panel used. P4 replaces the placeholder per view.
+- **Dashboard cards** show the root person's initials as the cover (one cached read per tree; the photo arrives with P5) and the role on every card. Generations appear in the statistics, not on the card, because they need the whole tree.
+- **Tree settings** leave out the kinship style until the relationship finder uses it (R4).
+- **Save status** shows Saving…/Saved/Offline. The pending-changes count of PWA-03 needs a count of unsent writes, which comes with offline work in P9.
+- **Still open from P2:** the debounced tree "touch" for edits that don't add or remove people (DESIGN §7.3) moves to P4, where those edits start.
+- **New endpoint:** `DELETE /api/trees/{treeId}` (owner only) deletes a tree on the server, because a client batch can't delete hundreds of people and their relationships in one go.
 
 ---
 

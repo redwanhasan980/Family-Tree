@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phases 0–2 complete: guest sessions and accounts, plus the family data model, security rules and undoable editing commands underneath the app. Next: Phase 3, the dashboard and tree management.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0–3 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard (create, rename and delete trees), the editor frame, moving guest trees into an existing account, and account deletion. Next: Phase 4, the Tree view and core editing.* See [Project status](#project-status).
 
 ---
 
@@ -119,8 +119,8 @@ flowchart LR
 | P0 | Foundation & tooling, deployment pipeline | ✅ Done (first deploy waits for the owner's VPS setup) |
 | P1 | Authentication & guest session | ✅ Done (the iOS Safari redirect check waits for the domain) |
 | P2 | Domain core, data layer & security rules | ✅ Done |
-| P3 | App shell, dashboard, guest merge | ⏳ Next |
-| P4 | Tree view & core editing | ⬜ |
+| P3 | App shell, dashboard, guest merge | ✅ Done |
+| P4 | Tree view & core editing | ⏳ Next |
 | P5 | Person details & photos | ⬜ |
 | P6 | List, Circle & Family card views | ⬜ |
 | P7 | Export & JSON backup | ⬜ |

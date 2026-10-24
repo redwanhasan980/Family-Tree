@@ -60,6 +60,10 @@ export async function openView(page: Page, name: 'Tree' | 'Family' | 'Circle' | 
 
 /** No serious or critical accessibility problems in the main area. */
 export async function expectAccessible(page: Page): Promise<void> {
+  // Colours are checked as drawn: let fades and slides (the Family card's) finish first.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => null))),
+  );
   const results = await new AxeBuilder({ page }).include('main').analyze();
   const serious = results.violations.filter((v) =>
     ['serious', 'critical'].includes(v.impact ?? ''),

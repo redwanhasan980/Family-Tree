@@ -7,6 +7,20 @@ import { expectAccessible, familyOfFour, isPhone, openView } from './support/fam
 const treeCard = (page: Page, name: string) =>
   page.getByRole('tree').getByRole('treeitem', { name: new RegExp(`^${name}`) });
 
+/** Finds someone with the header search, which selects and centres them (VIS-04). */
+async function find(page: Page, name: string) {
+  await page
+    .getByRole('button', { name: 'Find someone' })
+    .filter({ visible: true })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Find someone' });
+  await dialog.getByPlaceholder('Search by name or nickname').fill(name);
+  await dialog.getByRole('option', { name: new RegExp(`^${name}`) }).click();
+  await expect(dialog).toBeHidden();
+  await expect(treeCard(page, name)).toHaveAttribute('aria-selected', 'true');
+}
+
 async function openDetails(page: Page, name: string) {
   await treeCard(page, name).click();
   if (isPhone(page)) await page.getByRole('button', { name: `Details: ${name}` }).click();
@@ -68,7 +82,8 @@ test('switching views keeps the selected person and the focus (P6-08)', async ({
 
 test('a wife’s own family, when her parents are in the tree (VIS-08)', async ({ page }) => {
   await familyOfFour(page);
-  await treeCard(page, 'Rahim').click();
+  // Search centres the person, so no card hides under the tree controls on small phones.
+  await find(page, 'Rahim');
   await page
     .getByRole('button', { name: 'Add a relative of Rahim' })
     .filter({ visible: true })
@@ -79,7 +94,8 @@ test('a wife’s own family, when her parents are in the tree (VIS-08)', async (
   await wife.getByLabel('Name').fill('Nasrin');
   await wife.getByRole('button', { name: 'Add', exact: true }).click();
 
-  await treeCard(page, 'Nasrin').click();
+  await expect(wife).toBeHidden();
+  await find(page, 'Nasrin');
   await page
     .getByRole('button', { name: 'Add a relative of Nasrin' })
     .filter({ visible: true })
@@ -92,7 +108,8 @@ test('a wife’s own family, when her parents are in the tree (VIS-08)', async (
   await parent.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(parent).toBeHidden();
 
-  await openDetails(page, 'Nasrin');
+  await find(page, 'Nasrin');
+  if (isPhone(page)) await page.getByRole('button', { name: 'Details: Nasrin' }).click();
   await page.getByRole('button', { name: "Show Nasrin's family" }).click();
   await expect(page.getByText('Showing the tree from Habib')).toBeVisible();
   await expect(treeCard(page, 'Nasrin')).toHaveAttribute('aria-selected', 'true');

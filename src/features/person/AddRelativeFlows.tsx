@@ -136,7 +136,11 @@ export function AddRelativeFlows() {
   if (!flow) return null;
   const close = () => uiStore.getState().endAdd();
   if (flow.kind === 'menu') return <QuickAddMenu flow={flow} />;
-  if (flow.kind === 'child') return <BulkAddChildren personId={flow.personId} onClose={close} />;
+  if (flow.kind === 'child') {
+    return (
+      <BulkAddChildren personId={flow.personId} welcome={flow.welcome === true} onClose={close} />
+    );
+  }
   return (
     <AddRelativeDialog
       // A new key per kind, so switching from sibling to parent starts a fresh form.

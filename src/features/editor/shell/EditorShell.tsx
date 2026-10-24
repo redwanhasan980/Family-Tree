@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
+import { isWelcome, welcomeDone } from '@/features/onboarding/progress';
+import { ViewTips } from '@/features/onboarding/ViewTips';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
 import { DeletePersonFlow } from '@/features/person/DeletePersonDialog';
 import { CircleView } from '@/features/views/circle/CircleView';
@@ -43,6 +45,25 @@ import { editorSearch, readEditorParams } from './urlState';
 import { BottomNav } from './ViewNav';
 import { ViewPlaceholder } from './ViewPlaceholder';
 import { PRIMARY_VIEWS, VIEW_ICONS } from './views';
+
+/**
+ * Arriving from the first-run wizard (ONB-02): once the tree's first person is here, open
+ * "Add children" for them, then the tips. Returns whether this is that visit.
+ */
+function useWelcome(treeId: ID): boolean {
+  const [welcome] = useState(() => isWelcome(treeId));
+  const rootId = useTree((s) => s.tree?.rootPersonId ?? null);
+  const hasRoot = useTree((s) => (rootId ? s.persons.has(rootId) : false));
+
+  useEffect(() => {
+    if (!welcome || !rootId || !hasRoot || !isWelcome(treeId)) return;
+    welcomeDone();
+    uiStore.getState().select(rootId);
+    uiStore.getState().startAdd({ personId: rootId, kind: 'child', welcome: true });
+  }, [welcome, treeId, rootId, hasRoot]);
+
+  return welcome;
+}
 
 // Loaded only when someone exports: it brings jsPDF and html-to-image (NFR-PERF-05).
 const ExportDialog = dynamic(() => import('@/features/export/ExportDialog'), { ssr: false });
@@ -203,6 +224,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
   const [panel, setPanel] = useState<'settings' | 'statistics' | 'more' | 'export' | null>(null);
   useEditorUrlState(treeId, tree?.settings.defaultView);
   useLeaveWarning();
+  const welcome = useWelcome(treeId);
 
   const name = tree?.name;
   useEffect(() => {
@@ -252,9 +274,15 @@ export function EditorShell({ treeId }: { treeId: ID }) {
           onExport={() => open('export')}
         />
         <div className="flex min-h-0 flex-1">
-          <main id="main" className="min-w-0 flex-1 overflow-y-auto">
-            <ViewArea />
-          </main>
+          <div className="relative flex min-w-0 flex-1">
+            <main id="main" className="min-w-0 flex-1 overflow-y-auto">
+              <ViewArea />
+            </main>
+            <ViewTips
+              tour={welcome}
+              className="absolute inset-x-3 top-3 sm:inset-x-auto sm:top-auto sm:right-4 sm:bottom-4 sm:w-96"
+            />
+          </div>
           <DetailsContainer />
         </div>
         <SelectionBar className="lg:hidden" />

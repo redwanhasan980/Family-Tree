@@ -110,3 +110,8 @@ export function setSelfPerson(
     isGuest,
   });
 }
+
+/** The first-run wizard is done or skipped (ONB-02); it isn't offered again. */
+export function completeOnboarding(uid: string, isGuest: boolean): Promise<void> {
+  return updateDoc(userRef(uid), { onboardingCompleted: true, isGuest });
+}

@@ -20,6 +20,36 @@ export const CreateTreeFormSchema = z
   });
 export type CreateTreeForm = z.input<typeof CreateTreeFormSchema>;
 
+/** The first-run wizard's question (ONB-02): the oldest ancestor's name and gender. */
+export const AncestorFormSchema = z.object({
+  rootName: z
+    .string()
+    .trim()
+    .min(1, { error: 'nameRequired' })
+    .max(LIMITS.personName, { error: 'nameTooLong' }),
+  rootGender: z.enum(['male', 'female'], { error: 'genderRequired' }),
+});
+export type AncestorForm = z.input<typeof AncestorFormSchema>;
+
+/** A tree started from the wizard: named after the ancestor, who is its first person. */
+export function ancestorTreeInput(
+  form: z.output<typeof AncestorFormSchema>,
+  treeName: string,
+): TreeDetailsInput & { root: NewPersonInput } {
+  // The limit counts UTF-16 units: keep whole graphemes that fit (rule 9).
+  let name = '';
+  for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+    treeName,
+  )) {
+    if (name.length + segment.length > LIMITS.treeName) break;
+    name += segment;
+  }
+  return {
+    name,
+    root: { names: nameFromText(form.rootName), gender: form.rootGender },
+  };
+}
+
 /** What `createTree` needs, from the parsed form. */
 export function createTreeInput(
   form: z.output<typeof CreateTreeFormSchema>,

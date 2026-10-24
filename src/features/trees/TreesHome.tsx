@@ -2,16 +2,19 @@
 
 import { PlusIcon, SproutIcon, UserRoundIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
-import { Link } from '@/i18n/navigation';
+import { wizardDoneHere } from '@/features/onboarding/progress';
+import { Link, useRouter } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
 import { hasUser } from '@/lib/domain/auth/session';
 import { LIMITS } from '@/lib/domain/schemas';
 import type { Tree } from '@/lib/domain/types';
+import { logger } from '@/lib/logger';
+import { completeOnboarding } from '@/lib/repositories/users';
 
 import { CreateTreeDialog } from './CreateTreeDialog';
 import { DeleteTreeDialog } from './DeleteTreeDialog';
@@ -71,7 +74,8 @@ function LoadingCards() {
 /** The dashboard (TREE-01..03): the user's trees, live, with create, rename and delete. */
 export function TreesHome() {
   const t = useTranslations();
-  const { session } = useSession();
+  const { session, profile } = useSession();
+  const router = useRouter();
   const uid = hasUser(session) ? session.user.uid : null;
   const trees = useMyTrees(uid);
   const [dialog, setDialog] = useState<OpenDialog>(null);
@@ -80,6 +84,25 @@ export function TreesHome() {
   };
 
   const count = trees.status === 'ready' ? trees.trees.length : 0;
+  // Someone new, with no tree yet, starts with the wizard (ONB-02).
+  const newcomer =
+    trees.status === 'ready' &&
+    count === 0 &&
+    profile !== null &&
+    !profile.onboardingCompleted &&
+    !wizardDoneHere();
+  useEffect(() => {
+    if (newcomer) router.replace('/start');
+  }, [newcomer, router]);
+  // Done in this browser but not yet in the profile (an older version, or offline then):
+  // record it, so other devices don't offer the wizard again.
+  const unrecorded = profile !== null && !profile.onboardingCompleted && wizardDoneHere();
+  useEffect(() => {
+    if (!unrecorded || !uid) return;
+    completeOnboarding(uid, session.status === 'guest').catch((error: unknown) =>
+      logger.error('onboarding.complete', error),
+    );
+  }, [unrecorded, uid, session.status]);
   const atLimit = count >= LIMITS.treesPerUser;
   const create = () => setDialog({ kind: 'create' });
 
@@ -111,7 +134,7 @@ export function TreesHome() {
           </Button>
         </div>
       )}
-      {trees.status === 'ready' && count === 0 && <EmptyState onCreate={create} />}
+      {trees.status === 'ready' && count === 0 && !newcomer && <EmptyState onCreate={create} />}
       {trees.status === 'ready' && count > 0 && uid && (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {trees.trees.map((tree) => (

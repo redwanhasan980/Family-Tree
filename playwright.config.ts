@@ -18,6 +18,20 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    // Visitors who already did the first-run wizard and saw the tips (P8-02), so specs
+    // start where they expect; e2e/onboarding.spec.ts starts afresh.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: baseURL,
+          localStorage: [
+            { name: 'shikor:onboarding', value: 'done' },
+            { name: 'shikor:tips', value: JSON.stringify(['tree', 'family', 'circle', 'list']) },
+          ],
+        },
+      ],
+    },
   },
   projects: [
     { name: 'mobile-chrome', use: { ...devices['Pixel 7'], ...chromiumLaunch } },

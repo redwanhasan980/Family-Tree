@@ -82,6 +82,8 @@ export type AddKind = 'menu' | 'child' | 'spouse' | 'parent' | 'sibling' | 'link
 export interface AddFlow {
   personId: ID;
   kind: AddKind;
+  /** Opened by the first-run wizard (ONB-02): the form says what comes next. */
+  welcome?: boolean;
   /** Screen rectangle the desktop menu opens next to. */
   anchor?: { x: number; y: number; width: number; height: number };
 }

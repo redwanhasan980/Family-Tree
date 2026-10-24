@@ -856,5 +856,41 @@
     },
     "updated": "Last updated: October 2026",
     "description": "What is stored, where it is kept, who can see it, and how to download or delete it."
+  },
+  "onboarding": {
+    "step": "Step {current, number} of {total, number}",
+    "skip": "Skip, I'll look around myself",
+    "back": "Back",
+    "next": "Next",
+    "languageTitle": "Welcome! Which language would you like?",
+    "languageHint": "You can change it at any time, and names can be in either language.",
+    "ancestorTitle": "Who is the oldest ancestor you remember?",
+    "ancestorHint": "For example your grandfather, or his father. Everyone else is added around them.",
+    "ancestorName": "Their name",
+    "ancestorPlaceholder": "For example: Abdul Karim",
+    "treeName": "Family of {name}",
+    "childrenHint": "Now add their children, oldest first. You can skip this and add them later.",
+    "tips": {
+      "label": "Tip",
+      "next": "Next tip",
+      "done": "Got it",
+      "close": "Close the tips",
+      "count": "{current, number} of {total, number}",
+      "tree": {
+        "select": "Tap a person to choose them. Their details open beside the tree, or at the bottom on a phone.",
+        "add": "With someone chosen, press “+” to add a son, daughter, husband, wife, father, mother, brother or sister.",
+        "views": "See the same family four ways: Tree, Family card, Circle and List.",
+        "undo": "Made a mistake? Undo is at the top. Every change is saved as you go."
+      },
+      "family": {
+        "open": "Tap a parent or a child to open their family. On a phone, swipe sideways to visit brothers and sisters."
+      },
+      "circle": {
+        "centre": "Double-tap someone (or choose “Put … in the centre”) to see their part of the family. The breadcrumb leads back."
+      },
+      "list": {
+        "outline": "Everyone in order, numbered by family line. Switch to “Everyone” to find, sort and filter people."
+      }
+    }
   }
 }

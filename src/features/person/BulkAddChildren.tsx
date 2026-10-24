@@ -44,10 +44,12 @@ const newRow = (name = ''): Row => ({ key: ++rowKey, name, gender: 'male' });
 function SonOrDaughter({
   row,
   number,
+  className,
   onChange,
 }: {
   row: Row;
   number: number;
+  className?: string;
   onChange: (gender: Row['gender']) => void;
 }) {
   const t = useTranslations('relatives');
@@ -56,7 +58,7 @@ function SonOrDaughter({
     <div
       role="radiogroup"
       aria-label={t('childRole', { number })}
-      className="grid shrink-0 grid-cols-2 overflow-hidden rounded-md border"
+      className={cn('grid shrink-0 grid-cols-2 overflow-hidden rounded-md border', className)}
     >
       {(['male', 'female'] as const).map((gender) => (
         <label
@@ -83,8 +85,18 @@ function SonOrDaughter({
  * son/daughter toggle; Enter adds a row and pasting a list makes one row per line. They
  * keep the typed order, link to the chosen other parent, and undo as one step.
  */
-export function BulkAddChildren({ personId, onClose }: { personId: ID; onClose: () => void }) {
+export function BulkAddChildren({
+  personId,
+  welcome = false,
+  onClose,
+}: {
+  personId: ID;
+  /** Step 3 of the first-run wizard: a line saying what this is and that it can wait. */
+  welcome?: boolean;
+  onClose: () => void;
+}) {
   const t = useTranslations('relatives');
+  const to = useTranslations('onboarding');
   const tc = useTranslations('common');
   const locale = useLocale() as Locale;
   const editor = useEditor();
@@ -191,6 +203,11 @@ export function BulkAddChildren({ personId, onClose }: { personId: ID; onClose: 
         <DialogHeader>
           <DialogTitle>{t('childrenTitle')}</DialogTitle>
           <DialogDescription>{t('childrenOf', { names: parents })}</DialogDescription>
+          {welcome && (
+            <p className="rounded-lg bg-highlight/15 px-3 py-2 text-sm">
+              {to('step', { current: 3, total: 3 })} · {to('childrenHint')}
+            </p>
+          )}
         </DialogHeader>
         <form
           noValidate
@@ -202,7 +219,12 @@ export function BulkAddChildren({ personId, onClose }: { personId: ID; onClose: 
         >
           <ol className="space-y-2">
             {rows.map((row, index) => (
-              <li key={row.key} className="flex items-center gap-2">
+              // Phones: the name and its remove button, then son or daughter below; wider
+              // screens: one row. The order in the page (and for Tab) stays the same.
+              <li
+                key={row.key}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+              >
                 <Input
                   ref={(element) => {
                     if (element) inputs.current.set(row.key, element);
@@ -216,9 +238,10 @@ export function BulkAddChildren({ personId, onClose }: { personId: ID; onClose: 
                   onChange={(event) => update(row.key, { name: event.target.value })}
                   onKeyDown={(event) => onKeyDown(event, row, index)}
                   onPaste={(event) => onPaste(event, row)}
-                  className="h-11 min-w-0 flex-1 text-base"
+                  className="order-1 h-11 min-w-0 text-base"
                 />
                 <SonOrDaughter
+                  className="order-3 col-span-2 sm:order-2 sm:col-span-1"
                   row={row}
                   number={index + 1}
                   onChange={(gender) => update(row.key, { gender })}
@@ -227,7 +250,7 @@ export function BulkAddChildren({ personId, onClose }: { personId: ID; onClose: 
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-11 shrink-0"
+                  className="order-2 size-11 shrink-0 sm:order-3"
                   aria-label={t('removeChild', { number: index + 1 })}
                   onClick={() => remove(row.key)}
                 >

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AncestorFormSchema,
+  ancestorTreeInput,
   createTreeInput,
   CreateTreeFormSchema,
   matchesTreeName,
@@ -43,5 +45,27 @@ describe('deleting a tree (TREE-03)', () => {
     expect(matchesTreeName('  করিম   পরিবার ', 'করিম পরিবার')).toBe(true);
     expect(matchesTreeName('Café', 'Café')).toBe(true);
     expect(matchesTreeName('karim family', 'Karim family')).toBe(false);
+  });
+});
+
+describe('the first-run wizard (ONB-02)', () => {
+  it('needs a name and man or woman', () => {
+    expect(AncestorFormSchema.safeParse({ rootName: '  ', rootGender: 'male' }).success).toBe(
+      false,
+    );
+    expect(AncestorFormSchema.safeParse({ rootName: 'করিম', rootGender: null }).success).toBe(
+      false,
+    );
+    const form = AncestorFormSchema.parse({ rootName: ' আব্দুল করিম ', rootGender: 'male' });
+    expect(ancestorTreeInput(form, 'পরিবার: আব্দুল করিম')).toEqual({
+      name: 'পরিবার: আব্দুল করিম',
+      root: { names: { bn: 'আব্দুল করিম' }, gender: 'male' },
+    });
+  });
+
+  it('keeps a long tree name within the limit, cut between graphemes', () => {
+    const form = AncestorFormSchema.parse({ rootName: 'Karim', rootGender: 'male' });
+    const name = ancestorTreeInput(form, 'ক্ষ'.repeat(100)).name;
+    expect(name).toBe('ক্ষ'.repeat(26)); // 3 units each: 78 of the 80 allowed
   });
 });

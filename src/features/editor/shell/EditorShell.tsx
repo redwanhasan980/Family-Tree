@@ -30,7 +30,7 @@ import { uiStore, useUi } from '@/stores/uiStore';
 
 import { EditorProvider } from '../EditorProvider';
 import { useEditorShortcuts } from '../useEditorShortcuts';
-import { useTreeSession } from '../useTreeSession';
+import { useLeaveWarning, useTreeSession } from '../useTreeSession';
 import { DetailsContainer } from './DetailsContainer';
 import { EditorHeader } from './EditorHeader';
 import { EmptyTree } from './EmptyTree';
@@ -48,6 +48,7 @@ function useEditorUrlState(treeId: ID, defaultView: ViewKind | undefined): void 
   const opened = useUi((s) => s.treeId === treeId);
   const view = useUi((s) => s.view);
   const focusId = useUi((s) => s.focusId);
+  const familyId = useUi((s) => s.familyId);
 
   useEffect(() => {
     if (!defaultView || uiStore.getState().treeId === treeId) return;
@@ -60,16 +61,18 @@ function useEditorUrlState(treeId: ID, defaultView: ViewKind | undefined): void 
   useEffect(() => () => uiStore.getState().closeTree(), [treeId]);
 
   // Back and Forward (the Family card pushes a history entry per family, FC-02): follow
-  // the URL's view and focus.
+  // the URL's view, focus and family.
   useEffect(() => {
     const onPop = () => {
-      const { view: next, focusId: focus = null } = readEditorParams(
-        window.location.search,
-        enabledViews(),
-      );
+      const {
+        view: next,
+        focusId: focus = null,
+        familyId: family = null,
+      } = readEditorParams(window.location.search, enabledViews());
       const ui = uiStore.getState();
       if (next && next !== ui.view) ui.setView(next);
       if (focus !== ui.focusId) ui.focus(focus);
+      if (next === 'family' && family !== uiStore.getState().familyId) ui.openFamily(family);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -77,11 +80,11 @@ function useEditorUrlState(treeId: ID, defaultView: ViewKind | undefined): void 
 
   useEffect(() => {
     if (!opened) return;
-    const search = editorSearch(window.location.search, view, focusId);
+    const search = editorSearch(window.location.search, view, focusId, familyId);
     if (search !== window.location.search) {
       window.history.replaceState(window.history.state, '', `${window.location.pathname}${search}`);
     }
-  }, [opened, view, focusId]);
+  }, [opened, view, focusId, familyId]);
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
@@ -190,6 +193,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
   const tree = useTree((s) => s.tree);
   const [panel, setPanel] = useState<'settings' | 'statistics' | 'more' | null>(null);
   useEditorUrlState(treeId, tree?.settings.defaultView);
+  useLeaveWarning();
 
   const name = tree?.name;
   useEffect(() => {

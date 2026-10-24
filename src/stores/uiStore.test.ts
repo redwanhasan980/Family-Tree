@@ -92,6 +92,43 @@ describe('uiStore', () => {
     expect(store.getState().revealRequest).toBeNull();
   });
 
+  it('opens families without moving the start of the other views (FC-02, FC-06)', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'family');
+    store.getState().openFamily('p2');
+    expect(store.getState()).toMatchObject({
+      familyId: 'p2',
+      selectedId: 'p2',
+      focusId: null,
+      revealRequest: { personId: 'p2' },
+    });
+    store.getState().openFamily(null);
+    expect(store.getState()).toMatchObject({
+      familyId: null,
+      selectedId: null,
+      revealRequest: null,
+    });
+  });
+
+  it('opens the Family card on the selected person, and follows search there', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'tree');
+    store.getState().select('p4');
+    store.getState().setView('family');
+    expect(store.getState().familyId).toBe('p4');
+    store.getState().reveal('p5');
+    expect(store.getState().familyId).toBe('p5');
+    store.getState().setView('tree');
+    store.getState().reveal('p6');
+    expect(store.getState().familyId).toBe('p5');
+  });
+
+  it('starts on the family in the link', () => {
+    const store = createUiStore();
+    store.getState().openTree('t1', 'tree', { view: 'family', familyId: 'p7' });
+    expect(store.getState()).toMatchObject({ view: 'family', familyId: 'p7', selectedId: 'p7' });
+  });
+
   it('forgets open dialogs when the tree closes', () => {
     const store = createUiStore();
     store.getState().openTree('t1', 'tree');

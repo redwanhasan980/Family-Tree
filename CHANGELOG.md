@@ -7,10 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Family card: moving between families now selects the person, and switching to the Tree, List or Circle centres on them instead of showing the tree from them; switching to the Family card opens the family of whoever is selected. Each parent and child also has a *Details* button, so their details open without leaving the family.
+- Details panel: a husband's or wife's marriage date can now be set, and when someone married more than once, the marriages can be put in order (1st, 2nd …), which the Family card and the tree follow.
 - Screen readers: the Tree view's cards now read their full name (with years and "deceased"), and the expand, add and arrow buttons are no longer inside the list of people, as accessibility checkers expect.
 
 ### Added
 
+- **Show [name]'s family:** for a husband or wife who married into the family and whose parents are in the tree, the details panel and the person menu show the tree from their parents.
+- **A warning before leaving** the page while a change is still on its way to the server (for example while offline).
 - Phase 6, more ways to see the family:
   - **Family card:** one family at a time, the simplest view on a phone: the parents above, brothers and sisters beside, the couple in the middle and their children below, each with "N children ›". Tap anyone to open their family; the browser's Back button, a *Back to …* button and a breadcrumb take you back up, and a swipe moves between brothers and sisters. With more than one marriage, choose whose children to show ("1st wife: …", "2nd wife: …", or all). Empty places offer *Add father*, *Add mother*, *Add a wife* or *Add children*. Screen readers hear which family is shown, and the other views follow the same person.
   - **List view:** the family as an indented outline with d'Aboville numbers (1, 1.1, 1.1.2 …, in Bangla digits in Bangla), photos, years, profession, husbands and wives, and which mother or father a child is from when a parent had more than one family. Branches open and close like the tree, and long lists stay fast (only the rows on screen are drawn). The selected row adds a relative or moves a child up or down among their brothers and sisters; on a computer, rows can also be dragged. It is fully usable with the keyboard and a screen reader (arrow keys, Home/End, Enter for details, Alt+↑/↓ to move).

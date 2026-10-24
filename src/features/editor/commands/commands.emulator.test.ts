@@ -44,6 +44,7 @@ import {
   moveBranch,
   removeRelationship,
   reorderChildren,
+  reorderSpouses,
   setParentKind,
   setSpouseStatus,
 } from './relationshipCommands';
@@ -274,6 +275,7 @@ describe('commands against the emulator and the security rules', () => {
     await roundTrip(changeOtherParent(await context(), 'S1', 'W1', 'W2'));
     await roundTrip(moveBranch(await context(), 'X', 'S2'));
     await roundTrip(reorderChildren(await context(), 'G', ['D1', 'S1']));
+    await roundTrip(reorderSpouses(await context(), 'G', ['s_G_W2', 's_G_W1']));
     await roundTrip(removeRelationship(await context(), 's_DD_SS'));
     await roundTrip(setRoot(await context(), 'S1'));
     await roundTrip(updateTreeDetails(await context(), { name: 'নতুন নাম', description: 'বিবরণ' }));

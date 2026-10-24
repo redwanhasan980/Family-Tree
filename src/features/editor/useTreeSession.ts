@@ -121,3 +121,18 @@ export function useSaveStatus(): SaveStatus {
   const online = useOnline();
   return useTree((state) => selectSaveStatus(state, online));
 }
+
+/**
+ * Asks before the page closes while a change hasn't reached the server yet (owner's
+ * choice, DESIGN §11.2). Firestore keeps such changes in this browser and sends them on
+ * the next visit, but someone leaving for good, or on another device, would miss them.
+ */
+export function useLeaveWarning(): void {
+  const unsent = useTree((s) => s.pending.tree || s.pending.persons || s.pending.relationships);
+  useEffect(() => {
+    if (!unsent) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [unsent]);
+}

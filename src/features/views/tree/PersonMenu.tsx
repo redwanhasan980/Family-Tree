@@ -1,6 +1,6 @@
 'use client';
 
-import { FlagIcon, FocusIcon, HistoryIcon, PanelRightOpenIcon } from 'lucide-react';
+import { FlagIcon, FocusIcon, HistoryIcon, PanelRightOpenIcon, UsersRoundIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/context-menu';
 import { setRoot } from '@/features/editor/commands';
 import { useEditor } from '@/features/editor/EditorProvider';
+import { useOwnFamily } from '@/features/views/shared/useOwnFamily';
 import { displayName } from '@/lib/domain/names';
 import { spouseRelation } from '@/lib/domain/relatives';
 import type { ID, Locale } from '@/lib/domain/types';
@@ -36,6 +37,8 @@ export function PersonMenu({ children }: { children: ReactNode }) {
   const person = useTree((s) => (personId ? s.persons.get(personId) : undefined));
   const nameDisplay = useTree((s) => s.tree?.settings.nameDisplay ?? 'auto');
   const rootId = useTree((s) => s.tree?.rootPersonId);
+  const tp = useTranslations('person');
+  const showOwnFamily = useOwnFamily(personId);
 
   return (
     <ContextMenu onOpenChange={(open) => !open && setPersonId(null)}>
@@ -82,6 +85,14 @@ export function PersonMenu({ children }: { children: ReactNode }) {
           <ContextMenuItem onSelect={() => uiStore.getState().focus(person.id)}>
             <FocusIcon aria-hidden /> {t('showFromHere')}
           </ContextMenuItem>
+          {showOwnFamily && (
+            <ContextMenuItem onSelect={showOwnFamily}>
+              <UsersRoundIcon aria-hidden />
+              {tp('showOwnFamily', {
+                name: displayName(person.names, nameDisplay, locale).text,
+              })}
+            </ContextMenuItem>
+          )}
           <ContextMenuItem onSelect={() => uiStore.getState().showAncestors(person.id)}>
             <HistoryIcon aria-hidden /> {tv('showAncestors')}
           </ContextMenuItem>

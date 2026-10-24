@@ -289,7 +289,9 @@ gantt
 
 **Exit criteria:** all four views render the 500-person fixture smoothly on a mid-range phone profile; the List and Family card views pass keyboard-only and screen-reader smoke tests.
 
-**Status:** ✅ done. Family card export (FC-09) is built with the other exports in P7. Generation labels (TV-10) and the minimap (TV-07) moved to P8.
+**Status:** ✅ done. Family card export (FC-09) is built with the other exports in P7. Generation labels (TV-10) and the minimap (TV-07) moved to P8 (P8-13). On the 500-person tree at 4× CPU throttle, opening a family paints in 0.2–0.5 s and the List view scrolls at about 60 fps (`docs/PERFORMANCE.md`); the Tree and Circle numbers are there too.
+
+**Audit of Phases 0–6 (2026-10-24)** found and fixed: the Family card now centres the other views on its person instead of starting the tree from them, and opens on whoever is selected (FC-06, the owner's choice); a *Details* button on parent and child tiles (FC-05); the parents as a list (FC-08); the marriage date and the order of marriages in the details panel (REL-01, REL-07; `reorderSpouses`); *Show [name]'s family* for married-in husbands and wives (VIS-08); a leave-page warning while changes are unsent (owner's choice); TV-07/TV-10 listed in P8 (P8-13).
 
 ---
 
@@ -321,6 +323,7 @@ gantt
 - [ ] **P8-05** Dark-mode polish across all screens and views. *(UX-05)*
 - [ ] **P8-06** **Accessibility audit:** axe at 0 serious issues, keyboard pass, TalkBack and VoiceOver pass; fixes. *(NFR-A11Y-*)*
 - [ ] **P8-07** **Performance pass:** bundle analysis, code-splitting checks, Lighthouse budgets in CI, FPS trace on the 500-person fixture. *(NFR-PERF-*)*
+- [ ] **P8-13** Tree view extras moved from P6-07 *(Could)*: generation labels along the side ("১ম প্রজন্ম" / "Generation 1") *(TV-10)* and a minimap for large trees on desktop *(TV-07)*.
 - [ ] **P8-08** **Security pass:** enforce the CSP, App Check enforcement, rules review, secret scan, dependency audit. *(NFR-SEC-*)*
 - [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency; unused-key detection in `pnpm i18n:check`. *(NFR-L10N-02)*
 - [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), an uptime monitor on `/api/health`, optional self-hosted cookieless analytics, quota runbook in the README. *(OPS-02/03)*

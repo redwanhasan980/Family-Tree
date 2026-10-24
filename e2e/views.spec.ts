@@ -65,3 +65,36 @@ test('switching views keeps the selected person and the focus (P6-08)', async ({
   await page.getByRole('button', { name: 'Back to Abdul Karim' }).click();
   await expect(list.getByRole('treeitem', { name: /^Salam/ })).toBeVisible();
 });
+
+test('a wife’s own family, when her parents are in the tree (VIS-08)', async ({ page }) => {
+  await familyOfFour(page);
+  await treeCard(page, 'Rahim').click();
+  await page
+    .getByRole('button', { name: 'Add a relative of Rahim' })
+    .filter({ visible: true })
+    .last()
+    .click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Wife' }).click();
+  const wife = page.getByRole('dialog', { name: 'Add a wife' });
+  await wife.getByLabel('Name').fill('Nasrin');
+  await wife.getByRole('button', { name: 'Add', exact: true }).click();
+
+  await treeCard(page, 'Nasrin').click();
+  await page
+    .getByRole('button', { name: 'Add a relative of Nasrin' })
+    .filter({ visible: true })
+    .last()
+    .click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Father or mother' }).click();
+  const parent = page.getByRole('dialog', { name: 'Add a father or mother' });
+  await parent.getByLabel('Name').fill('Habib');
+  await parent.getByText('Father', { exact: true }).click();
+  await parent.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(parent).toBeHidden();
+
+  await openDetails(page, 'Nasrin');
+  await page.getByRole('button', { name: "Show Nasrin's family" }).click();
+  await expect(page.getByText('Showing the tree from Habib')).toBeVisible();
+  await expect(treeCard(page, 'Nasrin')).toHaveAttribute('aria-selected', 'true');
+  await expect(treeCard(page, 'Habib')).toBeVisible();
+});

@@ -1,11 +1,10 @@
 'use client';
 
-import { ArrowLeftIcon, ChevronRightIcon, HeartIcon, PlusIcon } from 'lucide-react';
+import { ArrowLeftIcon, ChevronRightIcon, HeartIcon, InfoIcon, PlusIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { editorSearch } from '@/features/editor/shell/urlState';
 import { useIsDesktop } from '@/features/editor/shell/useIsDesktop';
 import { usePersonText } from '@/features/editor/shell/usePersonText';
 import { Avatar, useShownPhoto } from '@/features/media/Avatar';
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { selectGraph, useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
 
+import { goToFamily } from './goToFamily';
 import { startingPerson } from '../shared/focus';
 
 /** A swipe moves to a brother or sister (FC-02): far enough, fast enough, sideways. */
@@ -34,19 +34,6 @@ const ENTER: Record<Direction, string> = {
   previous: 'slide-in-from-left-8',
   none: '',
 };
-
-/**
- * Opens someone's family (FC-02): a browser history entry, so Back returns, and the
- * shared focus, so the other views follow (FC-06).
- */
-function goToFamily(personId: ID, start: ID | null): void {
-  const focus = personId === start ? null : personId;
-  const ui = uiStore.getState();
-  if (focus === ui.focusId) return;
-  const search = editorSearch(window.location.search, 'family', focus);
-  window.history.pushState(null, '', `${window.location.pathname}${search}`);
-  ui.focus(focus);
-}
 
 /** How the family changed: down to a child, up to a parent, along the siblings. */
 function directionOf(previous: FamilyCardModel | null, next: ID | null): Direction {
@@ -105,6 +92,28 @@ function PersonFace({
   );
 }
 
+/**
+ * A tile that opens a family, with a corner button for the person's details (FC-05): the
+ * tile moves, the button only shows. Siblings, not nested buttons.
+ */
+function WithDetails({ person, children }: { person: Person; children: ReactNode }) {
+  const t = useTranslations('familyView');
+  const { name } = usePersonText(person);
+  return (
+    <div className="relative h-full">
+      {children}
+      <button
+        type="button"
+        aria-label={t('detailsOf', { name: name.text })}
+        className="absolute top-1.5 right-1.5 flex size-10 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        onClick={() => openDetails(person.id)}
+      >
+        <InfoIcon aria-hidden className="size-5" />
+      </button>
+    </div>
+  );
+}
+
 const TILE =
   'flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
@@ -121,7 +130,7 @@ function AddSlot({ label, onClick }: { label: string; onClick: (rect: DOMRect) =
   );
 }
 
-function Breadcrumb({ trail, start }: { trail: readonly ID[]; start: ID | null }) {
+function Breadcrumb({ trail }: { trail: readonly ID[] }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const desktop = useIsDesktop();
@@ -157,7 +166,7 @@ function Breadcrumb({ trail, start }: { trail: readonly ID[]; start: ID | null }
                   type="button"
                   lang={name.lang}
                   className="h-9 rounded-full px-2 hover:bg-accent"
-                  onClick={() => goToFamily(id, start)}
+                  onClick={() => goToFamily(id)}
                 >
                   {name.text}
                 </button>
@@ -181,11 +190,15 @@ export function FamilyCardView() {
   const graph = useTree(selectGraph);
   const rootId = useTree((s) => s.tree?.rootPersonId);
   const nameDisplay = useTree((s) => s.tree?.settings.nameDisplay ?? 'auto');
+  const familySetting = useUi((s) => s.familyId);
   const focusSetting = useUi((s) => s.focusId);
   const selectedId = useUi((s) => s.selectedId);
 
   const start = useMemo(() => startingPerson(graph, rootId), [graph, rootId]);
-  const focusId = focusSetting && graph.persons.has(focusSetting) ? focusSetting : start;
+  // Whose family: the one opened here, else the person the views start from.
+  const focusId = [familySetting, focusSetting, start].find(
+    (id): id is ID => id !== null && graph.persons.has(id),
+  );
   const model = useMemo(
     () => (focusId ? buildFamilyCard(graph, focusId, start) : null),
     [graph, focusId, start],
@@ -199,13 +212,13 @@ export function FamilyCardView() {
   });
   // The family shown before, to slide the new one in from the right side.
   const [previous, setPrevious] = useState<{ id: ID | null; model: FamilyCardModel | null }>({
-    id: focusId,
+    id: focusId ?? null,
     model,
   });
   const [direction, setDirection] = useState<Direction>('none');
-  if (previous.id !== focusId) {
-    setDirection(directionOf(previous.model, focusId));
-    setPrevious({ id: focusId, model });
+  if (previous.id !== (focusId ?? null)) {
+    setDirection(directionOf(previous.model, focusId ?? null));
+    setPrevious({ id: focusId ?? null, model });
   }
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -258,7 +271,7 @@ export function FamilyCardView() {
     if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.5 || speed < SWIPE_SPEED) return;
     // Swiping left shows the next brother or sister, as turning a page does.
     const target = model.siblingIds[atSibling + (dx < 0 ? 1 : -1)];
-    if (target) goToFamily(target, start);
+    if (target) goToFamily(target);
   };
 
   const parentTile = (id: ID | null, addLabel: string) => {
@@ -267,27 +280,29 @@ export function FamilyCardView() {
       return <AddSlot label={addLabel} onClick={(rect) => startAdd(focusId, 'parent', rect)} />;
     }
     return (
-      <button
-        type="button"
-        className={cn(
-          TILE,
-          'flex-col items-start sm:flex-row sm:items-center',
-          parent.id === selectedId && 'ring-2 ring-primary',
-        )}
-        onClick={() => goToFamily(parent.id, start)}
-      >
-        <PersonFace person={parent} size="sm" />
-        <ChevronRightIcon
-          aria-hidden
-          className="hidden size-5 shrink-0 -rotate-90 text-muted-foreground sm:block"
-        />
-      </button>
+      <WithDetails person={parent}>
+        <button
+          type="button"
+          className={cn(
+            TILE,
+            'h-full flex-col items-start pr-12 sm:flex-row sm:items-center',
+            parent.id === selectedId && 'ring-2 ring-primary',
+          )}
+          onClick={() => goToFamily(parent.id)}
+        >
+          <PersonFace person={parent} size="sm" />
+          <ChevronRightIcon
+            aria-hidden
+            className="hidden size-5 shrink-0 -rotate-90 text-muted-foreground sm:block"
+          />
+        </button>
+      </WithDetails>
     );
   };
 
   return (
     <div ref={scrollRef} className="relative h-full overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-3 pb-28 sm:px-6">
+      <div className="@container mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-3 pb-28 sm:px-6">
         {(backTo || model.trail.length > 1) && (
           <div className="flex items-center gap-2">
             {backTo && (
@@ -295,13 +310,13 @@ export function FamilyCardView() {
                 variant="outline"
                 size="sm"
                 className="h-9 shrink-0 rounded-full"
-                onClick={() => goToFamily(backTo, start)}
+                onClick={() => goToFamily(backTo)}
               >
                 <ArrowLeftIcon aria-hidden />
                 {t('treeView.backTo', { name: nameOf(backTo).text })}
               </Button>
             )}
-            <Breadcrumb trail={model.trail} start={start} />
+            <Breadcrumb trail={model.trail} />
           </div>
         )}
 
@@ -318,13 +333,13 @@ export function FamilyCardView() {
             <h3 id="family-parents" className="text-sm font-medium text-muted-foreground">
               {t('familyView.parents')}
             </h3>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-              {parentTile(model.fatherId, t('familyView.addFather'))}
-              <span className="flex w-6 justify-center">
-                {model.parentsLink && <HeartIcon aria-hidden className="size-4 text-highlight" />}
-              </span>
-              {parentTile(model.motherId, t('familyView.addMother'))}
-            </div>
+            <ul className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2">
+              <li>{parentTile(model.fatherId, t('familyView.addFather'))}</li>
+              <li aria-hidden className="flex w-6 items-center justify-center">
+                {model.parentsLink && <HeartIcon className="size-4 text-highlight" />}
+              </li>
+              <li>{parentTile(model.motherId, t('familyView.addMother'))}</li>
+            </ul>
             {model.otherParents.length > 0 && (
               <ul className="flex flex-wrap gap-2">
                 {model.otherParents.map(({ personId, kind }) => {
@@ -336,7 +351,7 @@ export function FamilyCardView() {
                         variant="outline"
                         size="sm"
                         className="h-9 rounded-full"
-                        onClick={() => goToFamily(personId, start)}
+                        onClick={() => goToFamily(personId)}
                       >
                         <span lang={nameOf(personId).lang}>
                           {t('listView.relationStatus', {
@@ -365,7 +380,7 @@ export function FamilyCardView() {
                       <button
                         type="button"
                         aria-current={current ? 'page' : undefined}
-                        onClick={() => goToFamily(id, start)}
+                        onClick={() => goToFamily(id)}
                         className={cn(
                           'flex h-11 items-center gap-2 rounded-full border px-1.5 pr-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                           current
@@ -398,7 +413,7 @@ export function FamilyCardView() {
             >
               {heading}
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 @lg:grid-cols-2">
               <button
                 type="button"
                 className={cn(TILE, 'p-4', focusId === selectedId && 'ring-2 ring-primary')}
@@ -468,7 +483,7 @@ export function FamilyCardView() {
             <h3 id="family-children" className="text-sm font-medium text-muted-foreground">
               {t('familyView.children')}
             </h3>
-            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
               {childIds.map((id) => {
                 const child = graph.persons.get(id);
                 if (!child) return null;
@@ -479,33 +494,35 @@ export function FamilyCardView() {
                 const viaPerson = via ? graph.persons.get(via) : undefined;
                 return (
                   <li key={id}>
-                    <button
-                      type="button"
-                      className={cn(
-                        TILE,
-                        'h-full flex-col items-start',
-                        id === selectedId && 'ring-2 ring-primary',
-                      )}
-                      onClick={() => goToFamily(id, start)}
-                    >
-                      <span className="flex w-full items-start gap-3">
-                        <PersonFace person={child} size="sm" />
-                      </span>
-                      <span className="flex w-full items-center justify-between gap-1 text-sm text-muted-foreground">
-                        <span>
-                          {t('familyView.childCount', { count: model.childCounts.get(id) ?? 0 })}
+                    <WithDetails person={child}>
+                      <button
+                        type="button"
+                        className={cn(
+                          TILE,
+                          'h-full flex-col items-start',
+                          id === selectedId && 'ring-2 ring-primary',
+                        )}
+                        onClick={() => goToFamily(id)}
+                      >
+                        <span className="flex w-full items-start gap-3 pr-10">
+                          <PersonFace person={child} size="sm" />
                         </span>
-                        <ChevronRightIcon aria-hidden className="size-4 shrink-0" />
-                      </span>
-                      {viaPerson && (
-                        <span className="text-xs text-muted-foreground">
-                          {t('listView.relation', {
-                            role: t('relatives.roles.parent', { gender: viaPerson.gender }),
-                            name: nameOf(viaPerson.id).text,
-                          })}
+                        <span className="flex w-full items-center justify-between gap-1 text-sm text-muted-foreground">
+                          <span>
+                            {t('familyView.childCount', { count: model.childCounts.get(id) ?? 0 })}
+                          </span>
+                          <ChevronRightIcon aria-hidden className="size-4 shrink-0" />
                         </span>
-                      )}
-                    </button>
+                        {viaPerson && (
+                          <span className="text-xs text-muted-foreground">
+                            {t('listView.relation', {
+                              role: t('relatives.roles.parent', { gender: viaPerson.gender }),
+                              name: nameOf(viaPerson.id).text,
+                            })}
+                          </span>
+                        )}
+                      </button>
+                    </WithDetails>
                   </li>
                 );
               })}

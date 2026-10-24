@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDownIcon, ArrowUpIcon, MoveIcon, XIcon } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, CalendarIcon, MoveIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -17,11 +17,15 @@ import {
   moveBranch,
   removeRelationship,
   reorderChildren,
+  reorderSpouses,
   setParentKind,
   setSpouseStatus,
 } from '@/features/editor/commands';
+import { useEditor } from '@/features/editor/EditorProvider';
 import { useChange } from '@/features/editor/useChange';
+import { useIssueText } from '@/features/editor/useIssueText';
 import { useUndoToast } from '@/features/editor/useUndoToast';
+import { formatPartialDate } from '@/lib/domain/dates';
 import {
   childrenOf,
   compareSpouseLinks,
@@ -31,11 +35,13 @@ import {
   spouseLinksOf,
 } from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
-import type { ID, Locale, ParentKind, SpouseStatus } from '@/lib/domain/types';
+import { dateDraft, dateFromDraft, type DateDraft } from '@/lib/domain/personForms';
+import type { ID, Locale, ParentKind, SpouseLink, SpouseStatus } from '@/lib/domain/types';
 import { selectGraph, useTree } from '@/stores/treeStore';
 import { uiStore } from '@/stores/uiStore';
 
 import { FORM_DIALOG } from './AddRelativeDialog';
+import { PartialDateInput } from './PartialDateInput';
 import { PersonPicker } from './PersonPicker';
 
 const KINDS: readonly ParentKind[] = ['biological', 'adoptive', 'step', 'foster'];
@@ -64,10 +70,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Relative({ id, children }: { id: ID; children?: ReactNode }) {
+function Relative({ id, children, below }: { id: ID; children?: ReactNode; below?: ReactNode }) {
   const name = useName()(id);
-  return (
-    <li className="flex min-h-11 items-center gap-1">
+  const row = (
+    <div className="flex min-h-11 items-center gap-1">
       <button
         type="button"
         lang={name.lang}
@@ -77,7 +83,73 @@ function Relative({ id, children }: { id: ID; children?: ReactNode }) {
         {name.text}
       </button>
       {children}
+    </div>
+  );
+  return (
+    <li className="flex flex-col">
+      {row}
+      {below}
     </li>
+  );
+}
+
+/**
+ * A marriage's date (REL-01), saved when the boxes lose focus; shown as a line that opens
+ * the boxes, so the family section stays short. A date that doesn't check keeps them open.
+ */
+function MarriageDate({ link, name }: { link: SpouseLink; name: string }) {
+  const t = useTranslations('person');
+  const locale = useLocale() as Locale;
+  const editor = useEditor();
+  const issueText = useIssueText();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DateDraft>(() => dateDraft(link.marriageDate));
+  const [error, setError] = useState<string>();
+
+  const save = () => {
+    const date = dateFromDraft(draft);
+    const result = editor.run((ctx) =>
+      setSpouseStatus(ctx, link.id, { marriageDate: date ?? null }),
+    );
+    if (result.ok || result.issues.every((i) => i.code === 'noChanges')) {
+      setError(undefined);
+      setOpen(false);
+    } else {
+      setError(issueText(result.issues[0]!));
+    }
+  };
+
+  if (!open) {
+    return (
+      <Button
+        variant="ghost"
+        className="h-9 justify-start px-2 text-sm font-normal text-muted-foreground"
+        onClick={() => {
+          setDraft(dateDraft(link.marriageDate));
+          setOpen(true);
+        }}
+      >
+        <CalendarIcon aria-hidden />
+        {link.marriageDate
+          ? t('marriedOn', { date: formatPartialDate(link.marriageDate, locale) })
+          : t('addMarriageDate')}
+      </Button>
+    );
+  }
+  return (
+    <div
+      className="w-full pb-2"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) save();
+      }}
+    >
+      <PartialDateInput
+        legend={t('marriageDateWith', { name })}
+        value={draft}
+        error={error}
+        onChange={setDraft}
+      />
+    </div>
   );
 }
 
@@ -129,6 +201,12 @@ export function PersonFamily({ personId }: { personId: ID }) {
 
   const remove = (linkId: string) => {
     if (change((ctx) => removeRelationship(ctx, linkId))) undoToast(t('linkRemoved'));
+  };
+  const moveSpouse = (index: number, by: -1 | 1) => {
+    const next = spouses.map((l) => l.id);
+    const [moved] = next.splice(index, 1);
+    next.splice(index + by, 0, moved!);
+    change((ctx) => reorderSpouses(ctx, personId, next));
   };
   const move = (index: number, by: -1 | 1) => {
     const next = [...children];
@@ -184,28 +262,61 @@ export function PersonFamily({ personId }: { personId: ID }) {
           none
         ) : (
           <ul>
-            {spouses.map((link) => {
+            {spouses.map((link, index) => {
               const other = link.personIds[0] === personId ? link.personIds[1] : link.personIds[0];
+              const name = nameOf(other).text;
               return (
-                <Relative key={link.id} id={other}>
-                  <select
-                    className={SELECT}
-                    aria-label={t('statusLabel', { name: nameOf(other).text })}
-                    value={link.status}
-                    onChange={(event) =>
-                      change((ctx) =>
-                        setSpouseStatus(ctx, link.id, {
-                          status: event.target.value as SpouseStatus,
-                        }),
-                      )
-                    }
-                  >
-                    {STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {t(`statuses.${status}`)}
-                      </option>
-                    ))}
-                  </select>
+                <Relative
+                  key={link.id}
+                  id={other}
+                  below={
+                    <div className="flex flex-wrap items-center gap-1 pb-1 pl-2">
+                      <select
+                        className={SELECT}
+                        aria-label={t('statusLabel', { name: nameOf(other).text })}
+                        value={link.status}
+                        onChange={(event) =>
+                          change((ctx) =>
+                            setSpouseStatus(ctx, link.id, {
+                              status: event.target.value as SpouseStatus,
+                            }),
+                          )
+                        }
+                      >
+                        {STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {t(`statuses.${status}`)}
+                          </option>
+                        ))}
+                      </select>
+                      <MarriageDate key={link.id} link={link} name={name} />
+                    </div>
+                  }
+                >
+                  {spouses.length > 1 && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-9"
+                        disabled={index === 0}
+                        aria-label={t('moveUp', { name })}
+                        onClick={() => moveSpouse(index, -1)}
+                      >
+                        <ArrowUpIcon aria-hidden />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-9"
+                        disabled={index === spouses.length - 1}
+                        aria-label={t('moveDown', { name })}
+                        onClick={() => moveSpouse(index, 1)}
+                      >
+                        <ArrowDownIcon aria-hidden />
+                      </Button>
+                    </>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"

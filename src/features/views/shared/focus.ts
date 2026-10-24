@@ -1,7 +1,11 @@
 import {
   buildDescendantTree,
+  descendantIds,
+  parentLinksOf,
   parentsOf,
+  partnerIn,
   reachableFrom,
+  spouseLinksOf,
   type FamilyGraph,
 } from '@/lib/domain/graph';
 import type { ID } from '@/lib/domain/types';
@@ -46,4 +50,21 @@ export function planReveal(
   const base: readonly string[] = saved ?? (full ? initialCollapsed(full) : []);
   const next = open ? base.filter((key) => !open.includes(key)) : base;
   return { from, collapsed: next.length !== base.length ? [...next] : null };
+}
+
+/**
+ * "Show [spouse]'s family" (VIS-08): for a husband or wife who married into the family
+ * shown from `from` and whose own parents are in the tree, the parent to show the tree
+ * from (the father first). Null for everyone else.
+ */
+export function ownFamilyParent(g: FamilyGraph, personId: ID, from: ID | null): ID | null {
+  if (!from || !g.persons.has(personId) || personId === from) return null;
+  const bloodline = descendantIds(g, from).add(from);
+  if (bloodline.has(personId)) return null;
+  if (!spouseLinksOf(g, personId).some((l) => bloodline.has(partnerIn(l, personId)))) return null;
+  const links = parentLinksOf(g, personId);
+  const father = links.find(
+    (l) => l.kind === 'biological' && g.persons.get(l.parentId)?.gender === 'male',
+  );
+  return (father ?? links[0])?.parentId ?? null;
 }

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { expectAccessible, newTree, openView } from './support/family';
+import { expectAccessible, isPhone, newTree, openView } from './support/family';
 
 // Phase 6: the Family card, one family at a time (P6-10..13, FC-01..08).
 
@@ -73,7 +73,7 @@ test('a child’s family, and back with the browser (AC FC-02)', async ({ page }
   await expect(heading(page)).toHaveText('Abdul Karim and Fatema Begum');
 });
 
-test('the Family card and the Tree share the person in focus (P6-08)', async ({ page }) => {
+test('the Family card and the Tree follow each other (FC-05, FC-06)', async ({ page }) => {
   await newTree(page, 'Abdul Karim');
   await openView(page, 'Family');
   await children(page).getByRole('button', { name: 'Add children' }).click();
@@ -82,12 +82,28 @@ test('the Family card and the Tree share the person in focus (P6-08)', async ({ 
   await dialog.getByRole('button', { name: 'Add 1 child' }).click();
   await expect(dialog).toBeHidden();
 
+  // Details without leaving the family.
+  await children(page).getByRole('button', { name: 'Details: Salam' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Salam' })).toBeVisible();
+  await expect(heading(page)).toHaveText('Abdul Karim');
+  if (isPhone(page)) await page.keyboard.press('Escape');
+
+  // The Tree centres on the family's person and still starts from the top.
   await children(page)
     .getByRole('button', { name: /^Salam/ })
     .click();
   await expect(heading(page)).toHaveText('Salam');
   await openView(page, 'Tree');
-  await expect(page.getByText('Showing the tree from Salam')).toBeVisible();
+  const tree = page.getByRole('tree', { name: 'Family tree' });
+  await expect(tree.getByRole('treeitem', { name: /^Salam/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(tree.getByRole('treeitem', { name: /^Abdul Karim/ })).toBeVisible();
+  await expect(page.getByText('Showing the tree from')).toHaveCount(0);
+
+  // And the other way: the Family card opens on whoever is selected.
+  await tree.getByRole('treeitem', { name: /^Abdul Karim/ }).click();
   await openView(page, 'Family');
-  await expect(heading(page)).toHaveText('Salam');
+  await expect(heading(page)).toHaveText('Abdul Karim');
 });

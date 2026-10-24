@@ -6,7 +6,7 @@ import type { DocChange, SnapshotMeta } from '@/lib/repositories/trees';
 import { historyStore } from '@/stores/historyStore';
 import { treeStore } from '@/stores/treeStore';
 
-import { useOnline, useSaveStatus, useTreeSession } from './useTreeSession';
+import { useLeaveWarning, useOnline, useSaveStatus, useTreeSession } from './useTreeSession';
 
 const repo = vi.hoisted(() => ({
   stops: [] as ReturnType<typeof vi.fn>[],
@@ -142,6 +142,24 @@ describe('online and save status', () => {
     expect(result.current.save).toBe('saved');
     act(() => repo.persons!([], { fromCache: false, hasPendingWrites: true }));
     expect(result.current.save).toBe('saving');
+    unmount();
+  });
+
+  it('asks before leaving only while a change is unsent', () => {
+    const leave = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    const { unmount } = renderHook(() => {
+      useTreeSession('t1');
+      useLeaveWarning();
+    });
+    expect(leave()).toBe(false);
+    act(() => repo.persons!([], { fromCache: false, hasPendingWrites: true }));
+    expect(leave()).toBe(true);
+    act(() => repo.persons!([], { fromCache: false, hasPendingWrites: false }));
+    expect(leave()).toBe(false);
     unmount();
   });
 });

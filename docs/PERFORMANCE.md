@@ -53,3 +53,18 @@ The data load times are for the local emulators, which are much slower than Fire
 **Changes the measurements led to:** while zooming, the arcs are drawn by one light layer of plain paths (no labels, handlers or per-arc hooks); the full, labelled arcs return when the zoom ends. That raised the zoom from about 10 to about 25 frames per second on the throttled 500-person circle. Above 400 arcs re-centring jumps without animating.
 
 **Worth revisiting** (P8-07): changing the ring count re-renders every arc; on the 2,000-person tree at 8 rings that is about 0.8 s at 4× throttle (about 0.2 s unthrottled).
+
+## List and Family card views (P6 exit check)
+
+**Method.** A Playwright script against the production build and the 500-person demo tree, Chromium at 4× CPU throttle: open a child's family four times and time it to the next painted frame; switch to the List view and time it the same way; then scroll the list 80 px per frame for 60 frames and count the frames drawn.
+
+**Results** (2026-10-24):
+
+| | 500 · phone (360×740) | 500 · desktop (1440×900) |
+| --- | --- | --- |
+| Family card: open a child's family → painted | 0.2–0.4 s | 0.3–0.5 s |
+| Switch to the List view → painted | about 0.5 s | about 0.8 s |
+| List: 60 scroll steps | 60 frames in 0.97 s (about 60 fps), 72 rows in the page | 60 frames in 0.98 s |
+
+Nothing needed changing. The List draws only the rows on screen above 200 rows (LV-05); with the default three generations open, the 500-person tree has fewer.
+

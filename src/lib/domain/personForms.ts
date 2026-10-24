@@ -65,7 +65,8 @@ export interface DetailsDraft {
   customFields: CustomFieldDraft[];
 }
 
-const dateDraft = (date: PartialDate | undefined): DateDraft => ({
+/** A date as the three typed boxes. */
+export const dateDraft = (date: PartialDate | undefined): DateDraft => ({
   day: date?.day ? String(date.day) : '',
   month: date?.month ? String(date.month) : '',
   year: date ? String(date.year) : '',

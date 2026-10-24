@@ -14,6 +14,12 @@ export interface UiState {
   /** Phones: whether the selected person's details sheet is open (not just the bar). */
   detailsOpen: boolean;
   focusId: ID | null;
+  /**
+   * Whose family the Family card shows (FC-02); null shows the focus or the start. Not
+   * the focus: moving between families selects people for the other views, which centre
+   * on them without starting from them (FC-06).
+   */
+  familyId: ID | null;
   /** The Tree view shows this person's ancestors instead of descendants (TV-06). */
   pedigreeId: ID | null;
   addFlow: AddFlow | null;
@@ -46,6 +52,8 @@ export interface UiState {
   endAdd: () => void;
   /** Shows the tree from someone: their descendants (and leaves the pedigree). */
   focus: (personId: ID | null) => void;
+  /** The Family card shows someone's family; they are selected, and revealed in other views. */
+  openFamily: (personId: ID | null) => void;
   /** Opens the Tree view's pedigree of someone, or goes back to the family tree. */
   showAncestors: (personId: ID | null) => void;
   toggleCollapsed: (key: string) => void;
@@ -81,6 +89,7 @@ export interface AddFlow {
 export interface InitialUi {
   view?: ViewKind;
   focusId?: ID;
+  familyId?: ID;
   allowed?: readonly ViewKind[];
 }
 
@@ -126,6 +135,7 @@ export function createUiStore() {
     selectedId: null,
     detailsOpen: false,
     focusId: null,
+    familyId: null,
     pedigreeId: null,
     addFlow: null,
     collapsed: {},
@@ -135,7 +145,7 @@ export function createUiStore() {
     revealRequest: null,
     deletingId: null,
     searchOpen: false,
-    openTree: (treeId, defaultView, { view, focusId, allowed } = {}) => {
+    openTree: (treeId, defaultView, { view, focusId, familyId, allowed } = {}) => {
       const saved = load(treeId);
       const usable = (v: ViewKind | undefined): v is ViewKind =>
         v !== undefined && (!allowed || allowed.includes(v));
@@ -147,8 +157,9 @@ export function createUiStore() {
         listMode: saved.listMode ?? 'outline',
         circleRings: saved.circleRings ?? DEFAULT_CIRCLE_RINGS,
         addFlow: null,
-        selectedId: null,
+        selectedId: familyId ?? null,
         focusId: focusId ?? null,
+        familyId: familyId ?? null,
         pedigreeId: null,
         revealRequest: null,
         deletingId: null,
@@ -160,6 +171,7 @@ export function createUiStore() {
         treeId: null,
         selectedId: null,
         focusId: null,
+        familyId: null,
         pedigreeId: null,
         addFlow: null,
         revealRequest: null,
@@ -167,7 +179,9 @@ export function createUiStore() {
         searchOpen: false,
       }),
     setView: (view) => {
-      set({ view });
+      // The Family card opens on the family of whoever is selected (FC-06).
+      const { selectedId } = get();
+      set(view === 'family' && selectedId ? { view, familyId: selectedId } : { view });
       save(get());
     },
     select: (selectedId) => set({ selectedId, detailsOpen: false }),
@@ -175,6 +189,14 @@ export function createUiStore() {
     startAdd: (addFlow) => set({ addFlow }),
     endAdd: () => set({ addFlow: null }),
     focus: (focusId) => set({ focusId, pedigreeId: null }),
+    openFamily: (personId) => {
+      if (!personId) {
+        set({ familyId: null, selectedId: null, detailsOpen: false, revealRequest: null });
+        return;
+      }
+      set({ familyId: personId });
+      get().reveal(personId);
+    },
     showAncestors: (pedigreeId) => {
       if (pedigreeId) set({ pedigreeId, view: 'tree' });
       else set({ pedigreeId: null });
@@ -207,7 +229,8 @@ export function createUiStore() {
       save(get());
     },
     reveal: (personId) =>
-      set(({ revealRequest }) => ({
+      set(({ revealRequest, view }) => ({
+        ...(view === 'family' && { familyId: personId }),
         selectedId: personId,
         detailsOpen: false,
         revealRequest: { personId, nonce: (revealRequest?.nonce ?? 0) + 1 },

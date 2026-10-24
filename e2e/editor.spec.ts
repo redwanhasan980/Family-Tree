@@ -162,6 +162,46 @@ test.describe('adding relatives', () => {
   });
 });
 
+async function addSpouse(page: Page, of: string, name: string): Promise<void> {
+  await openAddMenu(page, of);
+  await page.getByRole('dialog').getByRole('button', { name: 'Wife' }).click();
+  const wife = page.getByRole('dialog', { name: 'Add a wife' });
+  await wife.getByLabel('Name').fill(name);
+  await wife.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(card(page, name)).toBeVisible();
+}
+
+test.describe('marriages', () => {
+  test('a marriage date, and the order of two marriages (REL-01, REL-07)', async ({ page }) => {
+    await newTree(page, 'Abdul Karim');
+    await addSpouse(page, 'Abdul Karim', 'Fatema Begum');
+    await addSpouse(page, 'Abdul Karim', 'Jamila Khatun');
+    await openDetails(page, 'Abdul Karim');
+
+    await page.getByRole('button', { name: 'Add the marriage date' }).first().click();
+    const date = page.getByRole('group', { name: 'Date of marriage with Fatema Begum' });
+    await date.getByRole('textbox', { name: 'Year' }).fill('1975');
+    await date.getByRole('textbox', { name: 'Year' }).press('Tab');
+    await expect(page.getByRole('button', { name: 'Married: 1975' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Move Jamila Khatun up' }).click();
+    await expect(page.getByRole('button', { name: 'Move Fatema Begum up' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Move Jamila Khatun up' })).toBeDisabled();
+    if (isPhone(page)) await page.keyboard.press('Escape');
+    await expect(undoButton(page)).toHaveAccessibleName('Undo: changing the order of marriages');
+
+    // The Family card follows the new order.
+    await page
+      .getByRole('navigation', { name: 'Views' })
+      .filter({ visible: true })
+      .getByRole('button', { name: 'Family', exact: true })
+      .click();
+    await expect(
+      page.getByRole('group', { name: 'Whose children to show' }).getByRole('button'),
+    ).toHaveText(['1st wife: Jamila Khatun', '2nd wife: Fatema Begum', 'All children']);
+  });
+});
+
 test.describe('phones', () => {
   test.skip(({ page }) => !isPhone(page), 'phone layout');
 

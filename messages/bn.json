@@ -347,7 +347,11 @@
     "you": "আপনি",
     "markedMe": "এই বংশতালিকায় আপনি হিসেবে চিহ্নিত।",
     "checkDates": "এই তারিখগুলো দেখে নিন",
-    "relativeIssue": "{role}: {name}। {issue}"
+    "relativeIssue": "{role}: {name}। {issue}",
+    "marriedOn": "বিয়ে: {date}",
+    "addMarriageDate": "বিয়ের তারিখ যোগ করুন",
+    "marriageDateWith": "{name}-এর সঙ্গে বিয়ের তারিখ",
+    "showOwnFamily": "পরিবার দেখুন: {name}"
   },
   "views": {
     "label": "ভিউ",
@@ -524,7 +528,7 @@
     "unknownParent": "অন্য অভিভাবক জানা নেই",
     "couple": "{first} ও {second}",
     "showing": "পরিবার: {name}",
-    "openFamily": "এই পরিবার দেখুন"
+    "detailsOf": "বিস্তারিত: {name}"
   },
   "legend": {
     "button": "রঙের মানে",
@@ -631,7 +635,8 @@
     "addPhoto": "ছবি যোগ",
     "replacePhoto": "ছবি পরিবর্তন",
     "removePhoto": "ছবি সরানো",
-    "other": "শেষ পরিবর্তন"
+    "other": "শেষ পরিবর্তন",
+    "reorderSpouses": "বিয়ের ক্রম পরিবর্তন"
   },
   "unplaced": {
     "button": "{count, plural, other {বংশতালিকার বাইরে # জন}}",

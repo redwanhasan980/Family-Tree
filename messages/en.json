@@ -347,7 +347,11 @@
     "you": "You",
     "markedMe": "Marked as you in this tree.",
     "checkDates": "Check these dates",
-    "relativeIssue": "{role}: {name}. {issue}"
+    "relativeIssue": "{role}: {name}. {issue}",
+    "marriedOn": "Married: {date}",
+    "addMarriageDate": "Add the marriage date",
+    "marriageDateWith": "Date of marriage with {name}",
+    "showOwnFamily": "Show {name}'s family"
   },
   "views": {
     "label": "Views",
@@ -524,7 +528,7 @@
     "unknownParent": "Other parent not known",
     "couple": "{first} and {second}",
     "showing": "The family of {name}",
-    "openFamily": "Open this family"
+    "detailsOf": "Details: {name}"
   },
   "legend": {
     "button": "What the colours mean",
@@ -631,7 +635,8 @@
     "addPhoto": "adding a photo",
     "replacePhoto": "changing a photo",
     "removePhoto": "removing a photo",
-    "other": "the last change"
+    "other": "the last change",
+    "reorderSpouses": "changing the order of marriages"
   },
   "unplaced": {
     "button": "{count, plural, one {# person not in the tree} other {# people not in the tree}}",

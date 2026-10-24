@@ -9,7 +9,14 @@ import {
 } from '@/lib/domain/graph';
 import { parentLinkId } from '@/lib/domain/ids';
 import { PartialDateSchema } from '@/lib/domain/schemas';
-import type { ID, ParentKind, ParentLink, PartialDate, SpouseStatus } from '@/lib/domain/types';
+import type {
+  ID,
+  ParentKind,
+  ParentLink,
+  PartialDate,
+  SpouseLink,
+  SpouseStatus,
+} from '@/lib/domain/types';
 import { DELETE_FIELD, type WriteData, type WriteOp } from '@/lib/domain/writes';
 
 import {
@@ -293,6 +300,44 @@ export function reorderChildren(
   return ok({
     id: commandId(),
     labelKey: 'reorderChildren',
+    forward,
+    inverse,
+    touched: touchedPaths(forward),
+  });
+}
+
+/**
+ * Puts someone's marriages in a new order (REL-07): 1st, 2nd … by `sequence`, which comes
+ * before the marriage dates in the family order (§12.2). One undo step.
+ */
+export function reorderSpouses(
+  ctx: CommandContext,
+  personId: ID,
+  orderedLinkIds: readonly string[],
+): BuildResult {
+  const g = ctx.graph;
+  if (!g.persons.has(personId)) return fail('missingPerson');
+  const all: readonly string[] = spouseLinksOf(g, personId).map((l) => l.id);
+  if (
+    new Set(orderedLinkIds).size !== orderedLinkIds.length ||
+    orderedLinkIds.length !== all.length ||
+    orderedLinkIds.some((id) => !all.includes(id))
+  ) {
+    return fail('invalidOrder');
+  }
+  const forward: WriteOp[] = [];
+  const inverse: WriteOp[] = [];
+  orderedLinkIds.forEach((linkId, index) => {
+    const link = g.links.get(linkId) as SpouseLink;
+    if (link.sequence === index + 1) return;
+    const path = linkPath(ctx, linkId);
+    forward.push(update(ctx, path, { sequence: index + 1 }));
+    inverse.push(update(ctx, path, { sequence: link.sequence ?? DELETE_FIELD }));
+  });
+  if (forward.length === 0) return noChanges();
+  return ok({
+    id: commandId(),
+    labelKey: 'reorderSpouses',
     forward,
     inverse,
     touched: touchedPaths(forward),

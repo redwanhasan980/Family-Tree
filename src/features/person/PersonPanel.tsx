@@ -10,6 +10,7 @@ import {
   Trash2Icon,
   TriangleAlertIcon,
   UserRoundCheckIcon,
+  UsersRoundIcon,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -22,6 +23,7 @@ import { Avatar } from '@/features/media/Avatar';
 import { photosEnabled } from '@/features/media/cloudinaryUrl';
 import { Lightbox } from '@/features/media/Lightbox';
 import { PhotoDialog } from '@/features/media/PhotoDialog';
+import { useOwnFamily } from '@/features/views/shared/useOwnFamily';
 import { ageAt, today } from '@/lib/domain/dates';
 import { personDateWarnings } from '@/lib/domain/graph';
 import { displayName } from '@/lib/domain/names';
@@ -109,6 +111,7 @@ export function PersonPanel({ person }: { person: Person }) {
   const [photoOpen, setPhotoOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const canAddPhotos = photosEnabled();
+  const showOwnFamily = useOwnFamily(person.id);
 
   return (
     <div className="space-y-5">
@@ -226,6 +229,19 @@ export function PersonPanel({ person }: { person: Person }) {
         >
           <FocusIcon aria-hidden /> {t('show')}
         </Button>
+        {showOwnFamily && (
+          <Button
+            variant="outline"
+            className="h-11 justify-start"
+            onClick={() => {
+              showOwnFamily();
+              uiStore.getState().setDetailsOpen(false);
+            }}
+          >
+            <UsersRoundIcon aria-hidden />
+            <span lang={name.lang}>{t('showOwnFamily', { name: name.text })}</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           className="h-11 justify-start"

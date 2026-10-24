@@ -23,6 +23,7 @@ import {
   moveBranch,
   removeRelationship,
   reorderChildren,
+  reorderSpouses,
   setParentKind,
   setSpouseStatus,
 } from './relationshipCommands';
@@ -424,6 +425,18 @@ describe('relationship commands', () => {
     expect(codes(reorderChildren(ctx(), 'G', ['X', 'D1', 'S1', 'S2']))).toEqual(['noChanges']);
     expect(codes(reorderChildren(ctx(), 'G', ['X', 'X']))).toEqual(['invalidOrder']);
     expect(codes(reorderChildren(ctx(), 'G', ['K']))).toEqual(['invalidOrder']);
+  });
+
+  it('reorders someone’s marriages (REL-07)', () => {
+    const { db, ctx } = setup();
+    const order = () => getFamilies(ctx().graph, 'G').map((f) => f.partnerId);
+    expect(order()).toEqual(['W1', 'W2', null]);
+    roundTrip(db, reorderSpouses(ctx(), 'G', ['s_G_W2', 's_G_W1']));
+    expect(order()).toEqual(['W2', 'W1', null]);
+    expect(codes(reorderSpouses(ctx(), 'G', ['s_G_W2', 's_G_W1']))).toEqual(['noChanges']);
+    expect(codes(reorderSpouses(ctx(), 'G', ['s_G_W2']))).toEqual(['invalidOrder']);
+    expect(codes(reorderSpouses(ctx(), 'G', ['s_G_W2', 's_G_W2']))).toEqual(['invalidOrder']);
+    expect(codes(reorderSpouses(ctx(), 'nobody', []))).toEqual(['missingPerson']);
   });
 
   it('removes a relationship but keeps the people (REL-09)', () => {

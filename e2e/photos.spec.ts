@@ -109,7 +109,10 @@ test('exports draw the photo, fetched in the export size (P7-03)', async ({ page
   await page.getByTestId('photo-file').setInputFiles(PHOTO);
   await page.getByRole('button', { name: 'Use this photo' }).click();
   await expect(page.getByText('Photo saved.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Photo of Abdul Karim' })).toBeHidden();
+  // Phones: close the details sheet, which hides the header.
   if (isPhone(page)) await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   const exported = page.waitForRequest(
     /res\.cloudinary\.com\/.*\/c_fill,g_face,w_256,h_256\/f_jpg/,

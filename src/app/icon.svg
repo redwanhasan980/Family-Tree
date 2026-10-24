@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- শিকড় ("roots"): a tree with its roots, in the brand green (DESIGN §21.2). -->
+  <rect width="64" height="64" rx="14" fill="#0f6b4f"/>
+  <circle cx="32" cy="22" r="13" fill="#ffffff"/>
+  <circle cx="21" cy="28" r="8" fill="#ffffff"/>
+  <circle cx="43" cy="28" r="8" fill="#ffffff"/>
+  <path d="M32 30 V44 M32 44 C28 46 24 49 20 54 M32 44 C36 46 40 49 44 54 M32 44 V54" fill="none" stroke="#e8a33d" stroke-width="4" stroke-linecap="round"/>
+</svg>

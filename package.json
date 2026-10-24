@@ -2,7 +2,7 @@
   "name": "shikor",
   "version": "0.1.0",
   "private": true,
-  "description": "শিকড় — a bilingual (বাংলা / English) family-tree builder",
+  "description": "\u09b6\u09bf\u0995\u09a1\u09bc \u2014 a bilingual (\u09ac\u09be\u0982\u09b2\u09be / English) family-tree builder",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -25,7 +25,8 @@
     "test:rules": "firebase emulators:exec --only auth,firestore --project demo-shikor \"vitest run --config vitest.rules.config.mts\"",
     "test:e2e": "playwright test",
     "seed": "tsx scripts/seed-emulator.ts",
-    "bench:tree": "tsx scripts/bench-tree.ts"
+    "bench:tree": "tsx scripts/bench-tree.ts",
+    "og:images": "node scripts/og-images.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "6.0.0",

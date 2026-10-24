@@ -14,7 +14,7 @@ const PASSWORD = 'family tree 2024';
 
 async function enterApp(page: Page): Promise<string> {
   await page.goto('/en');
-  await page.getByRole('link', { name: 'Start your family tree' }).click();
+  await page.getByRole('link', { name: 'Start your family tree' }).first().click();
   await expect(page.getByRole('heading', { name: 'My family trees' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guest' })).toBeVisible();
   return signedInUid(page);
@@ -40,7 +40,7 @@ async function logOut(page: Page): Promise<void> {
 test.describe('guest session', () => {
   test('the landing page does not create a guest', async ({ page }) => {
     await page.goto('/en');
-    await expect(page.getByRole('link', { name: 'Start your family tree' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Start your family tree' }).first()).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(await readUid(page)).toBeNull();
   });

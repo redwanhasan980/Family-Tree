@@ -19,9 +19,49 @@
     "tagline": "Your family's story, in one place",
     "description": "Start with the oldest ancestor you remember and add the family around them, in Bangla or English.",
     "cta": "Start your family tree",
-    "ctaNote": "No sign-up needed",
-    "comingSoon": "Family trees arrive in the next update. You can already create your account.",
-    "logIn": "Log in"
+    "ctaNote": "No sign-up needed: your tree is saved as you go.",
+    "logIn": "Log in",
+    "sampleLabel": "An example family tree: grandparents, their children and grandchildren",
+    "sample": {
+      "grandfather": "Abdul Karim",
+      "grandmother": "Rahima Begum",
+      "son": "Rahim",
+      "daughter": "Karima",
+      "daughterInLaw": "Nasrin",
+      "grandson": "Tanvir",
+      "granddaughter": "Nusrat"
+    },
+    "featuresTitle": "Made for families like yours",
+    "features": {
+      "easyTitle": "Easy to build",
+      "easyBody": "Two taps add a son, a daughter, a husband or a wife. Type all the children's names at once. Nothing to learn first.",
+      "languagesTitle": "Bangla and English",
+      "languagesBody": "Write names in Bangla, English or both. Every screen, date and number reads naturally in either language.",
+      "shareTitle": "Download and share",
+      "shareBody": "Save the tree, one family or the whole list as a picture or PDF, and send it straight to WhatsApp or print it."
+    },
+    "viewsTitle": "See the family four ways",
+    "views": {
+      "tree": "Tree",
+      "family": "Family card",
+      "circle": "Circle",
+      "list": "List"
+    },
+    "viewsBody": "A classic tree, one family at a time, everyone in rings around one person, or a numbered list that reads well aloud.",
+    "privacyTitle": "Your family stays yours",
+    "privacy": {
+      "private": "Only you, and the people you invite later, can see your tree.",
+      "noAds": "No advertising and no tracking.",
+      "yours": "Download a backup or delete everything whenever you want.",
+      "guest": "Without an account, your tree lives in this browser. Create a free account to keep it safe on any device."
+    },
+    "privacyLink": "How we look after your data",
+    "finalTitle": "Start with one name",
+    "finalBody": "The oldest person you remember is enough. Everyone else follows.",
+    "footerHelp": "Help",
+    "footerPrivacy": "Privacy",
+    "footerNote": "Made with care for families in Bangladesh, West Bengal and everywhere.",
+    "footerLinks": "More information"
   },
   "errors": {
     "notFoundTitle": "Page not found",
@@ -726,5 +766,95 @@
     "backupHint": "Everything in this tree in one file, to keep somewhere safe.",
     "backupSaved": "Backup saved: {file}",
     "print": "Print the list"
+  },
+  "help": {
+    "title": "Help",
+    "intro": "Answers to the questions people ask most. Something missing? The app explains itself as you go: every button says what it does.",
+    "questions": {
+      "account": {
+        "q": "Do I need an account?",
+        "a": "No. Press “Start your family tree” and begin: everything you add is saved at once in this browser. Create a free account (email or Google) when you want to open your tree on another device or keep it safe if this browser's data is cleared. Nothing is lost when you do."
+      },
+      "add": {
+        "q": "How do I add a relative?",
+        "a": "Tap a person, then the “+” (on the card on a computer, at the bottom of the screen on a phone). Choose son or daughter, husband or wife, father or mother, or brother or sister, type the name and press Add."
+      },
+      "children": {
+        "q": "Can I add several children at once?",
+        "a": "Yes. Choose “Son or daughter”, type the first name, press Enter for the next one, and mark each as a son or daughter. They are added in that order, oldest first. You can also paste a list of names, one per line."
+      },
+      "languages": {
+        "q": "Can names be in Bangla and English?",
+        "a": "Yes. Each person can have a Bangla name, an English name, or both. In the tree's settings you choose which to show: the language of the screen, Bangla, English or both. Search finds people by either name or by nickname."
+      },
+      "marriages": {
+        "q": "Someone married more than once. How do I show that?",
+        "a": "Add each husband or wife from the same person. In the details, the marriages can be put in order (1st, 2nd …) and each can have its date and status. When you add children, choose which marriage they belong to. The Family card shows each marriage's children separately."
+      },
+      "existing": {
+        "q": "Two relatives married each other, or someone appears twice.",
+        "a": "When adding a relative, choose “Someone already in the tree” instead of typing a new name. People who appear in two places, such as in a cousin marriage, are drawn once in full and linked from the other place."
+      },
+      "move": {
+        "q": "I put someone under the wrong parents.",
+        "a": "Open their details and choose “Move under other parents…”. Everyone below them moves too. The family section of the details also changes how a parent is related, or which mother or father a child belongs to."
+      },
+      "undo": {
+        "q": "I made a mistake.",
+        "a": "Press Undo in the header (Ctrl+Z on a computer). Every change can be undone, and deleting someone shows an Undo button straight away."
+      },
+      "views": {
+        "q": "What are the Tree, Family card, Circle and List?",
+        "a": "Four ways to see the same family. The Tree is the classic chart. The Family card shows one family at a time and is the easiest on a phone. The Circle puts one person in the middle with each generation around them. The List numbers everyone in order and works well with a screen reader."
+      },
+      "share": {
+        "q": "How do I download, share or print the tree?",
+        "a": "Press “Save or share” (in the phone menu, or the download button on a computer). Choose the view, picture (PNG) or PDF, and the paper. On a phone you can send it straight to WhatsApp. The List can also be printed with your browser."
+      },
+      "backup": {
+        "q": "How do I keep a copy of my data?",
+        "a": "In “Save or share”, press “Backup (JSON file)”. It holds everything in the tree, so keep it somewhere safe. Guests can make one too."
+      },
+      "delete": {
+        "q": "How do I delete my data?",
+        "a": "A tree can be deleted from your list of trees. To delete everything, open Settings and choose to delete your account (or, as a guest, your guest data). Your trees and photos are deleted with it."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "intro": "<app></app> keeps your family's information for you and for nobody else. This page explains, in plain words, what is stored, where, who can see it and how to remove it.",
+    "sections": {
+      "what": {
+        "title": "What we store",
+        "body": "The trees you make: names, dates, places, relationships and anything else you type in, and the photos you add. For an account, your email address and the name you give. We don't ask for anything else."
+      },
+      "where": {
+        "title": "Where it is kept",
+        "body": "Trees and accounts are stored with Google Firebase, and photos with Cloudinary, a photo service. Both keep the data on their servers on our behalf and don't use it for anything else."
+      },
+      "who": {
+        "title": "Who can see it",
+        "body": "Only you. Sharing a tree with relatives arrives in a later version; when it does, only the people you invite will see it, and phone numbers, addresses and emails stay hidden from share links unless you choose otherwise."
+      },
+      "guests": {
+        "title": "If you haven't made an account",
+        "body": "You start as a guest. Your tree is tied to this browser on this device: clearing the browser's data, or using another device, means you can't reach it. Create a free account to keep it. Guest data that hasn't been used for a year may be deleted."
+      },
+      "noTracking": {
+        "title": "No advertising, no tracking",
+        "body": "There are no adverts and no tracking cookies, and your information is never sold or shared for marketing."
+      },
+      "control": {
+        "title": "Your control",
+        "body": "Download a full backup of any tree whenever you want (“Save or share” → “Backup”). Delete a tree from your list of trees. Delete your account, or your guest data, in Settings: your trees and photos go with it."
+      },
+      "changes": {
+        "title": "Changes",
+        "body": "If this page changes in a way that matters, the app will say so."
+      }
+    },
+    "updated": "Last updated: October 2026",
+    "description": "What is stored, where it is kept, who can see it, and how to download or delete it."
   }
 }

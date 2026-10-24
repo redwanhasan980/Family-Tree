@@ -232,3 +232,35 @@
     margin: 12mm;
   }
 }
+
+/* The landing page's sample family appears card by card, then its lines (P8-01). */
+.landing-pop {
+  animation: landing-pop 500ms ease-out both;
+}
+
+.landing-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: landing-draw 600ms ease-out forwards;
+}
+
+@keyframes landing-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+
+@keyframes landing-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-pop,
+  .landing-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

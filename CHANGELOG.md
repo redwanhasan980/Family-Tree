@@ -13,6 +13,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Phase 8 (in progress), getting ready for v1.0:
+  - **Landing page:** what শিকড় is and one button to start, with a sample family that draws itself, three reasons to use it, the four views and the privacy promise, in Bangla and English. It loads quickly and creates nothing until you press Start.
+  - **Help and Privacy pages** in both languages: answers to the common questions, and what is stored, where, who can see it and how to remove it.
+  - Search engines and link previews: page titles and descriptions in both languages, a sitemap, link previews with a picture in WhatsApp and Facebook, and an app icon.
 - Phase 7, pictures, PDFs and backups:
   - **Save or share** (the download button in the header, or the menu on phones): save the Tree, Family card, Circle or List as a picture (PNG) or a document (PDF), to share straight from a phone (WhatsApp and others) or download. Bangla names come out exactly as on screen, conjuncts and vowel signs intact, because the browser draws every letter.
   - **Everything, not just the screen:** the whole tree as it is unfolded, or with *Include folded branches*; a title and subtitle; the colour key, photos and today's date if wanted; standard, high or highest quality. Exports are always light, even in dark mode. The choices are remembered.

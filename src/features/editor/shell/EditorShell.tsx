@@ -17,6 +17,7 @@ import { useSession } from '@/features/auth/SessionProvider';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
 import { DeletePersonFlow } from '@/features/person/DeletePersonDialog';
 import { CircleView } from '@/features/views/circle/CircleView';
+import { FamilyCardView } from '@/features/views/family/FamilyCardView';
 import { ListView } from '@/features/views/list/ListView';
 import { TreeView } from '@/features/views/tree/TreeView';
 import { Link } from '@/i18n/navigation';
@@ -57,6 +58,22 @@ function useEditorUrlState(treeId: ID, defaultView: ViewKind | undefined): void 
   }, [treeId, defaultView]);
 
   useEffect(() => () => uiStore.getState().closeTree(), [treeId]);
+
+  // Back and Forward (the Family card pushes a history entry per family, FC-02): follow
+  // the URL's view and focus.
+  useEffect(() => {
+    const onPop = () => {
+      const { view: next, focusId: focus = null } = readEditorParams(
+        window.location.search,
+        enabledViews(),
+      );
+      const ui = uiStore.getState();
+      if (next && next !== ui.view) ui.setView(next);
+      if (focus !== ui.focusId) ui.focus(focus);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   useEffect(() => {
     if (!opened) return;
@@ -158,6 +175,7 @@ function ViewArea() {
   if (view === 'tree') return <TreeView />;
   if (view === 'list') return <ListView />;
   if (view === 'circle') return <CircleView />;
+  if (view === 'family') return <FamilyCardView />;
   return <ViewPlaceholder view={view} />;
 }
 

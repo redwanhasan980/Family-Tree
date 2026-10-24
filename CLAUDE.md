@@ -16,7 +16,7 @@ Guidance for Claude (and humans) working in this repository. Read it at the star
 | Step-by-step workflows and recipes | `.claude/skills/family-tree-dev/SKILL.md` |
 | Setup and status for humans | `README.md` |
 
-**Current status:** **Phases 0–5 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion, the Tree view with quick add, bulk children, relationship editors, search, undo/redo and keyboard shortcuts, and full person details with "This is me" and Cloudinary photos). The first deploy (P0-17), the iOS Safari redirect check (P1-05) and checking photos in a real Cloudinary account wait for the owner's server, domain and keys. **Next: Phase 6** (List, Circle and Family card views). Update this line when phases complete.
+**Current status:** **Phases 0–6 are complete** (foundation, VPS deployment pipeline, authentication and guest sessions, domain core with the graph engine, security rules, repositories, stores and undoable commands, the dashboard, the editor shell, the guest merge and account deletion, the Tree view with quick add, bulk children, relationship editors, search, undo/redo and keyboard shortcuts, and full person details with "This is me" and Cloudinary photos, then the List, Circle and Family card views and the Tree's ancestors mode). The first deploy (P0-17), the iOS Safari redirect check (P1-05) and checking photos in a real Cloudinary account wait for the owner's server, domain and keys. **Next: Phase 7** (export and JSON backup). Update this line when phases complete.
 
 ## Tech stack (pinned in package.json once scaffolded)
 

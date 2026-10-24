@@ -124,7 +124,7 @@ API tests: a `route.emulator.test.ts` (or `<area>.emulator.test.ts`) next to the
 - **Pick the kind of view (ADR-013).** *Canvas views* (Tree, Circle, Timeline) render **SVG** with the shared camera and never use `foreignObject`, so export can serialize them directly. *Card views* (Family card, List, Album) are plain **HTML/CSS** with native scrolling, exported through html-to-image.
 - Keep the **model and layout pure** (`lib/domain/...` or `features/views/<view>/layout.ts`): input from the graph or `DescNode`, output a view model or positions. Snapshot-test it on the fixtures (10, 150, 500 people, cousin marriage, multiple spouses, partial dates).
 - In SVG, measure text with the shared canvas measure cache. In HTML, use CSS line clamping and grapheme-safe helpers.
-- **Focus and selection** live in `uiStore` and are shared by every view. Changing the focus pushes `?view=&focus=` so browser Back works.
+- **Focus and selection** live in `uiStore` and are shared by every view. The Family card moves with `goToFamily` (`views/family/`), which sets the focus and adds a history entry (`window.history.pushState`, `?view=family&focus=`); `EditorShell`'s `popstate` listener reads them back, so browser Back works. Use the same pattern for any view that changes focus as navigation.
 - **Staged views** must check their flag in `lib/features.ts` (ADR-014).
 - **Camera:** use the shared d3-zoom hook. Apply the transform through a ref; update React state only on zoom end (culling).
 - **Colour:** take it from `views/shared/colors.ts` (branch, gender, generation, none; DESIGN §21.3). Never cycle hues. Branches 9 and up are neutral "Other". Text uses ink tokens, never the data colour.

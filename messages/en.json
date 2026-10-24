@@ -511,6 +511,21 @@
     "centreHint": "Double-tap a person to put them in the centre.",
     "inCentre": "{name}, in the centre"
   },
+  "familyView": {
+    "parents": "Parents",
+    "siblings": "Brothers and sisters",
+    "children": "Children",
+    "addFather": "Add father",
+    "addMother": "Add mother",
+    "childCount": "{count, plural, =0 {No children yet} one {# child} other {# children}}",
+    "whoseChildren": "Whose children to show",
+    "allChildren": "All children",
+    "partnerOrdinal": "{number, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} {gender, select, male {husband} other {wife}}: {name}",
+    "unknownParent": "Other parent not known",
+    "couple": "{first} and {second}",
+    "showing": "The family of {name}",
+    "openFamily": "Open this family"
+  },
   "legend": {
     "button": "What the colours mean",
     "title": "Colours",

@@ -2,6 +2,7 @@
 export * from './ancestors';
 export * from './build';
 export * from './descendants';
+export * from './familyCard';
 export * from './families';
 export * from './generations';
 export * from './numbering';

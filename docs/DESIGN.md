@@ -916,7 +916,7 @@ All validators return `Issue[]` with `{ severity: 'error' | 'warning', code, par
 - `reachableFrom(g, rootId)`: used to compute "Unplaced people" (REL-11). A person is placed if they are a descendant **or** a partner of a descendant.
 - `searchPersons(g, query)`: §16.5.
 - `branchOf(descTree)`: the branch index (the first-generation child) for every node, used for colour (§21.3).
-- `buildFamilyCard(g, focusId, { partnerId? })`: the model for the Family card view (§13.7).
+- `buildFamilyCard(g, focusId, rootId?)`: the model for the Family card view (§13.7); `trailTo(g, rootId, personId)` finds its breadcrumb.
 - `generationGroups(descTree, { by: 'generation' | 'branch', includePartners })`: rows for the Album (§13.8) and sections for the Family book (§14.1). Partners are placed in their bloodline partner's generation.
 - `lifeRange(person, todayYear)` and `aliveOverlap(a, b)` in `lib/domain/timeline.ts`: the Timeline model (§13.9).
 
@@ -1033,15 +1033,18 @@ It is entered from a person's menu or the details panel (*Show ancestors*), whic
 ```ts
 interface FamilyCardModel {
   focusId: ID;
-  parents: { fatherId?: ID; motherId?: ID; otherParents: { personId: ID; kind: ParentKind }[] };
-  parentsLink?: SpouseLink;                 // marriage of the parents, if recorded
+  fatherId: ID | null;                      // biological father and mother (by gender)
+  motherId: ID | null;
+  otherParents: { personId: ID; kind: ParentKind }[]; // adoptive, step, or gender not given
+  parentsLink: SpouseLink | null;           // marriage of the parents, if recorded
   partners: { personId: ID | null; link?: SpouseLink; childIds: ID[] }[]; // from getFamilies (§12.2)
-  selectedPartnerIndex: number | 'all';     // FC-03
-  siblingIds: ID[];                         // FC-07, in sibling order
-  trail: ID[];                              // root → … → focus, when the focus is reachable from the root
-  childCounts: Record<ID, number>;          // "3 children ›" (FC-05)
+  siblingIds: ID[];                         // FC-07, the focus included, in sibling order
+  trail: ID[];                              // start → … → focus: the shortest way down, father's line first; empty if not connected
+  childCounts: ReadonlyMap<ID, number>;     // "3 children ›" (FC-05)
 }
 ```
+
+Which marriage's children show (FC-03) is view state in `FamilyCardView`, not part of the model; it resets to the first marriage when the focus changes.
 
 **Layout** (HTML; one centred column, max width 960 px):
 
@@ -1050,7 +1053,7 @@ interface FamilyCardModel {
 3. **Couple:** large cards for the focus person and the selected partner (photo with the `card` variant, names, life years, profession). With more than one partner, a segmented switcher shows "1st wife: Rahima · 2nd wife: Jamila · All" (FC-03).
 4. **Children:** a grid with 2 columns on phones and 4–6 on desktop. Each child card shows "N children ›". The last cell is a dashed "+ Add children" slot that opens the bulk-add sheet (REL-04).
 
-**Navigation (FC-02):** changing the focus updates `uiStore.focusId` and `router.push('?view=family&focus=…')`, so browser Back works and the other views follow (FC-06). Transitions depend on direction: moving down to a child slides content up, moving up to a parent slides it down, and moving to a sibling slides it sideways. They are disabled with reduced motion. Swipes are detected with pointer events (≥ 60 px horizontal movement and a velocity threshold), with no extra library. The breadcrumb shows `trail` (collapsed to "… › father › focus" on phones).
+**Navigation (FC-02), as built:** tapping a parent, sibling, child or breadcrumb step calls `goToFamily`, which sets the shared `uiStore.focusId` and adds a history entry with `window.history.pushState` (`?view=family&focus=…`; the Next router picks it up). `EditorShell` listens for `popstate` and takes `view` and `focus` back from the URL, so browser Back and Forward move one family at a time, and the other views follow the same focus (FC-06; the Tree shows "Showing the tree from …"). The card's own *Back to …* button goes to the previous step of the trail (or to the start when the focus isn't below it). Transitions depend on direction (tw-animate-css, keyed by the focus): moving down to a child slides content up, moving up to a parent slides it down, and moving to a sibling slides it sideways; reduced motion turns them off. Touch swipes are detected with pointer events (≥ 60 px horizontal, mostly sideways, ≥ 0.3 px/ms), with no extra library: swiping left shows the next brother or sister. After a move the card scrolls to the top and focus goes to the heading. The breadcrumb shows `trail` (collapsed to "… › father › focus" on phones). Tapping the couple's own cards opens their details instead of moving.
 
 **Accessibility (FC-08):** an `<h2>` names the couple; the parents and children are `<section>`s with labels and list semantics; changes of focus are announced through the live region.
 

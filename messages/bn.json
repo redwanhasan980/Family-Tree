@@ -511,6 +511,21 @@
     "centreHint": "কাউকে মাঝখানে আনতে দুবার ট্যাপ করুন।",
     "inCentre": "মাঝখানে: {name}"
   },
+  "familyView": {
+    "parents": "বাবা-মা",
+    "siblings": "ভাই-বোন",
+    "children": "সন্তান",
+    "addFather": "বাবা যোগ করুন",
+    "addMother": "মা যোগ করুন",
+    "childCount": "{count, plural, =0 {এখনো সন্তান নেই} other {# সন্তান}}",
+    "whoseChildren": "কার সন্তান দেখাবেন",
+    "allChildren": "সব সন্তান",
+    "partnerOrdinal": "{number, selectordinal, one {#ম} two {#য়} few {#র্থ} many {#ষ্ঠ} other {#তম}} {gender, select, male {স্বামী} other {স্ত্রী}}: {name}",
+    "unknownParent": "অন্য অভিভাবক জানা নেই",
+    "couple": "{first} ও {second}",
+    "showing": "পরিবার: {name}",
+    "openFamily": "এই পরিবার দেখুন"
+  },
   "legend": {
     "button": "রঙের মানে",
     "title": "রং",

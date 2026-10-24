@@ -282,12 +282,14 @@ gantt
 - [x] **P6-07** Shared legend. Generation labels *(TV-10, Could)* and the minimap *(TV-07, Could)* are not built; they move to the P8 polish list.
 - [x] **P6-08** View switching keeps selection and focus; collapse state is persisted per view.
 - [x] **P6-09** Tests: layout snapshots; axe on the list view; E2E view switching and circle zoom.
-- [ ] **P6-10** **Family card model** (pure): `buildFamilyCard` (parents, partners with their children, siblings, trail, child counts), with unit tests for multiple spouses, unknown parents, adoptive parents and references. *(FC-01/03/05/07)*
-- [ ] **P6-11** **Family card view:** parents row, siblings strip, couple cards with the spouse switcher, children grid, and empty "+ add" slots wired to the quick-add and bulk-add flows. *(FC-01/03/04/05/07)*
-- [ ] **P6-12** **Family navigation:** focus changes through `uiStore` and `router.push` (browser Back works), breadcrumb, direction-aware transitions, sibling swipes, live-region announcements. *(FC-02/06/08)*
-- [ ] **P6-13** Tests: E2E AC FC-02 on mobile and desktop; axe on the Family card view; focus sync with the Tree view.
+- [x] **P6-10** **Family card model** (pure): `buildFamilyCard` (parents, partners with their children, siblings, trail, child counts), with unit tests for multiple spouses, unknown parents, adoptive parents and references. *(FC-01/03/05/07)*
+- [x] **P6-11** **Family card view:** parents row, siblings strip, couple cards with the spouse switcher, children grid, and empty "+ add" slots wired to the quick-add and bulk-add flows. *(FC-01/03/04/05/07)*
+- [x] **P6-12** **Family navigation:** focus changes through `uiStore` and a history entry (`pushState`, so browser Back works), breadcrumb, direction-aware transitions, sibling swipes, live-region announcements. *(FC-02/06/08)*
+- [x] **P6-13** Tests: E2E AC FC-02 on mobile and desktop; axe on the Family card view; focus sync with the Tree view.
 
 **Exit criteria:** all four views render the 500-person fixture smoothly on a mid-range phone profile; the List and Family card views pass keyboard-only and screen-reader smoke tests.
+
+**Status:** ✅ done. Family card export (FC-09) is built with the other exports in P7. Generation labels (TV-10) and the minimap (TV-07) moved to P8.
 
 ---
 

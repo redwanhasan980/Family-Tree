@@ -5,18 +5,24 @@ import { expect, type Page } from '@playwright/test';
 
 export const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 1024;
 
+/** A new guest tree starting from one man, open in the Tree view. */
+export async function newTree(page: Page, name: string): Promise<void> {
+  await page.goto('/en/trees');
+  await page.getByRole('button', { name: 'Create a family tree' }).click();
+  const create = page.getByRole('dialog');
+  await create.getByLabel('Tree name').fill('Test family');
+  await create.getByLabel('Oldest person you remember (optional)').fill(name);
+  await create.getByText('Man', { exact: true }).click();
+  await create.getByRole('button', { name: 'Create tree' }).click();
+  await expect(page.getByRole('treeitem', { name: new RegExp(`^${name}`) })).toBeVisible();
+}
+
 /**
  * A new guest tree: Abdul Karim and his children Rahim, Karima (a daughter) and Salam,
  * open in the Tree view.
  */
 export async function familyOfFour(page: Page): Promise<void> {
-  await page.goto('/en/trees');
-  await page.getByRole('button', { name: 'Create a family tree' }).click();
-  const create = page.getByRole('dialog');
-  await create.getByLabel('Tree name').fill('Test family');
-  await create.getByLabel('Oldest person you remember (optional)').fill('Abdul Karim');
-  await create.getByText('Man', { exact: true }).click();
-  await create.getByRole('button', { name: 'Create tree' }).click();
+  await newTree(page, 'Abdul Karim');
   const root = page.getByRole('treeitem', { name: /^Abdul Karim/ });
   await root.click();
   await page

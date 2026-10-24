@@ -68,3 +68,21 @@ The data load times are for the local emulators, which are much slower than Fire
 
 Nothing needed changing. The List draws only the rows on screen above 200 rows (LV-05); with the default three generations open, the 500-person tree has fewer.
 
+## Exports (P7 exit check)
+
+**Method.** The export dialog driven by a Playwright script against the production build (desktop Chromium, 1440×900, no throttling, High quality), timing from *Save* to the downloaded file, on the seeded demo trees.
+
+**Results** (2026-10-24):
+
+| | File | Time |
+| --- | --- | --- |
+| 150 people, Tree as folded, PNG | 16,384 × 1,031 px (clamped to the canvas side limit), 1.1 MB | 0.6 s |
+| 500 people, Tree, every branch open, PDF on one A4 page | 1 page, 75 KB | 0.7 s |
+| 500 people, Tree, every branch open, PDF at full size | 98 A4 pages, 20.6 MB | 8.7 s |
+| 500 people, List, every branch open, PDF | 20 pages, 12 MB | 9.4 s |
+| 150 people, Circle, PNG (Bangla) | 1,608 × 1,884 px | 0.6 s |
+
+**Changes the measurements led to:** the scene's SVG is serialized once instead of per page, and tiled PDFs draw a whole row of tiles in one strip and cut pages from it, instead of decoding the full scene for every page: the 98-page tiling went from 20.8 s to 8.7 s.
+
+**Worth revisiting** (P8-07): the List PDF clones each page with html-to-image (about 0.45 s a page); a print-quality option of 100 dpi halves it.
+

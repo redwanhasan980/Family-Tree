@@ -1,5 +1,7 @@
 import createNextIntlPlugin from 'next-intl/plugin';
 
+import packageJson from './package.json' with { type: 'json' };
+
 import type { NextConfig } from 'next';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -15,7 +17,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com",
-  "font-src 'self'",
+  // data: for the fonts embedded in exported pictures (DESIGN §14).
+  "font-src 'self' data:",
   [
     "connect-src 'self'",
     'https://*.googleapis.com',
@@ -61,6 +64,8 @@ const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
   reactStrictMode: true,
   poweredByHeader: false,
+  // Written into JSON backups (BAK-01), so an import knows which version made them.
+  env: { NEXT_PUBLIC_APP_VERSION: packageJson.version },
   // CLAUDE.md is the agent guide; don't let `next dev` add an AGENTS.md to the repo.
   agentRules: false,
   async headers() {

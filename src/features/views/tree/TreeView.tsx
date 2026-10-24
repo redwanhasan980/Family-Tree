@@ -111,7 +111,7 @@ const CardFor = memo(function CardFor({
  * Every connector of the tree. They aren't culled, so they're memoized: a pan or zoom
  * re-renders the cards without diffing thousands of paths (P4-13).
  */
-const Connectors = memo(function Connectors({ lines }: { lines: TreeLayout['lines'] }) {
+export const Connectors = memo(function Connectors({ lines }: { lines: TreeLayout['lines'] }) {
   return (
     <g fill="none" stroke="var(--connector)" strokeWidth={1.5} aria-hidden>
       {lines.map((line) => (

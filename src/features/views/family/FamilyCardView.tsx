@@ -19,8 +19,7 @@ import { selectGraph, useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
 
 import { goToFamily } from './goToFamily';
-import { startingPerson } from '../shared/focus';
-
+import { useFamilyPerson } from './useFamilyPerson';
 /** A swipe moves to a brother or sister (FC-02): far enough, fast enough, sideways. */
 const SWIPE_PX = 60;
 const SWIPE_SPEED = 0.3;
@@ -188,17 +187,10 @@ export function FamilyCardView() {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const graph = useTree(selectGraph);
-  const rootId = useTree((s) => s.tree?.rootPersonId);
   const nameDisplay = useTree((s) => s.tree?.settings.nameDisplay ?? 'auto');
-  const familySetting = useUi((s) => s.familyId);
-  const focusSetting = useUi((s) => s.focusId);
   const selectedId = useUi((s) => s.selectedId);
 
-  const start = useMemo(() => startingPerson(graph, rootId), [graph, rootId]);
-  // Whose family: the one opened here, else the person the views start from.
-  const focusId = [familySetting, focusSetting, start].find(
-    (id): id is ID => id !== null && graph.persons.has(id),
-  );
+  const { personId: focusId, start } = useFamilyPerson();
   const model = useMemo(
     () => (focusId ? buildFamilyCard(graph, focusId, start) : null),
     [graph, focusId, start],

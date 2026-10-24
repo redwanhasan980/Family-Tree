@@ -299,16 +299,18 @@ gantt
 
 **Goal:** any view becomes a shareable PNG or PDF with perfect Bangla text.
 
-- [ ] **P7-01** `ExportDialog`: format, view, paper, orientation, title and subtitle, photos, legend, date, quality, *expand all*. Remembers the last options. *(EXP-03/04)*
-- [ ] **P7-02** Export scene builders for the tree and circle views (`mode="export"`), with the header, footer and legend in SVG. *(EXP-05)*
-- [ ] **P7-03** Image inlining (export variant → data URL, cached) and font embedding.
-- [ ] **P7-04** Both rasterization paths (SVG serialization for Tree/Circle; html-to-image for List/Family card, with the Safari double-render workaround). PNG pipeline with canvas clamping; PDF pipeline with *fit to one page* and **tiling** (overlap and crop marks); paginated list export; print stylesheet. *(EXP-01/02/06/09)*
-- [ ] **P7-05** Progress, cancel, yielding to the main thread; Web Share or download; file naming. *(EXP-07/08)*
-- [ ] **P7-06** **JSON backup export**, available to guests too. *(BAK-01)*
-- [ ] **P7-07** **Family sheet:** export the current Family card as a one-page PNG/PDF through the HTML path (html-to-image). *(FC-09)*
-- [ ] **P7-08** Tests: unit (tiling math, clamp, file names); E2E (a file is produced and non-empty, the PDF has the expected page count); **visual sign-off of conjunct-heavy names** (AC EXP-05) with a PNG screenshot baseline.
+- [x] **P7-01** `ExportDialog`: format, view, paper, orientation, title and subtitle, photos, legend, date, quality, *expand all*. Remembers the last options. *(EXP-03/04)*
+- [x] **P7-02** Export scene builders for the tree and circle views (`mode="export"`), with the header, footer and legend in SVG. *(EXP-05)*
+- [x] **P7-03** Image inlining (export variant → data URL, cached) and font embedding.
+- [x] **P7-04** Both rasterization paths (SVG serialization for Tree/Circle; html-to-image for List/Family card, with the Safari double-render workaround). PNG pipeline with canvas clamping; PDF pipeline with *fit to one page* and **tiling** (overlap and crop marks); paginated list export; print stylesheet. *(EXP-01/02/06/09)*
+- [x] **P7-05** Progress, cancel, yielding to the main thread; Web Share or download; file naming. *(EXP-07/08)*
+- [x] **P7-06** **JSON backup export**, available to guests too. *(BAK-01)*
+- [x] **P7-07** **Family sheet:** export the current Family card as a one-page PNG/PDF through the HTML path (html-to-image). *(FC-09)*
+- [x] **P7-08** Tests: unit (tiling math, clamp, file names); E2E (a file is produced and non-empty, the PDF has the expected page count); **visual sign-off of conjunct-heavy names** (AC EXP-05) with a PNG screenshot baseline.
 
 **Exit criteria:** AC EXP-05 is signed off by the product owner; a 500-person PDF is produced in under 10 s on desktop.
+
+**Status (2026-10-24):** built; the owner's sign-off of AC EXP-05 is pending. The baseline the E2E test compares against is `e2e/export.spec.ts-snapshots/bangla-names-desktop-chrome-linux.png` (ক্ষ, ত্র, শ্রী, স্নি, গ্ধা, জ্যো, ৎ, ঋ, ত্বি, গ্নি, স্মি, ত্ত). On this machine (desktop Chromium, production build) the 500-person tree with every branch open makes a one-page A4 PDF in 0.7 s and a 98-page full-size tiling in 8.7 s; its List makes 20 pages in 9.4 s (`docs/PERFORMANCE.md`). The iOS canvas limit (R-06) is handled by clamping to 16.7 MP and is checked on a real iPhone with the first deploy. As built: the PNG scale is the chosen quality (not × the device pixel ratio), the Directory mode isn't exported (the List export is the family lines), and the backup button sits in the export dialog.
 
 ---
 

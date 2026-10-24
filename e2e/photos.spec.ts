@@ -2,6 +2,8 @@ import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { openExport, save } from './support/export';
+
 // Phase 5: a photo from upload to the tree, the panel and the dashboard (P5-07).
 // Cloudinary is mocked: uploads answer with what was sent, and delivery serves a test image.
 
@@ -18,8 +20,13 @@ async function mockCloudinary(page: Page): Promise<string[]> {
     uploads.push(publicId);
     await route.fulfill({ json: { public_id: publicId, version: 3, width: 900, height: 900 } });
   });
+  // Cloudinary sends CORS headers, so exports can draw the photos (P7-03).
   await page.route('https://res.cloudinary.com/**', (route) =>
-    route.fulfill({ path: PHOTO, contentType: 'image/jpeg' }),
+    route.fulfill({
+      path: PHOTO,
+      contentType: 'image/jpeg',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    }),
   );
   return uploads;
 }
@@ -84,4 +91,31 @@ test('a photo shows in the tree, the panel and on the dashboard (P5)', async ({ 
   await page.getByRole('link', { name: 'All my trees' }).first().click();
   const cover = page.getByRole('listitem').filter({ hasText: 'Photo family' }).locator('img');
   await expect(cover).toHaveAttribute('src', thumb);
+});
+
+test('exports draw the photo, fetched in the export size (P7-03)', async ({ page }) => {
+  await mockCloudinary(page);
+  await page.goto('/en/trees');
+  await page.getByRole('button', { name: 'Create a family tree' }).click();
+  const create = page.getByRole('dialog');
+  await create.getByLabel('Tree name').fill('Photo family');
+  await create.getByLabel('Oldest person you remember (optional)').fill('Abdul Karim');
+  await create.getByText('Man', { exact: true }).click();
+  await create.getByRole('button', { name: 'Create tree' }).click();
+  await openDetails(page, 'Abdul Karim');
+  const addPhoto = page.getByRole('button', { name: 'Add a photo' });
+  test.skip((await addPhoto.count()) === 0, 'Photos need NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME.');
+  await addPhoto.click();
+  await page.getByTestId('photo-file').setInputFiles(PHOTO);
+  await page.getByRole('button', { name: 'Use this photo' }).click();
+  await expect(page.getByText('Photo saved.')).toBeVisible();
+  if (isPhone(page)) await page.keyboard.press('Escape');
+
+  const exported = page.waitForRequest(
+    /res\.cloudinary\.com\/.*\/c_fill,g_face,w_256,h_256\/f_jpg/,
+  );
+  await openExport(page);
+  const { bytes } = await save(page);
+  await exported;
+  expect(bytes.subarray(1, 4).toString()).toBe('PNG');
 });

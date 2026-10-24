@@ -6,7 +6,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { displayName } from '@/lib/domain/names';
-import type { ID, Locale } from '@/lib/domain/types';
+import type { ColorBy, ID, Locale } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
 
 import { BRANCH_SLOTS, branchColor, genderColor, generationColor, NEUTRAL } from './colors';
@@ -14,7 +14,7 @@ import { BRANCH_SLOTS, branchColor, genderColor, generationColor, NEUTRAL } from
 /** The ramp's distinct steps (DESIGN §21.3); later generations share the last one. */
 const GENERATION_STEPS = 9;
 
-interface Entry {
+export interface LegendEntry {
   key: string;
   color: string;
   label: string;
@@ -34,22 +34,11 @@ function Swatch({ color, icon: Icon }: { color: string; icon?: LucideIcon }) {
   );
 }
 
-/**
- * What the data colours mean (VIS-06): the branches (the children of the person the view
- * starts from), the generations, or men and women, as the tree's setting says. Colour is
- * never the only cue: cards and arcs are always labelled, and gender also has an icon.
- */
-export function LegendButton({
-  heads,
-  generations,
-  className,
-}: {
-  /** The people who start each branch, in order. */
-  heads: readonly ID[];
-  /** How many generations the view shows, the first included. */
-  generations: number;
-  className?: string;
-}) {
+/** The legend's rows for the tree's colour setting; empty when there is nothing to explain. */
+export function useLegendEntries(
+  heads: readonly ID[],
+  generations: number,
+): { colorBy: ColorBy; entries: LegendEntry[] } {
   const t = useTranslations();
   const format = useFormatter();
   const locale = useLocale() as Locale;
@@ -57,7 +46,7 @@ export function LegendButton({
   const nameDisplay = useTree((s) => s.tree?.settings.nameDisplay ?? 'auto');
   const persons = useTree((s) => s.persons);
 
-  let entries: Entry[] = [];
+  let entries: LegendEntry[] = [];
   switch (colorBy) {
     case 'branch':
       entries = heads.slice(0, BRANCH_SLOTS).flatMap((id, i) => {
@@ -100,10 +89,31 @@ export function LegendButton({
       ];
       break;
     case 'none':
-      return null;
+      break;
     default:
       colorBy satisfies never;
   }
+  return { colorBy, entries };
+}
+
+/**
+ * What the data colours mean (VIS-06): the branches (the children of the person the view
+ * starts from), the generations, or men and women, as the tree's setting says. Colour is
+ * never the only cue: cards and arcs are always labelled, and gender also has an icon.
+ */
+export function LegendButton({
+  heads,
+  generations,
+  className,
+}: {
+  /** The people who start each branch, in order. */
+  heads: readonly ID[];
+  /** How many generations the view shows, the first included. */
+  generations: number;
+  className?: string;
+}) {
+  const t = useTranslations();
+  const { colorBy, entries } = useLegendEntries(heads, generations);
   if (entries.length === 0) return null;
 
   return (

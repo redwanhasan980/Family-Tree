@@ -1,14 +1,17 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+/* Exports render in the light theme on any page (DESIGN §14): `[data-export]` stages. */
+@custom-variant dark (&:is(.dark *):not([data-export], [data-export] *));
 
 /*
  * Colour tokens (DESIGN §21.2). shadcn/ui semantic names are kept so the owned
  * components work unchanged; `--accent` is the subtle hover surface, and the brand
  * marigold is `--highlight`. Text pairs are checked by src/lib/design/contrast.test.ts.
+ * `[data-export]` repeats the light values, so an export stage is light in dark mode too.
  */
-:root {
+:root,
+[data-export] {
   --radius: 0.75rem;
 
   --background: #fbf8f3;
@@ -212,5 +215,20 @@
       transition: none;
       animation: none;
     }
+  }
+}
+
+/* Printing the List view (EXP-09, PrintList): only the printed list, on white. */
+@media print {
+  body > :not(#print-root) {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  @page {
+    margin: 12mm;
   }
 }

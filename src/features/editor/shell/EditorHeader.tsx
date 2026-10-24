@@ -3,6 +3,7 @@
 import {
   ArrowLeftIcon,
   ChartColumnIcon,
+  DownloadIcon,
   EllipsisVerticalIcon,
   LanguagesIcon,
   LogOutIcon,
@@ -44,9 +45,11 @@ import { ViewTabs } from './ViewNav';
 function MobileMenu({
   onSettings,
   onStatistics,
+  onExport,
 }: {
   onSettings: () => void;
   onStatistics: () => void;
+  onExport: () => void;
 }) {
   const t = useTranslations();
   const { session } = useSession();
@@ -73,6 +76,9 @@ function MobileMenu({
         </DropdownMenuItem>
         <DropdownMenuItem className="min-h-11" onSelect={onStatistics}>
           <ChartColumnIcon aria-hidden /> {t('statistics.title')}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="min-h-11" onSelect={onExport}>
+          <DownloadIcon aria-hidden /> {t('export.menu')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="min-h-11" onSelect={() => switchTo(other)}>
@@ -103,11 +109,13 @@ export function EditorHeader({
   uid,
   onSettings,
   onStatistics,
+  onExport,
 }: {
   tree: Tree;
   uid: ID;
   onSettings: () => void;
   onStatistics: () => void;
+  onExport: () => void;
 }) {
   const t = useTranslations();
   const { session } = useSession();
@@ -191,6 +199,13 @@ export function EditorHeader({
                 <StatisticsList />
               </PopoverContent>
             </Popover>
+            <HeaderButton
+              label={t('export.menu')}
+              className="hidden size-10 lg:inline-flex"
+              onClick={onExport}
+            >
+              <DownloadIcon className="size-5" aria-hidden />
+            </HeaderButton>
             <Button
               variant="ghost"
               size="icon"
@@ -206,7 +221,7 @@ export function EditorHeader({
               <AccountMenu />
             </div>
             <div className="lg:hidden">
-              <MobileMenu onSettings={onSettings} onStatistics={onStatistics} />
+              <MobileMenu onSettings={onSettings} onStatistics={onStatistics} onExport={onExport} />
             </div>
           </div>
         </div>

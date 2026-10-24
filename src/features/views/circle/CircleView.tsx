@@ -56,9 +56,9 @@ const ZOOM_MS = 550;
 /** Above this many arcs, re-centring jumps instead of animating. */
 const ANIMATE_LIMIT = 400;
 
-type Geometry = Pick<CircleArc, 'a0' | 'a1' | 'r0' | 'r1'>;
+export type Geometry = Pick<CircleArc, 'a0' | 'a1' | 'r0' | 'r1'>;
 
-const arcPath = d3Arc<Geometry>()
+export const arcPath = d3Arc<Geometry>()
   .startAngle((d) => d.a0)
   .endAngle((d) => d.a1)
   .innerRadius((d) => d.r0)
@@ -67,7 +67,7 @@ const arcPath = d3Arc<Geometry>()
   .cornerRadius(3);
 
 /** Arcs are tints of the data colour, lighter further out (DESIGN §21.3). */
-function tint(accent: string | null, depth: number): string {
+export function tint(accent: string | null, depth: number): string {
   if (!accent) return 'var(--muted)';
   const percent = Math.max(20, 55 - 8 * (depth - 1));
   return `color-mix(in oklab, ${accent} ${percent}%, var(--card))`;
@@ -133,7 +133,7 @@ function useZoom(layout: CircleLayout | null): { shown: CircleLayout | null; win
   return { shown: zoom.layout, window: mixWindows(zoom.from, zoom.to, ease(t)) };
 }
 
-const ArcFor = memo(function ArcFor({
+export const ArcFor = memo(function ArcFor({
   arc,
   geometry,
   person,
@@ -306,7 +306,7 @@ function ZoomFrame({
 }
 
 /** The focus person in the middle: photo or initials, and name (CV-07). */
-function CentreDisc({
+export function CentreDisc({
   person,
   radius,
   fontFamily,
@@ -314,6 +314,7 @@ function CentreDisc({
   tabbable,
   onActivate,
   onKeyDown,
+  photoVariant = 'thumb',
 }: {
   person: Person;
   radius: number;
@@ -322,11 +323,13 @@ function CentreDisc({
   tabbable: boolean;
   onActivate: () => void;
   onKeyDown: (event: KeyboardEvent<SVGGElement>) => void;
+  /** Exports use the canvas-safe variant, or none (P7). */
+  photoVariant?: 'thumb' | 'export' | null;
 }) {
   const t = useTranslations('circleView');
   const { name, years } = usePersonText(person);
   const photo = useShownPhoto(person.photo);
-  const href = photo ? photoUrl(photo, 'thumb') : null;
+  const href = photo && photoVariant ? photoUrl(photo, photoVariant) : null;
   const avatar = radius * 0.42;
   const fontSize = radius > 56 ? 12 : 11;
   const lines = wrapText(name.text, {

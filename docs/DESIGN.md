@@ -279,11 +279,11 @@ family-tree/
 │   │   │   ├── family/                       # FamilyCardView.tsx, ParentsRow, CoupleCard, ChildrenGrid (R1)
 │   │   │   ├── album/                        # AlbumView.tsx, GenerationRow, Slideshow (R2)
 │   │   │   └── timeline/                     # layout.ts, TimelineView.tsx, LifeBar, YearAxis (R3)
-│   │   ├── export/                           # ExportDialog, scene builders, svgRaster.ts, htmlRaster.ts, pdf.ts
+│   │   ├── export/                           # ExportDialog, scenes/ (Tree, Circle, FamilySheet, ListPages), inline.ts, svgRaster.ts, render.ts, geometry.ts, PrintList
 │   │   │   └── book/                         # Family book: model.ts, paginate.ts, pages/*, BookDialog (R3)
 │   │   ├── media/                            # PhotoDialog, Avatar, Lightbox, cropImage.ts, upload.ts, cloudinaryUrl.ts, photoCleanup.ts
 │   │   ├── onboarding/                       # wizard, coach marks
-│   │   ├── backup/                           # json.ts (R1 export), import (R2), gedcom UI (R2)
+│   │   ├── backup/                           # json.ts (saveBackup, R1), import (R2), gedcom UI (R2)
 │   │   ├── sharing/                          # R3
 │   │   └── kinship/                          # R4 UI
 │   ├── lib/
@@ -1145,11 +1145,25 @@ flowchart LR
 - **The scene is rendered off-screen** (a hidden container that is not `display:none`) using the same view components with `mode="export"`. It uses the full content bounds, not the viewport (EXP-04). An optional "Expand all" re-runs the layout with an empty collapsed set.
 - **The header and footer are part of the SVG** (title, subtitle, date, legend, "শিকড় দিয়ে তৈরি" / "Made with শিকড়"). They are rasterized too, so Bangla shaping is correct (EXP-05, ADR-006). jsPDF's `text()` is never used for user text.
 - **Images:** export uses the `export` transformation (`c_fill,g_face,w_256,h_256/f_jpg,q_85`). Each image is fetched with CORS (Cloudinary sends `Access-Control-Allow-Origin: *`), converted to a data URL, and kept in a cache for the session. If an image fails, the initials avatar is used (never a broken image).
-- **Canvas limits (EXP-06):** the target scale is `quality × devicePixelRatio`. It is clamped so that `width × height × scale² ≤ 16,777,216` px on iOS Safari and `≤ 100 MP` elsewhere, and each side stays ≤ 16,384 px. If clamping would drop the effective resolution below 1×, PNG export suggests PDF tiling.
+- **Canvas limits (EXP-06):** the target scale is `quality` (1×, 2× or 3× the scene's CSS px; as built, not multiplied by `devicePixelRatio`, so a file doesn't depend on the device it was made on). It is clamped so that `width × height × scale² ≤ 16,777,216` px on iOS Safari and `≤ 100 MP` elsewhere, and each side stays ≤ 16,384 px. If clamping would drop the effective resolution below 1×, PNG export suggests PDF tiling.
 - **PDF:** `new jsPDF({ unit: 'mm', format, orientation })`. With *Fit to one page* the scene is scaled into the printable area, with a warning if names would render smaller than about 6 pt. With *tiling*, the scene is split into page-sized tiles with 5 mm overlap and crop marks, and each tile is rasterized separately with a different `viewBox` (low memory). `setProperties({ title, creator })` sets the metadata.
 - **List view export:** a paginated print layout (A4 rows, headers repeated) is rasterized page by page. **Print** (EXP-09) uses `window.print()` with a print stylesheet instead, which gives vector, selectable text.
 - **Responsiveness (EXP-08):** steps yield with `await scheduler.yield?.() ?? setTimeout(0)` between tiles and images. There is a progress bar, and Cancel uses an `AbortController`.
 - **Delivery (EXP-07):** if `navigator.canShare?.({ files: [file] })`, use `navigator.share` (mobile, for example straight to WhatsApp); otherwise an `<a download>`. The file name is `{treeName}-{view}-{YYYY-MM-DD}.{ext}`, with Unicode kept and characters illegal in file names stripped.
+
+### 14.0 As built (P7)
+
+- **Files** (`features/export/`): `ExportDialog.tsx` (loaded with `next/dynamic` from `EditorShell` when someone opens *Save or share*), `scenes/` (`TreeScene`, `CircleScene`: SVG; `FamilySheet`, `ListPages`: HTML; `SceneFrame` draws the header, legend and footer in SVG), `inline.ts` (fonts, colour tokens, photos), `svgRaster.ts`, `render.ts` (PNG and PDF), `geometry.ts` (paper, clamping, fitting, tiling), `paginate.ts` (List pages), `files.ts` (file names, share or download, yielding), `options.ts` (choices remembered in localStorage under `shikor:export`, without the titles or the view), `PrintList.tsx` (EXP-09).
+- **Stage:** the scene renders in a portal that is off screen (`left: -100000px`), `aria-hidden` and `inert`, with `data-export`. `globals.css` declares the light tokens on `:root, [data-export]` and the `dark:` variant skips `[data-export]`, so exports are light in dark mode too. Scenes reuse the views' own parts (`PersonCard`, `Connectors`, `ArcFor`, `CentreDisc`, `useLegendEntries`) with the desktop sizes, and hand themselves over (`SceneHandle`) once their fonts have loaded (`document.fonts.load` for Bangla and Latin at 400/500/600) and they have painted.
+- **Fonts and colours:** `embeddedFonts` reads the page's own `@font-face` rules for the families in `--font-sans` (weights 400–600, variable ranges included) and inlines their files as data URLs, once per session; the same CSS is html-to-image's `fontEmbedCSS`. `themeCss` collects every custom property declared on `:root` and writes their computed values into the SVG's `<style>`, so `var(--card)` works inside a standalone SVG. CSS rule walking must visit nested style rules as well as yield them (nesting gives style rules a `cssRules` list too).
+- **SVG path:** the scene's SVG is cloned (roles and labels removed, `<image>`s inlined or dropped), serialized **once**, and each drawing only swaps the root's `viewBox`, `width` and `height`. Tiled PDFs draw a row of tiles in strips as wide as the canvas limit allows and cut the pages from the strip: a 98-page tiling of the 500-person tree went from 21 s to 9 s.
+- **Quality → print resolution:** 1 = 100 dpi, 2 = 200 dpi, 3 = 300 dpi; a PDF page is drawn at that resolution or the scene's own `quality` scale, whichever is smaller. Pages go into jsPDF as JPEG (`FAST`), so a page is a few hundred KB; each canvas is released as soon as it is in.
+- **Warnings:** *fit to one page* reports the names' printed size when it is under 6 pt (a toast suggests *Full size, across several pages*); a PNG clamped below 1× suggests a PDF.
+- **Family sheet (FC-09):** the Family card's family (`useFamilyPerson`) on an A4-wide sheet: title, "The family of …", parents, the person and their husband or wife, and the children with "N children"; with several marriages, each marriage's partner and children under "1st wife: …" headings. No buttons or empty places.
+- **List (P7-04):** `ListPages` renders the outline (as the List view shows it, or with *Include folded branches* every row) once as a long sheet, measures the rows, and `paginate` deals them onto A4 (or A3/Letter) frames, the title on the first page and "Page 2 of 5 · Made with শিকড়" on each. A PNG is the long sheet. The Directory mode isn't exported (its filters are for finding people); the List export is the family lines.
+- **Print (EXP-09):** *Print the list* in the dialog mounts `PrintList` (every row as real text) in a `#print-root` portal and calls `window.print()`; a print stylesheet hides everything else.
+- **Delivery:** `navigator.share` with the file where `canShare` allows it; a closed sheet (AbortError) does nothing, any other refusal (for example the user activation having expired during a long export) falls back to a download. File names keep Bangla and are cut by graphemes.
+- **Metadata:** jsPDF stores the title and creator as UTF-16, so a Bangla tree name is the PDF's title.
 
 ### 14.1 Family book (FB, R3)
 
@@ -1364,6 +1378,8 @@ When the signature has no entry, compose a possessive chain from the step terms.
   "relationships": [ { "id": "p_…_…", "type": "parent", … } ]
 }
 ```
+
+**As built (P7-06):** `lib/domain/backup.ts` (`buildBackup`, `BackupSchema`, `parseBackup`) writes the tree's name, description, root and settings, every person's details (with `createdAt`/`updatedAt` as ISO strings) and every relationship, sorted by ID so two backups of one tree compare line by line. User IDs, roles and `schemaVersion` are left out: a backup belongs to whoever restores it. Photos keep `publicId`, `version` and size, plus the `full` variant's URL when photos are configured. `app.version` comes from `package.json` (`NEXT_PUBLIC_APP_VERSION`, set in `next.config.ts`). The schema checks that every relationship points at people in the file and has the ID its people give it. The button is in the export dialog (*Backup (JSON file)*), for guests too.
 
 **Import** validates with Zod and shows a preview with counts and issues. It **re-IDs** every person (old → new map), rebuilds the deterministic relationship IDs, and writes in chunks (≤ 450 operations per batch) with progress (BAK-05). Photos are **referenced by URL** and re-uploaded to Cloudinary under the new tree in the background ("Copying photos 12/40"). If that fails, the photo is left empty with a warning.
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { ChartColumnIcon, Settings2Icon, TriangleAlertIcon } from 'lucide-react';
+import { ChartColumnIcon, DownloadIcon, Settings2Icon, TriangleAlertIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -42,6 +43,9 @@ import { editorSearch, readEditorParams } from './urlState';
 import { BottomNav } from './ViewNav';
 import { ViewPlaceholder } from './ViewPlaceholder';
 import { PRIMARY_VIEWS, VIEW_ICONS } from './views';
+
+// Loaded only when someone exports: it brings jsPDF and html-to-image (NFR-PERF-05).
+const ExportDialog = dynamic(() => import('@/features/export/ExportDialog'), { ssr: false });
 
 /** Opens the UI state for this tree once its settings are known, and mirrors it in the URL. */
 function useEditorUrlState(treeId: ID, defaultView: ViewKind | undefined): void {
@@ -116,11 +120,13 @@ function MoreSheet({
   onOpenChange,
   onSettings,
   onStatistics,
+  onExport,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSettings: () => void;
   onStatistics: () => void;
+  onExport: () => void;
 }) {
   const t = useTranslations();
   const extra = enabledViews().filter((view) => !PRIMARY_VIEWS.includes(view));
@@ -154,6 +160,9 @@ function MoreSheet({
           </button>
           <button type="button" className={item} onClick={onStatistics}>
             <ChartColumnIcon className="size-5" aria-hidden /> {t('statistics.title')}
+          </button>
+          <button type="button" className={item} onClick={onExport}>
+            <DownloadIcon className="size-5" aria-hidden /> {t('export.menu')}
           </button>
         </div>
       </DrawerContent>
@@ -191,7 +200,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
   const { session } = useSession();
   const { status, errorCode } = useTreeSession(treeId);
   const tree = useTree((s) => s.tree);
-  const [panel, setPanel] = useState<'settings' | 'statistics' | 'more' | null>(null);
+  const [panel, setPanel] = useState<'settings' | 'statistics' | 'more' | 'export' | null>(null);
   useEditorUrlState(treeId, tree?.settings.defaultView);
   useLeaveWarning();
 
@@ -240,6 +249,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
           uid={session.user.uid}
           onSettings={() => open('settings')}
           onStatistics={() => open('statistics')}
+          onExport={() => open('export')}
         />
         <div className="flex min-h-0 flex-1">
           <main id="main" className="min-w-0 flex-1 overflow-y-auto">
@@ -261,7 +271,9 @@ export function EditorShell({ treeId }: { treeId: ID }) {
         onOpenChange={close}
         onSettings={() => open('settings')}
         onStatistics={() => open('statistics')}
+        onExport={() => open('export')}
       />
+      {panel === 'export' && <ExportDialog tree={tree} open onOpenChange={close} />}
       <Drawer open={panel === 'statistics'} onOpenChange={close}>
         <DrawerContent>
           <DrawerHeader className="text-left">

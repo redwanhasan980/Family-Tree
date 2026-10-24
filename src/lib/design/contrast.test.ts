@@ -31,7 +31,7 @@ const PAIRS: [string, string, number][] = [
 ];
 
 describe.each([
-  ['light', ':root'],
+  ['light', '[data-export]'],
   ['dark', '.dark'],
 ])('%s theme tokens', (_theme, selector) => {
   const tokens = readTokens(css, selector);

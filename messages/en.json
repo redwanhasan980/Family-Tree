@@ -670,5 +670,61 @@
     "removed": "Photo removed.",
     "view": "View the photo of {name}",
     "lightbox": "Photo of {name}"
+  },
+  "export": {
+    "menu": "Save or share",
+    "picture": "Picture or PDF…",
+    "title": "Save a picture or PDF",
+    "description": "Save this view to share or print. Bangla names come out exactly as on screen.",
+    "format": "File type",
+    "formats": {
+      "png": "Picture (PNG)",
+      "pdf": "Document (PDF)"
+    },
+    "view": "What to save",
+    "paper": "Paper size",
+    "papers": {
+      "a4": "A4",
+      "a3": "A3",
+      "letter": "Letter",
+      "fit": "One page that fits everything"
+    },
+    "orientation": "Orientation",
+    "orientations": {
+      "auto": "Automatic",
+      "portrait": "Portrait",
+      "landscape": "Landscape"
+    },
+    "pages": "Pages",
+    "pagesOptions": {
+      "one": "Shrink onto one page",
+      "tiles": "Full size, across several pages"
+    },
+    "titleLabel": "Title",
+    "subtitleLabel": "Subtitle (optional)",
+    "photos": "Include photos",
+    "legend": "Include the colour key",
+    "date": "Include today's date",
+    "quality": "Quality",
+    "qualities": {
+      "1": "Standard",
+      "2": "High",
+      "3": "Highest"
+    },
+    "expandAll": "Include folded branches",
+    "save": "Save",
+    "preparing": "Getting the picture ready…",
+    "page": "Page {current, number} of {total, number}",
+    "finishing": "Almost done…",
+    "saved": "Saved: {file}",
+    "failed": "The export didn't work. Please try again.",
+    "smallText": "Names are small on this page (about {pt, number} pt). For full-size names, choose “Full size, across several pages”.",
+    "reduced": "The picture was made smaller to stay within your browser's limits. For full size, save a PDF instead.",
+    "exportedOn": "Exported on {date}",
+    "madeWith": "Made with {app}",
+    "backup": "Backup (JSON file)",
+    "backupHint": "Everything in this tree in one file, to keep somewhere safe.",
+    "backupSaved": "Backup saved: {file}",
+    "print": "Print the list"
   }
 }

@@ -31,7 +31,7 @@ import { useEditor } from '../EditorProvider';
 const NAME_DISPLAYS: readonly NameDisplay[] = ['auto', 'bn', 'en', 'both'];
 const COLOR_BYS: readonly ColorBy[] = ['branch', 'gender', 'generation', 'none'];
 
-function Row({
+export function Row({
   label,
   htmlFor,
   children,
@@ -50,7 +50,7 @@ function Row({
   );
 }
 
-function Choice<T extends string>({
+export function Choice<T extends string>({
   id,
   value,
   options,

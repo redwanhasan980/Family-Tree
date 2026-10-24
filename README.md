@@ -8,7 +8,7 @@ The name is always written in Bangla, as **শিকড়**, in both the Bangla
 
 **Ease of use is the top priority.** You can start without an account, everything saves automatically, and you can create an account later without losing anything.
 
-> **Status:** 🏗️ *Phases 0–6 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard, moving guest trees into an existing account, account deletion, the Tree view (quick add, several children at once, search, undo and redo, keyboard shortcuts), and full person details with photos: dates, places, phones, addresses and your own fields, "This is me", and photos you can take, crop, replace and remove, shown on the cards, the details panel and the dashboard; and more views of the family: the List (an outline and an "Everyone" directory), the Circle, ancestors in the Tree, and the Family card, one family at a time. Next: Phase 7, export and JSON backup.* See [Project status](#project-status).
+> **Status:** 🏗️ *Phases 0–7 complete: guest sessions and accounts, the family data model with undoable editing commands, the dashboard, moving guest trees into an existing account, account deletion, the Tree view (quick add, several children at once, search, undo and redo, keyboard shortcuts), and full person details with photos: dates, places, phones, addresses and your own fields, "This is me", and photos you can take, crop, replace and remove, shown on the cards, the details panel and the dashboard; and more views of the family: the List (an outline and an "Everyone" directory), the Circle, ancestors in the Tree, and the Family card, one family at a time; and pictures and PDFs of every view, with Bangla exactly as on screen, plus a JSON backup. Next: Phase 8, onboarding and polish for v1.0.* See [Project status](#project-status).
 
 ---
 
@@ -124,8 +124,8 @@ flowchart LR
 | P4 | Tree view & core editing | ✅ Done |
 | P5 | Person details & photos | ✅ Done (the check in a real Cloudinary account waits for the owner's keys) |
 | P6 | List, Circle & Family card views | ✅ Done |
-| P7 | Export & JSON backup | ⏳ Next |
-| P8 | Onboarding, polish → **v1.0** | ⬜ |
+| P7 | Export & JSON backup | ✅ Done (the Bangla export sign-off waits for the owner) |
+| P8 | Onboarding, polish → **v1.0** | ⏳ Next |
 | P9–P11 | PWA, offline, import/GEDCOM, Generation album → **v1.1** | ⬜ |
 | P12–P14 | Sharing & collaboration, Timeline, Family book → **v1.2** | ⬜ |
 | P15 | Relationship finder → **v1.3** | ⬜ |

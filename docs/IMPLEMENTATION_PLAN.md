@@ -325,7 +325,7 @@ gantt
 - [ ] **P8-05** Dark-mode polish across all screens and views. *(UX-05)*
 - [ ] **P8-06** **Accessibility audit:** axe at 0 serious issues, keyboard pass, TalkBack and VoiceOver pass; fixes. *(NFR-A11Y-*)*
 - [ ] **P8-07** **Performance pass:** bundle analysis, code-splitting checks, Lighthouse budgets in CI, FPS trace on the 500-person fixture. *(NFR-PERF-*)*
-- [ ] **P8-13** Tree view extras moved from P6-07 *(Could)*: generation labels along the side ("১ম প্রজন্ম" / "Generation 1") *(TV-10)* and a minimap for large trees on desktop *(TV-07)*.
+- [x] **P8-13** Tree view extras moved from P6-07 *(Could)*: generation labels along the side ("১ম প্রজন্ম" / "Generation 1") *(TV-10)* and a minimap for large trees on desktop *(TV-07)*.
 - [ ] **P8-08** **Security pass:** enforce the CSP, App Check enforcement, rules review, secret scan, dependency audit. *(NFR-SEC-*)*
 - [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency; unused-key detection in `pnpm i18n:check`. *(NFR-L10N-02)*
 - [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), an uptime monitor on `/api/health`, optional self-hosted cookieless analytics, quota runbook in the README. *(OPS-02/03)*

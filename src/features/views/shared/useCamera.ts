@@ -30,6 +30,8 @@ export interface Camera {
   interacted: () => boolean;
   markInteracted: () => void;
   resetInteraction: () => void;
+  /** Calls `listener` on every frame the camera moves; returns the unsubscribe. */
+  subscribe: (listener: (transform: CameraTransform) => void) => () => void;
 }
 
 /**
@@ -44,6 +46,7 @@ export function useCamera(
   const [transform, setTransform] = useState<CameraTransform>(IDENTITY);
   const live = useRef<CameraTransform>(IDENTITY);
   const touched = useRef(false);
+  const listeners = useRef(new Set<(transform: CameraTransform) => void>());
   const behavior = useMemo<ZoomBehavior<SVGSVGElement, unknown>>(
     () => zoom<SVGSVGElement, unknown>().scaleExtent([MIN_SCALE, MAX_SCALE]).clickDistance(6),
     [],
@@ -60,6 +63,7 @@ export function useCamera(
           if (event.sourceEvent) touched.current = true;
           live.current = { x: event.transform.x, y: event.transform.y, k: event.transform.k };
           layerRef.current?.setAttribute('transform', event.transform.toString());
+          for (const listener of listeners.current) listener(live.current);
         },
       )
       .on('end', () =>
@@ -109,8 +113,23 @@ export function useCamera(
   const resetInteraction = useCallback(() => {
     touched.current = false;
   }, []);
+  const subscribe = useCallback((listener: (transform: CameraTransform) => void) => {
+    listeners.current.add(listener);
+    return () => {
+      listeners.current.delete(listener);
+    };
+  }, []);
   return useMemo(
-    () => ({ transform, moveTo, zoomBy, current, interacted, markInteracted, resetInteraction }),
-    [transform, moveTo, zoomBy, current, interacted, markInteracted, resetInteraction],
+    () => ({
+      transform,
+      moveTo,
+      zoomBy,
+      current,
+      interacted,
+      markInteracted,
+      resetInteraction,
+      subscribe,
+    }),
+    [transform, moveTo, zoomBy, current, interacted, markInteracted, resetInteraction, subscribe],
   );
 }

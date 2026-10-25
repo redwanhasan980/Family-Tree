@@ -504,7 +504,8 @@
     "ancestorsOf": "পূর্বপুরুষ: <person>{name}</person>",
     "ancestorsLabel": "পূর্বপুরুষ: {name}",
     "backToTree": "বংশতালিকায় ফিরে যান",
-    "moreAncestors": "পূর্বপুরুষ দেখান: {name}"
+    "moreAncestors": "পূর্বপুরুষ দেখান: {name}",
+    "generation": "{number, selectordinal, one {#ম} two {#য়} few {#র্থ} many {#ষ্ঠ} other {#তম}} প্রজন্ম"
   },
   "listView": {
     "label": "পরিবারের তালিকা",

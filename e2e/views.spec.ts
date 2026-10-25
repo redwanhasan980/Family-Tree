@@ -101,3 +101,40 @@ test('a wife’s own family, when her parents are in the tree (VIS-08)', async (
   await expect(treeCard(page, 'Nasrin')).toHaveAttribute('aria-selected', 'true');
   await expect(treeCard(page, 'Habib')).toBeVisible();
 });
+
+test('generation labels, and a minimap for a big tree on a computer (TV-07, TV-10)', async ({
+  page,
+}) => {
+  await familyOfFour(page);
+  await expect(page.getByText('Generation 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Generation 2', { exact: true })).toBeVisible();
+  const minimap = page.locator('[data-minimap]');
+  await expect(minimap).toHaveCount(0);
+  if (isPhone(page)) return;
+
+  // Twenty more children: too wide to see whole at half size.
+  await findPerson(page, 'Abdul Karim');
+  await page
+    .getByRole('button', { name: 'Add a relative of Abdul Karim' })
+    .filter({ visible: true })
+    .last()
+    .click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Son or daughter' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add children' });
+  for (let index = 1; index <= 20; index++) {
+    const input = dialog.getByRole('textbox', { name: `Name of child ${index}` });
+    await input.fill(`Child ${index}`);
+    if (index < 20) await input.press('Enter');
+  }
+  await dialog.getByRole('button', { name: 'Add 20 children' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(minimap).toBeVisible();
+
+  // Pressing its far end moves the view there.
+  const layer = page.getByRole('tree').locator('xpath=..');
+  const before = await layer.getAttribute('transform');
+  const box = (await minimap.boundingBox())!;
+  await minimap.click({ position: { x: box.width - 6, y: box.height / 2 } });
+  await expect.poll(() => layer.getAttribute('transform')).not.toBe(before);
+  await expectAccessible(page);
+});

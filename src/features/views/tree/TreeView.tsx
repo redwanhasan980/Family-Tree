@@ -18,7 +18,10 @@ import type { ID, Locale, Person } from '@/lib/domain/types';
 import { useTree } from '@/stores/treeStore';
 import { uiStore, useUi } from '@/stores/uiStore';
 
+import { GenerationLabels } from './GenerationLabels';
+import { generationBands } from './generations';
 import { COMFORTABLE, COMPACT, layoutTree, type LaidCard, type TreeLayout } from './layout';
+import { Minimap, wantsMinimap } from './Minimap';
 import { createNavigator, stepFor } from './navigation';
 import { layoutPedigree } from './pedigree';
 import { AvatarClip, PersonCard } from './PersonCard';
@@ -235,6 +238,11 @@ export function TreeView() {
     [layout, orientation],
   );
   const unplaced = useMemo(() => unplacedPersons(graph, start ?? undefined), [graph, start]);
+  // TV-10: the family tree's generations; the ancestors' view has its own direction.
+  const bands = useMemo(
+    () => (familyLayout ? generationBands(familyLayout, treeOrientation) : []),
+    [familyLayout, treeOrientation],
+  );
   // The card keyboard focus is on (roving tabindex), and work left for after a render.
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const pendingFocus = useRef<string | null>(null);
@@ -572,6 +580,10 @@ export function TreeView() {
         </svg>
       </PersonMenu>
 
+      {bands.length > 1 && (
+        <GenerationLabels bands={bands} orientation={treeOrientation} camera={camera} />
+      )}
+
       {pedigree ? (
         <div className="absolute top-3 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-full border bg-background/95 py-1 pr-1 pl-3 text-sm shadow-sm">
           <span className="truncate">
@@ -611,7 +623,17 @@ export function TreeView() {
         {selectedKeys ? t('selected', { name: nameOf(selectedId!) }) : ''}
       </p>
 
-      <UnplacedTray ids={unplaced} className="absolute right-3 bottom-3" />
+      <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
+        {desktop && wantsMinimap(layout, size) && (
+          <Minimap
+            layout={layout}
+            size={size}
+            selectedKey={selectedKeys?.[0] ?? null}
+            camera={camera}
+          />
+        )}
+        <UnplacedTray ids={unplaced} />
+      </div>
 
       <TreeControls
         onZoomIn={() => camera.zoomBy(1.25)}

@@ -504,7 +504,8 @@
     "ancestorsOf": "Ancestors of <person>{name}</person>",
     "ancestorsLabel": "Ancestors of {name}",
     "backToTree": "Back to the family tree",
-    "moreAncestors": "Show the ancestors of {name}"
+    "moreAncestors": "Show the ancestors of {name}",
+    "generation": "Generation {number, number}"
   },
   "listView": {
     "label": "Family list",

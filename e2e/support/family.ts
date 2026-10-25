@@ -49,6 +49,25 @@ export async function familyOfFour(page: Page): Promise<void> {
   await expect(page.getByRole('treeitem', { name: /^Salam/ })).toBeVisible();
 }
 
+/**
+ * Finds someone with the header search, which selects and centres them (VIS-04), so no
+ * card hides under the tree controls on small phones.
+ */
+export async function findPerson(page: Page, name: string): Promise<void> {
+  await page
+    .getByRole('button', { name: 'Find someone' })
+    .filter({ visible: true })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Find someone' });
+  await dialog.getByPlaceholder('Search by name or nickname').fill(name);
+  await dialog.getByRole('option', { name: new RegExp(`^${name}`) }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page.getByRole('tree').getByRole('treeitem', { name: new RegExp(`^${name}`) }),
+  ).toHaveAttribute('aria-selected', 'true');
+}
+
 /** Switches view with the header tabs (desktop) or the bottom bar (phones). */
 export async function openView(page: Page, name: 'Tree' | 'Family' | 'Circle' | 'List') {
   await page

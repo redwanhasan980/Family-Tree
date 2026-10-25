@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { openExport, save } from './support/export';
-import { expectAccessible, familyOfFour, newTree } from './support/family';
+import { expectAccessible, familyOfFour, findPerson, newTree } from './support/family';
 
 // Phase 8: sign-up invitations for guests (AUTH-03) and milestone celebrations (UX-04).
 // Onboarding is done as for the other specs, but no invitation has been dismissed yet.
@@ -25,7 +25,7 @@ const invitation = (page: Page) => page.getByRole('region', { name: 'Keep your t
 
 /** Opens "Add children" for a person and adds `names`. */
 async function addChildren(page: Page, parent: string, names: readonly string[]) {
-  await page.getByRole('treeitem', { name: new RegExp(`^${parent}`) }).click();
+  await findPerson(page, parent);
   await page
     .getByRole('button', { name: `Add a relative of ${parent}` })
     .filter({ visible: true })

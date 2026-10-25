@@ -1,25 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { expectAccessible, familyOfFour, isPhone, openView } from './support/family';
+import { expectAccessible, familyOfFour, findPerson, isPhone, openView } from './support/family';
 
 // Phase 6: ancestors in the Tree view, and moving between views (P6-06, P6-08, P6-09).
 
 const treeCard = (page: Page, name: string) =>
   page.getByRole('tree').getByRole('treeitem', { name: new RegExp(`^${name}`) });
-
-/** Finds someone with the header search, which selects and centres them (VIS-04). */
-async function find(page: Page, name: string) {
-  await page
-    .getByRole('button', { name: 'Find someone' })
-    .filter({ visible: true })
-    .first()
-    .click();
-  const dialog = page.getByRole('dialog', { name: 'Find someone' });
-  await dialog.getByPlaceholder('Search by name or nickname').fill(name);
-  await dialog.getByRole('option', { name: new RegExp(`^${name}`) }).click();
-  await expect(dialog).toBeHidden();
-  await expect(treeCard(page, name)).toHaveAttribute('aria-selected', 'true');
-}
 
 async function openDetails(page: Page, name: string) {
   await treeCard(page, name).click();
@@ -83,7 +69,7 @@ test('switching views keeps the selected person and the focus (P6-08)', async ({
 test('a wife’s own family, when her parents are in the tree (VIS-08)', async ({ page }) => {
   await familyOfFour(page);
   // Search centres the person, so no card hides under the tree controls on small phones.
-  await find(page, 'Rahim');
+  await findPerson(page, 'Rahim');
   await page
     .getByRole('button', { name: 'Add a relative of Rahim' })
     .filter({ visible: true })
@@ -95,7 +81,7 @@ test('a wife’s own family, when her parents are in the tree (VIS-08)', async (
   await wife.getByRole('button', { name: 'Add', exact: true }).click();
 
   await expect(wife).toBeHidden();
-  await find(page, 'Nasrin');
+  await findPerson(page, 'Nasrin');
   await page
     .getByRole('button', { name: 'Add a relative of Nasrin' })
     .filter({ visible: true })
@@ -108,7 +94,7 @@ test('a wife’s own family, when her parents are in the tree (VIS-08)', async (
   await parent.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(parent).toBeHidden();
 
-  await find(page, 'Nasrin');
+  await findPerson(page, 'Nasrin');
   if (isPhone(page)) await page.getByRole('button', { name: 'Details: Nasrin' }).click();
   await page.getByRole('button', { name: "Show Nasrin's family" }).click();
   await expect(page.getByText('Showing the tree from Habib')).toBeVisible();

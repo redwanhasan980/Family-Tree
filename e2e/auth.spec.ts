@@ -47,12 +47,14 @@ test.describe('guest session', () => {
 
   test('entering the app creates a guest with a profile (AUTH-01)', async ({ page }) => {
     const uid = await enterApp(page);
+    // This browser already did the first-run wizard (playwright.config.ts), and the
+    // dashboard copies that into the new profile (P8-02).
     await expect
       .poll(() => readProfile(uid))
       .toMatchObject({
         isGuest: true,
         locale: 'en',
-        onboardingCompleted: false,
+        onboardingCompleted: true,
         schemaVersion: 1,
       });
   });

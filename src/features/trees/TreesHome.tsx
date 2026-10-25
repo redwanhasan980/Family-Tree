@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
+import { useVisitCount } from '@/features/auth/useUpgradePrompt';
 import { wizardDoneHere } from '@/features/onboarding/progress';
 import { Link, useRouter } from '@/i18n/navigation';
 import { APP_NAME } from '@/lib/brand';
@@ -78,6 +79,9 @@ export function TreesHome() {
   const router = useRouter();
   const uid = hasUser(session) ? session.user.uid : null;
   const trees = useMyTrees(uid);
+  // Visits count here too, though the invitation itself shows in the editor: this page
+  // always has the guest notice.
+  useVisitCount();
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const closeDialog = (open: boolean) => {
     if (!open) setDialog(null);

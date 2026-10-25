@@ -2,7 +2,7 @@
 
 import { LightbulbIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import type { ViewKind } from '@/lib/domain/types';
@@ -34,8 +34,17 @@ const subscribeNothing = () => () => {};
  * A small card of tips the first time someone opens a view in this browser, one at a
  * time, until "Got it" or close. It waits while a dialog or sheet is open, so the
  * wizard's "Add children" comes first. Not modal: the view stays usable under it.
+ * `otherwise` shows in its place when there is no tip, so only one card shows at a time.
  */
-export function ViewTips({ tour, className }: { tour: boolean; className?: string }) {
+export function ViewTips({
+  tour,
+  otherwise,
+  className,
+}: {
+  tour: boolean;
+  otherwise?: ReactNode;
+  className?: string;
+}) {
   const t = useTranslations('onboarding.tips');
   const view = useUi((s) => s.view);
   const busy = useUi((s) => s.addFlow !== null || s.searchOpen || s.deletingId !== null);
@@ -56,7 +65,8 @@ export function ViewTips({ tour, className }: { tour: boolean; className?: strin
     seenNow !== null &&
     tips.length > 0 &&
     ((tour && view === 'tree' && !tourOver) || !seenNow.includes(view));
-  if (!wanted || busy) return null;
+  if (busy) return null;
+  if (!wanted) return otherwise ?? null;
   const index = Math.min(steps[view] ?? 0, tips.length - 1);
   const last = index === tips.length - 1;
   const close = () => {

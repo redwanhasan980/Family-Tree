@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - **Landing page:** what শিকড় is and one button to start, with a sample family that draws itself, three reasons to use it, the four views and the privacy promise, in Bangla and English. It loads quickly and creates nothing until you press Start.
   - **Help and Privacy pages** in both languages: answers to the common questions, and what is stored, where, who can see it and how to remove it.
   - **A first visit that guides you:** choose Bangla or English, name the oldest ancestor you remember, then add their children, and a few short tips show how to choose a person, add relatives, switch views and undo. Every step can be skipped. Each view also shows one tip the first time it opens.
+  - **Keeping a guest's trees safe:** a small card suggests a free account when a guest's tree reaches five people, on their third visit, and before their first export. *Not now* hides it for a week.
+  - **Celebrations:** a burst of confetti and a message when a tree reaches 10, 50 or 100 people or five generations, once each (no confetti with reduced motion).
   - Search engines and link previews: page titles and descriptions in both languages, a sitemap, link previews with a picture in WhatsApp and Facebook, and an app icon.
 - Phase 7, pictures, PDFs and backups:
   - **Save or share** (the download button in the header, or the menu on phones): save the Tree, Family card, Circle or List as a picture (PNG) or a document (PDF), to share straight from a phone (WhatsApp and others) or download. Bangla names come out exactly as on screen, conjuncts and vowel signs intact, because the browser draws every letter.

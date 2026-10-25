@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { UpgradeCard } from '@/features/auth/UpgradePrompt';
+import { useUpgradePrompt } from '@/features/auth/useUpgradePrompt';
 import { saveBackup } from '@/features/backup/json';
 import { Choice, Row } from '@/features/editor/shell/TreeSettingsDialog';
 import { photosEnabled } from '@/features/media/cloudinaryUrl';
@@ -148,6 +150,9 @@ export default function ExportDialog({
   const [printing, setPrinting] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const stopPrinting = useCallback(() => setPrinting(false), []);
+  // A guest hears about accounts before their first export (AUTH-03); saving counts as seen.
+  const upgrade = useUpgradePrompt('firstExport');
+  const { dismiss: seenUpgrade } = upgrade;
 
   const set = (patch: Partial<ExportOptions>) => setOptions((old) => ({ ...old, ...patch }));
   const svgView = options.view === 'tree' || options.view === 'circle';
@@ -198,6 +203,7 @@ export default function ExportDialog({
         if (await deliverFile(file, job.title)) toast.success(t('export.saved', { file: name }));
         if (result.smallPt !== null) toast.info(t('export.smallText', { pt: result.smallPt }));
         if (result.reduced) toast.info(t('export.reduced'));
+        seenUpgrade();
         onOpenChange(false);
       } catch (error) {
         if (!signal.aborted) {
@@ -208,13 +214,14 @@ export default function ExportDialog({
         finish();
       }
     },
-    [running, tree.name, t, onOpenChange],
+    [running, tree.name, t, onOpenChange, seenUpgrade],
   );
 
   const backup = async () => {
     try {
       const name = await saveBackup(tree, persons.values(), relationships.values());
       if (name) toast.success(t('export.backupSaved', { file: name }));
+      seenUpgrade();
     } catch (error) {
       logger.warn('backup.failed', { code: error instanceof Error ? error.name : 'unknown' });
       toast.error(t('export.failed'));
@@ -239,6 +246,9 @@ export default function ExportDialog({
             <DialogTitle>{t('export.title')}</DialogTitle>
             <DialogDescription>{t('export.description')}</DialogDescription>
           </DialogHeader>
+          {upgrade.visible && (
+            <UpgradeCard id="firstExport" onDismiss={upgrade.dismiss} className="shadow-none" />
+          )}
 
           <fieldset disabled={busy} className="space-y-4">
             <Row label={t('export.view')} htmlFor={`${id}-view`}>

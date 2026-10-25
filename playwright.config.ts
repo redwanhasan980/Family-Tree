@@ -28,6 +28,11 @@ export default defineConfig({
           localStorage: [
             { name: 'shikor:onboarding', value: 'done' },
             { name: 'shikor:tips', value: JSON.stringify(['tree', 'family', 'circle', 'list']) },
+            // Sign-up invitations snoozed far ahead (AUTH-03); e2e/milestones.spec.ts shows them.
+            ...(['fifthPerson', 'firstExport', 'thirdVisit'] as const).map((id) => ({
+              name: `shikor:prompt:${id}:dismissedAt`,
+              value: String(Date.UTC(2100, 0, 1)),
+            })),
           ],
         },
       ],

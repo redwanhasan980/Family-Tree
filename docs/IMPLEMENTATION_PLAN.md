@@ -320,7 +320,7 @@ gantt
 
 - [x] **P8-01** Landing page (bn/en): hero, animated sample tree, features, privacy promise, CTA; SEO metadata, OG images, `sitemap`, `robots`. *(ONB-01, I18N-06)*
 - [x] **P8-02** **First-run wizard** (language → oldest ancestor → children → tour), coach marks per view, empty states; sample tree *(Could, not built)*. *(ONB-02/03/04)*
-- [ ] **P8-03** Wire the milestone upgrade prompts (5th person, first export, 3rd visit, 7-day snooze) and celebrations. *(AUTH-03, UX-04)*
+- [x] **P8-03** Wire the milestone upgrade prompts (5th person, first export, 3rd visit, 7-day snooze) and celebrations. *(AUTH-03, UX-04)*
 - [x] **P8-04** Help/FAQ and Privacy pages (bn/en), covering guest storage, retention, Cloudinary and deletion. *(ONB-05, NFR-PRIV-02)*
 - [ ] **P8-05** Dark-mode polish across all screens and views. *(UX-05)*
 - [ ] **P8-06** **Accessibility audit:** axe at 0 serious issues, keyboard pass, TalkBack and VoiceOver pass; fixes. *(NFR-A11Y-*)*

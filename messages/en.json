@@ -892,5 +892,18 @@
         "outline": "Everyone in order, numbered by family line. Switch to “Everyone” to find, sort and filter people."
       }
     }
+  },
+  "upgrade": {
+    "label": "Keep your trees safe",
+    "fifthPerson": "Your tree is growing! For now it is saved only in this browser. Create a free account to keep it safe and open it on any device.",
+    "thirdVisit": "Welcome back! Your trees are saved only in this browser. Create a free account to keep them safe and open them on any device.",
+    "firstExport": "Your tree is saved only in this browser. A free account keeps it safe on any device.",
+    "later": "Not now"
+  },
+  "celebrate": {
+    "people10": "10 people in your family tree. Well done!",
+    "people50": "50 people in your family tree. What a family!",
+    "people100": "100 people in your family tree. Wonderful work!",
+    "generations5": "Five generations in your family tree!"
   }
 }

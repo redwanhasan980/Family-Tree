@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/SessionProvider';
+import { GuestUpgradePrompt } from '@/features/auth/UpgradePrompt';
+import { useTreeGrowth } from '@/features/milestones/useTreeGrowth';
 import { isWelcome, welcomeDone } from '@/features/onboarding/progress';
 import { ViewTips } from '@/features/onboarding/ViewTips';
 import { AddRelativeFlows } from '@/features/person/AddRelativeFlows';
@@ -225,6 +227,7 @@ export function EditorShell({ treeId }: { treeId: ID }) {
   useEditorUrlState(treeId, tree?.settings.defaultView);
   useLeaveWarning();
   const welcome = useWelcome(treeId);
+  const grown = useTreeGrowth(treeId);
 
   const name = tree?.name;
   useEffect(() => {
@@ -278,10 +281,9 @@ export function EditorShell({ treeId }: { treeId: ID }) {
             <main id="main" className="min-w-0 flex-1 overflow-y-auto">
               <ViewArea />
             </main>
-            <ViewTips
-              tour={welcome}
-              className="absolute inset-x-3 top-3 sm:inset-x-auto sm:top-auto sm:right-4 sm:bottom-4 sm:w-96"
-            />
+            <div className="pointer-events-none absolute inset-x-3 top-3 *:pointer-events-auto sm:inset-x-auto sm:top-auto sm:right-4 sm:bottom-4 sm:w-96">
+              <ViewTips tour={welcome} otherwise={<GuestUpgradePrompt grown={grown} />} />
+            </div>
           </div>
           <DetailsContainer />
         </div>

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SessionState } from '@/lib/domain/auth/session';
 
-import { useUpgradePrompt } from './useUpgradePrompt';
+import { useUpgradePrompt, useVisitCount } from './useUpgradePrompt';
 
 const state = vi.hoisted(() => ({ session: { status: 'restoring' } as SessionState }));
 
@@ -74,5 +74,19 @@ describe('useUpgradePrompt', () => {
     const { result } = renderHook(() => useUpgradePrompt('fifthPerson'));
     expect(result.current.visible).toBe(true);
     expect(() => act(() => result.current.dismiss())).not.toThrow();
+  });
+});
+
+describe('useVisitCount', () => {
+  it('counts one visit a day in this browser', () => {
+    expect(renderHook(() => useVisitCount()).result.current).toBe(1);
+    expect(renderHook(() => useVisitCount()).result.current).toBe(1);
+    vi.setSystemTime(new Date('2026-10-24T10:00:00Z'));
+    expect(renderHook(() => useVisitCount()).result.current).toBe(2);
+  });
+
+  it('starts again from a broken record', () => {
+    window.localStorage.setItem('shikor:visits', '{"count":"many"}');
+    expect(renderHook(() => useVisitCount()).result.current).toBe(1);
   });
 });

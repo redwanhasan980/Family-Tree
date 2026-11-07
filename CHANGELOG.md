@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Add sibling: a person with no parents yet can also get an unknown father placeholder in one tap, instead of only the full "add a parent" form, so the brother or sister form opens right away; the placeholder can be renamed afterwards like anyone else.
 - Family card: moving between families now selects the person, and switching to the Tree, List or Circle centres on them instead of showing the tree from them; switching to the Family card opens the family of whoever is selected. Each parent and child also has a *Details* button, so their details open without leaving the family.
 - Details panel: a husband's or wife's marriage date can now be set, and when someone married more than once, the marriages can be put in order (1st, 2nd …), which the Family card and the tree follow.
 - Screen readers: the Tree view's cards now read their full name (with years and "deceased"), and the expand, add and arrow buttons are no longer inside the list of people, as accessibility checkers expect.

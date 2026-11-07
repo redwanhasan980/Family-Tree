@@ -201,6 +201,14 @@ export function AddRelativeDialog({
   const shown = displayName(person.names, nameDisplay, locale).text;
   const formKind = kind === 'link' ? 'spouse' : kind;
   const noParents = kind === 'sibling' && parentsOf(graph, person.id).length === 0;
+  // Reactive `graph` flips `noParents` to false as soon as this lands, revealing the
+  // sibling form without closing the dialog (REL-05).
+  const addUnknownParent = () =>
+    run(
+      (ctx) =>
+        addParent(ctx, person.id, { names: nameFromText(t('unknownParentName')), gender: 'male' }),
+      false,
+    );
   const title = existing
     ? t('linkTitle')
     : formKind === 'spouse'
@@ -263,6 +271,15 @@ export function AddRelativeDialog({
             <Button className="h-11 w-full" onClick={() => onSwitch('parent')}>
               {t('addParentFirst')}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full"
+              onClick={addUnknownParent}
+            >
+              {t('addUnknownParent')}
+            </Button>
+            <Problems {...problems} />
           </div>
         ) : (
           <form

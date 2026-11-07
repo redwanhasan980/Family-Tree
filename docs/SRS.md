@@ -268,7 +268,7 @@ Requirements are assigned to releases R1–R4 (§8). Anything marked **Could** m
 | REL-02 | **Quick actions** on every person: *Add son/daughter*, *Add spouse*, *Add father/mother*, *Add brother/sister*. | M | R1 |
 | REL-03 | **Automatic other parent:** a child added to a person with exactly one spouse is linked to both parents. With several spouses, the user picks the other parent; the default is the first spouse by marriage order. With no spouse, only one parent is linked, and the other can be added later. | M | R1 |
 | REL-04 | **Bulk add children:** enter several names at once (one per line, or as chips), each with a son/daughter toggle. They are added in birth order in one step. | M | R1 |
-| REL-05 | **Add sibling** creates a child of the person's parents. If the person has no parents, the system offers to add a parent first. | S | R1 |
+| REL-05 | **Add sibling** creates a child of the person's parents. If the person has no parents, the system offers to add a parent first, or add an unknown father as a placeholder (named "Unknown") so the sibling flow can continue right away; the placeholder can be renamed like anyone else. | S | R1 |
 | REL-06 | **Link an existing person:** any "add relative" action can pick an existing person (searchable) instead of creating a new one. This covers cousin marriages and corrections. | M | R1 |
 | REL-07 | **Edit relationships:** change kind or status, change which mother/father a child belongs to, reorder children (birth order), reorder spouses. | M | R1 |
 | REL-08 | **Move a branch:** change a person's parent. Their descendants move with them. This uses a picker, plus drag-and-drop in the desktop tree view (Could). | M | R1 |

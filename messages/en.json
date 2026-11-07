@@ -631,6 +631,8 @@
     "useNew": "Add a new person instead",
     "noParentsHint": "There are no parents in the tree yet. Add a father or mother first, then the brothers and sisters.",
     "addParentFirst": "Add a father or mother",
+    "addUnknownParent": "Add an unknown father for now",
+    "unknownParentName": "Unknown",
     "addAnyway": "Add anyway",
     "add": "Add",
     "childName": "Name of child {number}",

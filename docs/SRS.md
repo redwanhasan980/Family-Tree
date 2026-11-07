@@ -419,9 +419,9 @@ A printable book of the whole family: a keepsake for elders, reunions and future
 
 | ID | Requirement | Pri | Rel |
 | --- | --- | --- | --- |
-| MED-01 | Upload one profile photo per person, from the camera or gallery on mobile, or a file picker or drag-and-drop on desktop. JPEG, PNG, WebP and HEIC (where the browser can decode it); at most 10 MB before compression. | M | R1 |
+| MED-01 | Upload one profile photo per person, from the camera or gallery on mobile, or a file picker or drag-and-drop on desktop. JPEG, PNG, WebP and HEIC (where the browser can decode it); at most 20 MB before compression. A file that isn't a photo the browser can decode (a video, for instance) is refused, whatever its name or extension. | M | R1 |
 | MED-02 | A **square crop** step with zoom before upload, plus rotate (Should). | M | R1 |
-| MED-03 | Client-side **compression** to at most 1600 px on the long edge before upload. | M | R1 |
+| MED-03 | Client-side **compression** to at most 1600 px on the long edge and, where the photo allows it, at most 500 KB, stepping quality down and then the edge rather than failing the upload when a photo resists compression. | M | R1 |
 | MED-04 | Face-aware **thumbnails** on cards; the full photo appears in the details panel and a lightbox. | M | R1 |
 | MED-05 | Replace or remove a photo. The previous image is deleted from storage. | M | R1 |
 | MED-06 | Upload progress, error and retry. While offline, upload is disabled with an explanation. | M | R1 |

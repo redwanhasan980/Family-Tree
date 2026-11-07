@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Photos: a picked photo up to 20 MB (covers a typical 10-12 MB phone photo) is compressed toward 500 KB before upload, stepping quality down and then the photo's size itself for busy photos that resist compression, instead of always uploading at a fixed quality that could land well over that for detailed photos.
 - Add sibling: a person with no parents yet can also get an unknown father placeholder in one tap, instead of only the full "add a parent" form, so the brother or sister form opens right away; the placeholder can be renamed afterwards like anyone else.
 - Family card: moving between families now selects the person, and switching to the Tree, List or Circle centres on them instead of showing the tree from them; switching to the Family card opens the family of whoever is selected. Each parent and child also has a *Details* button, so their details open without leaving the family.
 - Details panel: a husband's or wife's marriage date can now be set, and when someone married more than once, the marriages can be put in order (1st, 2nd …), which the Family card and the tree follow.

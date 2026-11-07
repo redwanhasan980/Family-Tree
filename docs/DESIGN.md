@@ -1213,7 +1213,7 @@ sequenceDiagram
     participant K as Cloudinary
     participant F as Firestore
     U->>C: choose photo (camera / gallery / drop)
-    C->>C: decode → crop (react-easy-crop) → canvas → square JPEG ≤1600 px, quality 0.85
+    C->>C: decode → crop (react-easy-crop) → canvas → square JPEG ≤1600 px, ≤500 KB
     C->>S: POST {treeId, personId} (Bearer token)
     S->>S: verify token, role ≥ editor, person exists, rate limit
     S-->>C: {signature, timestamp, apiKey, cloudName, publicId, assetFolder, allowedFormats, transformation}
@@ -1224,9 +1224,9 @@ sequenceDiagram
 ```
 
 - **The dialog** (`features/media/PhotoDialog.tsx`) is opened from the camera badge on the details panel avatar. It offers "Take a photo" (`capture="environment"`, touch devices only), "Choose a photo" and drag-and-drop, then a square cropper with a zoom slider and quarter-turn rotation, a progress bar with Cancel, and Retry after a failure. When a photo exists it also offers Replace and Remove. Replace, remove and undo are ordinary commands (`setPersonPhoto`), so the toast's Undo works as everywhere else.
-- **Compression without a library:** `cropImage.ts` draws the rotated crop onto a canvas no larger than 1600 px and saves it with `toBlob('image/jpeg', 0.85)`. HEIC that the browser can't decode is refused as "not an image"; Safari decodes it natively.
-- **Signed parameters:** `public_id`, `asset_folder`, `timestamp`, `allowed_formats=jpg,jpeg,png,webp,heic,avif`, and an incoming `transformation=c_limit,w_2000,h_2000`, so the stored size is capped even if a client skips compression. `lib/server/cloudinary.ts` signs with Cloudinary's documented scheme: the parameters sorted by name, joined as `a=1&b=2`, the API secret appended, SHA-1 (`signParams`, tested against the example in Cloudinary's docs). No Cloudinary SDK is installed.
-- **Constraints:** at most 10 MB input and image types only, checked on the client (`MAX_PHOTO_BYTES`). Cloudinary's own plan limits are the backstop.
+- **Compression without a library:** `cropImage.ts` draws the rotated crop onto a canvas no larger than 1600 px, then `compressToBudget` saves it with `toBlob('image/jpeg', quality)` stepping quality down a fixed ladder (0.85 → 0.35) until it's at or under `TARGET_PHOTO_BYTES` (500 KB). If even the lowest quality doesn't fit, the canvas itself shrinks by 25% (never below `MIN_PHOTO_EDGE`, 640 px) and the quality ladder runs again; a high-entropy photo that still can't fit at the smallest size uploads the smallest attempt rather than failing, since the target is a goal, not a hard cap the app enforces. HEIC that the browser can't decode is refused as "not an image"; Safari decodes it natively.
+- **Signed parameters:** `public_id`, `asset_folder`, `timestamp`, `allowed_formats=jpg,jpeg,png,webp,heic,avif`, and an incoming `transformation=c_limit,w_2000,h_2000`, so the stored size is capped even if a client skips compression. Cloudinary also refuses any format outside that allow-list, so a renamed non-image file is rejected server-side even if a client check is bypassed. `lib/server/cloudinary.ts` signs with Cloudinary's documented scheme: the parameters sorted by name, joined as `a=1&b=2`, the API secret appended, SHA-1 (`signParams`, tested against the example in Cloudinary's docs). No Cloudinary SDK is installed.
+- **Constraints:** at most 20 MB input (covers a 10-12 MB phone photo) and image types only, checked on the client (`MAX_PHOTO_BYTES`) by attempting to decode the file as an image, not just trusting its name or reported MIME type. Cloudinary's own plan limits are the backstop.
 - **Offline:** the upload buttons are disabled with the message "Photos need an internet connection" (MED-06).
 - **Not set up:** without `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` the build shows no photo buttons and avatars fall back to initials (`photosEnabled()`). Without the API key and secret the server answers `503 unavailable`, which the dialog shows as "Photos aren't available yet."
 

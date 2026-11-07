@@ -239,8 +239,9 @@ function CropStep({
 
 /**
  * Adding, replacing or removing a person's photo (P5-04, MED-01..06): pick from the
- * camera, the gallery or a drop, crop it square with zoom and rotation, shrink it to
- * 1600 px, upload it with progress, then save it as an undoable change.
+ * camera, the gallery or a drop, crop it square with zoom and rotation, shrink it to at
+ * most 1600 px and compress it toward 500 KB, upload it with progress, then save it as
+ * an undoable change.
  */
 export function PhotoDialog({
   person,

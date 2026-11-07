@@ -10,10 +10,18 @@ import type { ID } from './types';
  * by the client and the server.
  */
 
-/** MED-01: what a person may pick, before compression. */
-export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+/** MED-01: what a person may pick, before compression (covers a 10-12 MB phone photo). */
+export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 /** MED-03: the long edge after compression in the browser. */
 export const PHOTO_EDGE = 1600;
+/**
+ * MED-03: the file size compression aims for. Quality steps down first; if even the
+ * lowest quality at the full edge doesn't fit, the edge shrinks too (never below
+ * `MIN_PHOTO_EDGE`), so a busy, hard-to-compress photo still fits a reasonable budget.
+ */
+export const TARGET_PHOTO_BYTES = 500 * 1024;
+/** MED-03: compression never shrinks a photo smaller than this, even to hit the target. */
+export const MIN_PHOTO_EDGE = 640;
 /** Cloudinary caps what it stores at this size, even if a client skips compression. */
 export const STORED_EDGE = 2000;
 export const PHOTO_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'avif'] as const;

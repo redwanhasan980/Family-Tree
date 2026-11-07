@@ -120,7 +120,9 @@ test.describe('adding relatives', () => {
       .getByRole('button', { name: 'Choose someone already in the tree instead' })
       .click();
     const dialog = page.getByRole('dialog', { name: 'Link someone already in the tree' });
-    await expect(dialog.getByRole('radio', { name: 'Father or mother' })).toBeChecked();
+    // The default matches "Add a father or mother": the picked person becomes Abdul
+    // Karim's parent, so his own role (what the radio names) is "Son or daughter".
+    await expect(dialog.getByRole('radio', { name: 'Son or daughter' })).toBeChecked();
     await dialog.getByPlaceholder('Search by name or nickname').fill('Tanvir');
     await dialog.getByRole('option', { name: /Tanvir/ }).click();
     await expect(

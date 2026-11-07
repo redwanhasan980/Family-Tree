@@ -140,11 +140,14 @@ function LinkExisting({
                 className="sr-only"
               />
               {t(
+                // `value` is the picked person's role (REL-06's `spec`); the label
+                // instead names `person`'s role, the inverse, which reads more clearly
+                // from the card you opened this dialog on.
                 value === 'child'
-                  ? 'linkAsChild'
+                  ? 'linkAsParent'
                   : value === 'spouse'
                     ? 'linkAsSpouse'
-                    : 'linkAsParent',
+                    : 'linkAsChild',
               )}
             </label>
           ))}

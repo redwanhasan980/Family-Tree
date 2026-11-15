@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - Link previews in WhatsApp, Facebook and Messenger now show the page's picture on the live site; the picture's address pointed to `localhost` on a self-hosted server.
+- Deploys: the production image builds again; its install step was missing the `patches/` folder (the next-themes fix), so every image build and deploy stopped there.
 - Deploys: the Firestore security rules and indexes are published from the repository in every Deploy run, before the new version starts, so a new server never runs without its rules (needs the new `FIREBASE_DEPLOY_SA` secret, docs/DEPLOYMENT.md). On the server, Caddy now does all compression, which keeps the app's Node process free for requests.
 - Photos: a picked photo up to 20 MB (covers a typical 10-12 MB phone photo) is compressed toward 500 KB before upload, stepping quality down and then the photo's size itself for busy photos that resist compression, instead of always uploading at a fixed quality that could land well over that for detailed photos.
 - Add sibling: a person with no parents yet can also get an unknown father placeholder in one tap, instead of only the full "add a parent" form, so the brother or sister form opens right away; the placeholder can be renamed afterwards like anyone else.

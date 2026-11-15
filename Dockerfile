@@ -14,6 +14,8 @@ WORKDIR /app
 # --- dependencies (cached until the lockfile changes) ---
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
+# pnpm applies package.json → pnpm.patchedDependencies during install.
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 
 # --- build ---

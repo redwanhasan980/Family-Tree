@@ -1,7 +1,10 @@
 import { routing, type Locale } from '@/i18n/routing';
 
-/** The site's public address, for canonical links, the sitemap and social cards. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(
+/**
+ * The site's public address, for canonical links, the sitemap and social cards. An empty
+ * value counts as unset: Docker passes a build argument without a value as "".
+ */
+export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(
   /\/$/,
   '',
 );

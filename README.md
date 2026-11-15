@@ -199,7 +199,7 @@ These need the owner's accounts (see [Implementation Plan §8](docs/IMPLEMENTATI
   2. In *Firebase console → Authentication → Settings → Authorized domains*, add your domain.
   3. In *Google Cloud console → APIs & Services → Credentials → the "Web client (auto created by Google Service)" OAuth client*, add `https://<your-domain>/__/auth/handler` to **Authorized redirect URIs**.
   4. Check it: `https://<your-domain>/__/auth/handler` should load Firebase's page, and "Continue with Google" should work on an iPhone in Safari.
-- Firestore rules and indexes are deployed by CI from `firebase/`. Do not edit them in the console.
+- Firestore rules and indexes are deployed from `firebase/` by the Deploy workflow (secret `FIREBASE_DEPLOY_SA`, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §3 Step 6). Do not edit them in the console.
 
 ---
 

@@ -1857,11 +1857,12 @@ jobs:
   rules:   # firebase emulators:exec "pnpm test:rules"
   e2e:     # next build → Playwright (mobile Chrome, mobile Safari, desktop Chrome) with axe
   image:   # docker build of the production Dockerfile (not pushed)
-# Later: lighthouse (budgets, P8-07) and deploy-rules (firebase deploy of rules and indexes, P8-12)
+# Later: lighthouse (budgets, P8-07)
 
 # .github/workflows/deploy.yml — after CI succeeds on main (or by hand); off until DEPLOY_ENABLED=true
 jobs:
-  deploy:  # build + push ghcr.io/<owner>/shikor:<sha> → SSH → /opt/shikor/deploy.sh <sha> → check /api/health
+  firestore: # firebase deploy --only firestore:rules,firestore:indexes (FIREBASE_DEPLOY_SA; OPS-05)
+  deploy:    # needs firestore: build + push ghcr.io/<owner>/shikor:<sha> → SSH → /opt/shikor/deploy.sh <sha> → check /api/health
 ```
 
 - **Branching:** trunk-based. While the owner works alone, small, frequent commits go directly to `main`, each passing the local checks. Once collaborators join, short-lived `feat/*`, `fix/*` and `docs/*` branches go to `main` through PRs. `main` is always deployable.
@@ -1875,10 +1876,11 @@ jobs:
 | Piece | Detail |
 | --- | --- |
 | Image (`Dockerfile`) | Multi-stage: `pnpm install` → `next build` with `BUILD_STANDALONE=1` and `NEXT_PUBLIC_*` build args → runtime on `node:22-bookworm-slim` with only the standalone server, static assets and `public/`; runs as user `node`; health check on `/api/health` (every 2 s while starting, then every 30 s). |
-| Stack (`deploy/compose.yml`) | `web` (the image, port 3000, not published) and `caddy` (ports 80/443 incl. HTTP/3, automatic Let's Encrypt, zstd/gzip). Logs rotate at 10 MB × 5. |
+| Stack (`deploy/compose.yml`) | `web` (the image, port 3000, not published) and `caddy` (ports 80/443 incl. HTTP/3, automatic Let's Encrypt, zstd/gzip). The standalone build turns off Next.js's own gzip (`compress: false`), so Caddy compresses and Node's event loop doesn't. Logs rotate at 10 MB × 5. |
+| Firestore rules and indexes | The Deploy workflow's `firestore` job runs `firebase deploy --only firestore:rules,firestore:indexes` before the app goes out (OPS-05), with a service account that has only *Firebase Rules Admin*, *Cloud Datastore Index Admin* and *Service Usage Consumer* (secret `FIREBASE_DEPLOY_SA`). |
 | Server setup (`deploy/setup-server.sh`) | Run once by the owner as root on Ubuntu/Debian: updates, Docker, key-only `deploy` user, `/opt/shikor` with a 600 `.env`, ufw (22/80/443), fail2ban, unattended upgrades, swap, optional `--harden-ssh` with a lock-out guard. |
 | Deploy (`deploy/deploy.sh`) | Syncs `compose.yml` and `Caddyfile` from the deployed commit, pulls the image (GHCR token only via stdin), records `IMAGE_TAG`, waits for health and **rolls back** to the previous version if the new one is unhealthy (the job then fails). |
-| Secrets | GitHub secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (strict host-key checking), optional `DEPLOY_PORT`. The VPS root password is never stored or shared. |
+| Secrets | GitHub secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (strict host-key checking), optional `DEPLOY_PORT`, and `FIREBASE_DEPLOY_SA`. The VPS root password is never stored or shared. |
 
 Step-by-step owner instructions: [docs/DEPLOYMENT.md](./DEPLOYMENT.md).
 

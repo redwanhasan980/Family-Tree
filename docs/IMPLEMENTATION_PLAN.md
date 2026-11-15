@@ -330,7 +330,7 @@ gantt
 - [ ] **P8-09** **Bangla copy review** by a native speaker; glossary consistency; unused-key detection in `pnpm i18n:check`. *(NFR-L10N-02)*
 - [ ] **P8-10** Monitoring: Sentry with PII scrubbing (optional), an uptime monitor on `/api/health`, optional self-hosted cookieless analytics, quota runbook in the README. *(OPS-02/03)*
 - [ ] **P8-11** **Usability test** with 5 target users (at least 3 on phones, at least 2 Bangla-first) against NFR-USE-01; fix the top issues.
-- [ ] **P8-12** Production setup: prod Firebase project, rules and indexes deployed by CI, OAuth redirect URIs, custom domain, auth-domain proxy verified on iOS Safari; release **v1.0.0** (tag, CHANGELOG, README).
+- [ ] **P8-12** Production setup: prod Firebase project, rules and indexes deployed by CI, OAuth redirect URIs, custom domain, auth-domain proxy verified on iOS Safari; release **v1.0.0** (tag, CHANGELOG, README). *(The Deploy workflow now deploys the rules and indexes before the app (`firestore` job), and pages set `metadataBase` so link previews use the real domain. The rest waits for the owner's server, domain and keys.)*
 
 **Exit criteria (release gate R1):** all *Must* R1 requirements are met; CI is green including E2E and a11y; Lighthouse mobile is ≥ 90 on the landing page; there are no open high-severity bugs; the product owner signs off.
 

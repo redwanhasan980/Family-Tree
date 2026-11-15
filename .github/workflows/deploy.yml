@@ -1,8 +1,9 @@
 name: Deploy
 
-# Builds the production image and deploys `main` to the VPS after CI passes
-# (docs/DEPLOYMENT.md). It does nothing until the repository variable
-# DEPLOY_ENABLED is set to "true" and the DEPLOY_* secrets exist.
+# Deploys the Firestore rules and indexes, then builds the production image and deploys
+# `main` to the VPS after CI passes (docs/DEPLOYMENT.md). It does nothing until the
+# repository variable DEPLOY_ENABLED is set to "true"; it then needs FIREBASE_DEPLOY_SA
+# and the DEPLOY_* secrets.
 on:
   workflow_run:
     workflows: [CI]
@@ -19,11 +20,45 @@ permissions:
   packages: write
 
 jobs:
-  deploy:
-    name: Build image and deploy to the VPS
+  # Rules and indexes come from the repository only (OPS-05), and go out before the app
+  # that depends on them. The service account needs the roles in DEPLOYMENT.md §3 Step 6.
+  firestore:
+    name: Deploy Firestore rules and indexes
     if: >-
       vars.DEPLOY_ENABLED == 'true' &&
       (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy rules and indexes
+        env:
+          FIREBASE_DEPLOY_SA: ${{ secrets.FIREBASE_DEPLOY_SA }}
+          PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$FIREBASE_DEPLOY_SA" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::error::Set the FIREBASE_DEPLOY_SA secret and the NEXT_PUBLIC_FIREBASE_PROJECT_ID variable (docs/DEPLOYMENT.md §3 Step 6)."
+            exit 1
+          fi
+          key="$RUNNER_TEMP/firebase-deploy.json"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s' "$FIREBASE_DEPLOY_SA" > "$key")
+          GOOGLE_APPLICATION_CREDENTIALS="$key" pnpm exec firebase deploy \
+            --only firestore:rules,firestore:indexes --project "$PROJECT_ID" --non-interactive
+
+  deploy:
+    name: Build image and deploy to the VPS
+    needs: firestore
     runs-on: ubuntu-latest
     environment:
       name: production

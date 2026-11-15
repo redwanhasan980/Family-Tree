@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Providers } from '@/components/app/Providers';
 import { routing } from '@/i18n/routing';
 import { APP_NAME } from '@/lib/brand';
+import { SITE_URL } from '@/lib/site';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
@@ -34,6 +35,8 @@ export async function generateMetadata({ params }: Omit<Props, 'children'>): Pro
   const t = await getTranslations({ locale, namespace: 'meta' });
 
   return {
+    // Without it, relative social-card images resolve to localhost on a self-hosted server.
+    metadataBase: new URL(SITE_URL),
     title: { default: t('title', { appName: APP_NAME }), template: `%s · ${APP_NAME}` },
     description: t('description'),
     applicationName: APP_NAME,

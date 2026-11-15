@@ -14,7 +14,8 @@ const isDev = process.env.NODE_ENV !== 'production';
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
+  // apis.google.com: the Auth SDK loads gapi for Google sign-in (popup and redirect).
+  `script-src 'self' 'unsafe-inline' https://apis.google.com https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com",
   // data: for the fonts embedded in exported pictures (DESIGN §14).
@@ -62,6 +63,8 @@ const authHelperRewrites = firebaseProject
 const nextConfig: NextConfig = {
   // The Docker image runs Next.js as a standalone Node server (DESIGN §27.4).
   output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
+  // In the image, Caddy compresses (zstd/gzip) so Node's event loop doesn't have to.
+  compress: process.env.BUILD_STANDALONE !== '1',
   reactStrictMode: true,
   poweredByHeader: false,
   // Written into JSON backups (BAK-01), so an import knows which version made them.

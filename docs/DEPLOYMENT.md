@@ -25,6 +25,7 @@ flowchart LR
 - **The image is built on GitHub, not on the server**, so even a small VPS is enough.
 - The server runs two containers with Docker Compose. **Caddy** gets and renews free HTTPS certificates (Let's Encrypt) and forwards requests to the **web** container.
 - **The server keeps no app data.** People, trees and photos live in Firebase and Cloudinary. The only important file on the server is `/opt/shikor/.env`, which holds the server secrets.
+- **The Firestore security rules and indexes are deployed from the repository** first, in the same Deploy run, so they always match the code. Never edit them in the Firebase console.
 - **Safe deploys:** `deploy.sh` waits for the new version to report healthy. If it doesn't, it switches back to the previous version automatically, and the Deploy run is marked as failed.
 
 ---
@@ -125,6 +126,15 @@ Copy the whole output line. To be sure it is really your server, compare it with
    | `DEPLOY_SSH_KEY` | the full contents of the private key file `shikor_deploy` |
    | `DEPLOY_KNOWN_HOSTS` | the line from Step 5 |
    | `DEPLOY_PORT` | only if SSH is not on port 22 |
+   | `FIREBASE_DEPLOY_SA` | the full JSON key of a service account that may deploy the Firestore rules and indexes (see below) |
+
+   Every deploy first publishes `firebase/firestore.rules` and `firebase/firestore.indexes.json` to the project, so the security rules always match the code. **Without this secret the Deploy run stops**, because the app doesn't work without its rules (a new production database refuses every read). To create the key:
+
+   1. [Google Cloud console](https://console.cloud.google.com/iam-admin/serviceaccounts?project=shikor-fe44d) → *IAM & Admin → Service accounts → Create service account*, named for example `github-firestore-deploy`.
+   2. Give it exactly these roles: **Firebase Rules Admin**, **Cloud Datastore Index Admin** and **Service Usage Consumer**. Not *Owner* or *Editor*.
+   3. Open the account → *Keys → Add key → Create new key → JSON*. Paste the whole downloaded file into the secret, then delete the file.
+
+   This is a different account from the one in the server's `FIREBASE_SERVICE_ACCOUNT`: the server can't change the rules, and GitHub can't read your data.
 
 3. **Variables:** same page, **Variables** tab. These values are public and are built into the web pages.
 
@@ -188,6 +198,7 @@ The daily clean-up job (`/api/cron/cleanup`, P9-05) will be called by the server
 | Symptom | Fix |
 | --- | --- |
 | The Deploy workflow never runs | Check that `main` is the default branch and that `DEPLOY_ENABLED` is `true`. |
+| "Deploy Firestore rules and indexes" fails | "Set the FIREBASE_DEPLOY_SA secret": add it (§3 Step 6). "Permission denied" or "403": give the service account the three roles listed there, and check that the Firestore database exists (Firebase console → Firestore → Create database). |
 | "Host key verification failed" | `DEPLOY_KNOWN_HOSTS` doesn't match the server. Redo Step 5. |
 | "Permission denied (publickey)" | `DEPLOY_SSH_KEY` doesn't match the key given to `setup-server.sh`. Re-run the script with the right `.pub` line. |
 | "is not healthy … rolling back" | The new version failed to start. Read the logs printed in the Deploy run (or `docker compose logs web`). The site keeps running the previous version. |

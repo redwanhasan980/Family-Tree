@@ -116,7 +116,8 @@ firebase/                   firestore.rules, indexes, rules tests
 - **Onboarding in E2E:** `playwright.config.ts` gives every test a `storageState` that marks the first-run wizard and the view tips as seen (`shikor:onboarding`, `shikor:tips`) and snoozes the guest sign-up cards. Specs about first visits or the cards override it (`e2e/onboarding.spec.ts`, `e2e/milestones.spec.ts`).
 - **Design tokens:** shadcn names are kept: `--accent` is the hover surface, the brand marigold is `--highlight`. The contrast test fails CI if a text/background pair drops below WCAG AA.
 - **Hosting is a self-managed VPS** (D7, DESIGN §27.4): Docker Compose with Next.js (standalone, only when `BUILD_STANDALONE=1`) behind Caddy, deployed by `.github/workflows/deploy.yml`. Never ask for or accept server passwords; deploys use the key in GitHub secrets. `NEXT_PUBLIC_*` values are build-time, so changing one needs a redeploy. There is no Vercel.
-- **pnpm build scripts:** pnpm 10 blocks dependency install scripts; allowed ones are listed in `package.json` → `pnpm.onlyBuiltDependencies`.
+- **pnpm build scripts:** pnpm 10 blocks dependency install scripts; allowed ones are listed in `package.json` → `pnpm.onlyBuiltDependencies`. Patched packages (`pnpm.patchedDependencies`) need `patches/` in the Dockerfile's install stage, or the image build fails with ENOENT.
+- **Empty build arguments:** Docker passes an unset `NEXT_PUBLIC_*` build argument as `""`, not undefined. Fall back with `||`, never `??` (`lib/site.ts`). Before pushing build-time changes, build with every `NEXT_PUBLIC_*` set to empty and `BUILD_STANDALONE=1`, as CI's image job does.
 
 ## Working style for Claude
 

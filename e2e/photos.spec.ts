@@ -36,18 +36,23 @@ async function openDetails(page: Page, name: string) {
   if (isPhone(page)) await page.getByRole('button', { name: `Details: ${name}` }).click();
 }
 
-/** The byte length of the "file" part of a Cloudinary upload's multipart body. */
-function uploadedFileBytes(route: Parameters<Parameters<Page['route']>[1]>[0]): number {
-  const contentType = route.request().headers()['content-type'] ?? '';
-  const boundary = /boundary=([^;]+)/.exec(contentType)?.[1];
-  const buffer = route.request().postDataBuffer();
-  if (!boundary || !buffer) return -1;
-  const body = buffer.toString('latin1');
-  const marker = `\r\n--${boundary}`;
-  const fileAt = body.indexOf('name="file"');
-  const headerEnd = body.indexOf('\r\n\r\n', fileAt) + 4;
-  if (fileAt < 0 || headerEnd < 4) return -1;
-  return body.indexOf(marker, headerEnd) - headerEnd;
+/**
+ * Records the size of each photo the app hands to XMLHttpRequest. WebKit leaves blob parts
+ * out of the request body Playwright sees, so the network side would read 0 bytes there.
+ */
+async function recordUploadSizes(page: Page): Promise<() => Promise<number[]>> {
+  await page.addInitScript(() => {
+    const sizes: number[] = [];
+    Object.assign(window, { __uploadSizes: sizes });
+    const send = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function (body) {
+      const file = body instanceof FormData ? body.get('file') : null;
+      if (file instanceof Blob) sizes.push(file.size);
+      return send.call(this, body);
+    };
+  });
+  return () =>
+    page.evaluate(() => (window as unknown as { __uploadSizes: number[] }).__uploadSizes);
 }
 
 /** A large, high-entropy (hard to compress) square JPEG, generated in the browser. */
@@ -139,9 +144,8 @@ test('a photo shows in the tree, the panel and on the dashboard (P5)', async ({ 
 test('a large, hard-to-compress photo still lands under the size target (MED-03)', async ({
   page,
 }) => {
-  const uploadedBytes: number[] = [];
+  const uploadSizes = await recordUploadSizes(page);
   await page.route('https://api.cloudinary.com/v1_1/*/image/upload', async (route) => {
-    uploadedBytes.push(uploadedFileBytes(route));
     const body = route.request().postDataBuffer()?.toString('latin1') ?? '';
     const publicId = /name="public_id"\r\n\r\n([^\r]+)/.exec(body)?.[1] ?? '';
     await route.fulfill({ json: { public_id: publicId, version: 1, width: 900, height: 900 } });
@@ -171,6 +175,7 @@ test('a large, hard-to-compress photo still lands under the size target (MED-03)
   await page.getByRole('button', { name: 'Use this photo' }).click();
   await expect(page.getByText('Photo saved.')).toBeVisible();
 
+  const uploadedBytes = await uploadSizes();
   expect(uploadedBytes).toHaveLength(1);
   expect(uploadedBytes[0]).toBeGreaterThan(0);
   expect(uploadedBytes[0]).toBeLessThanOrEqual(500 * 1024);
